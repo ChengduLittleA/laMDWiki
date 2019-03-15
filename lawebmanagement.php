@@ -409,7 +409,7 @@ class LAManagement{
         $B = $this->GetBlock($Config,$BlockName);
         if(isset($B)) $L = $this->FindGeneralLineN($Config,$B,$LineName,$LineNumber);
         if(isset($L)) $A = $this->FindArgument($Config,$B,$L,$ArgumentName);
-        if(isset($A)) $this->SetArgument($Config,$B,$L,$A,$Value);
+        if(isset($A)) $this->SetArgument($Config,$B,$L,$A,$Value); 
         else $this->AddArgument($Config,$B,$L,$ArgumentName,$Value);
     }
     
@@ -870,7 +870,6 @@ class LAManagement{
                 background-color:#FFF;
                 box-shadow: 3px 3px #000;
                 margin-bottom:15px;
-                max-height:350px;
                 overflow: hidden;
             }
             .additional_content_left{
@@ -1078,7 +1077,7 @@ class LAManagement{
                 border:1px solid #000;
                 background-color:#FFF;
                 box-shadow: 3px 3px #000;
-                margin-bottom:-30px;
+                margin-bottom:-15px;
                 overflow: hidden;
                 display: inline-block;
                 position: relative;
@@ -1121,8 +1120,7 @@ class LAManagement{
                 background-color:#000;
             }
             .preview{
-                overflow: hidden;
-                padding: 10px;
+                margin: 10px;
             }
             .preview h1, 
             .preview h2, 
@@ -1714,6 +1712,8 @@ class LAManagement{
                 $arr[$i]['count'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Count');
                 $arr[$i]['quick_post'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'QuickPost');
                 $arr[$i]['title'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Title');
+                $arr[$i]['complete'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Complete');
+                $arr[$i]['more'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'More');
                 if($arr[$i]['count']===Null) $arr[$i]['count'] = 4;
                 $i++;
             }       
@@ -1772,7 +1772,7 @@ class LAManagement{
 
     }
     
-    function SetAdditionalDisplay($for,$target,$style,$count,$quick,$title){
+    function SetAdditionalDisplay($for,$target,$style,$count,$quick,$title,$complete,$more){
         $path = pathinfo($for,PATHINFO_DIRNAME);
         $file_name = pathinfo($for,PATHINFO_BASENAME);
         $Conf = $path.'/'.'la_config.md';
@@ -1791,10 +1791,12 @@ class LAManagement{
         }
         
         if($a!==Null){
-            if($style!==Null) $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Style',$style);
-            if($count!==Null) $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Count',$count);
-            if($quick!==Null) $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'QuickPost',$quick);
-            if($title!==Null) $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Title',$title);
+            if($style!==Null)    $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Style',$style);
+            if($count!==Null)    $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Count',$count);
+            if($quick!==Null)    $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'QuickPost',$quick);
+            if($title!==Null)    $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Title',$title);
+            if($complete!==Null) $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Complete',$complete);
+            if($more!==Null)     $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'More',$more);
             $ConfWrite = fopen($Conf,'w');
             $this->WriteMarkdownConfig($Config, $ConfWrite);
             fclose($ConfWrite);
@@ -1817,23 +1819,33 @@ class LAManagement{
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_style'){
             if(isset($_GET['target']) && isset($_GET['for'])){
                 if($s = isset($_GET['style'])){
-                    $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],$_GET['style'],Null,Null,Null);
+                    $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],$_GET['style'],Null,Null,Null,Null,Null);
                 }
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_count'){
             if(isset($_GET['target']) && isset($_GET['for']) && isset($_POST['display_count']) && $_POST['display_count']!=''){
-                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,$_POST['display_count'],Null,Null);
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,$_POST['display_count'],Null,Null,Null,Null);
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_title'){
-            if(isset($_GET['target']) && isset($_GET['for']) && isset($_POST['display_title']) && $_POST['display_title']!=''){
-                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,$_POST['display_title']);
+            if(isset($_GET['target']) && isset($_GET['for']) && isset($_POST['display_title'])){
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,$_POST['display_title'],Null,Null);
+            }
+            header('Location:?page='.$_GET['for'].'&operation=additional');
+        }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_more_title'){
+            if(isset($_GET['target']) && isset($_GET['for']) && isset($_POST['display_more_title'])){
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,Null,Null,$_POST['display_more_title']);
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_quick_post'){
             if(isset($_GET['target']) && isset($_GET['for'])){
-                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,$_GET['quick'],Null);
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,$_GET['quick'],Null,Null,Null);
+            }
+            header('Location:?page='.$_GET['for'].'&operation=additional');
+        }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_complete'){
+            if(isset($_GET['target']) && isset($_GET['for'])){
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,Null,$_GET['complete'],Null);
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }
@@ -1937,17 +1949,32 @@ class LAManagement{
                             <form method = "post" style='display:inline;' 
                             action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_title&for='.$this->PagePath.'&target='.$path?>"
                             id="form_additional_title<?php echo $path?>">
-                                <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['title'])?$a['title']:'最近更新') ?>" id="display_title_<?php echo $path?>" name="display_title" form="form_additional_title<?php echo $path?>">
+                                <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['title'])?$a['title']:'') ?>" id="display_title_<?php echo $path?>" name="display_title" form="form_additional_title<?php echo $path?>">
                                 <input class="btn form_btn" type="submit" value="设置" name="button_additional_title_confirm" form="form_additional_title<?php echo $path?>" id='additional_title_confirm_<?php echo $path?>'>
                             </form>
-                            <?php if($a['style']==3) if(isset($a['quick_post']) && $a['quick_post']!=0){?>
+                            <?php if($a['style']==3){ if(isset($a['quick_post']) && $a['quick_post']!=0){?>
+                                <div class='inline_height_spacer'></div>
+                                时间线列表按钮：
+                                <form method = "post" style='display:inline;' 
+                                action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_more_title&for='.$this->PagePath.'&target='.$path?>"
+                                id="form_additional_more_title<?php echo $path?>">
+                                    <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['more'])?$a['more']:'') ?>" id="display_more_title_<?php echo $path?>" name="display_more_title" form="form_additional_more_title<?php echo $path?>">
+                                    <input class="btn form_btn" type="submit" value="设置" name="button_additional_more_title_confirm" form="form_additional_more_title<?php echo $path?>" id='button_additional_more_title_confirm<?php echo $path?>'>
+                                </form>
+                                
                                 <div class='inline_height_spacer'></div>
                                 <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=0"?>'>关闭快速发帖</a>
                             <?php }else if(!isset($a['quick_post']) || $a['quick_post']==0){?>
                                 <div class='inline_height_spacer'></div>
                                 <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=1"?>'>启用快速发帖</a>
                             <?php }?>
+                            <?php if(isset($a['complete']) && $a['complete']!=0){?>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_complete&for=".$this->PagePath."&target=".$path."&complete=0"?>'>改显示为摘要</a>
+                            <?php }else if(!isset($a['complete']) || $a['complete']==0){?>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_complete&for=".$this->PagePath."&target=".$path."&complete=1"?>'>改显示为全文</a>
+                            <?php }?>
 
+                            <?php }?>
                         </div>
                     </div>
                     
@@ -1963,10 +1990,10 @@ class LAManagement{
             <?php
             }
             
-            if(isset($a['title'])){
+            if(isset($a['title']) && $a['title']!=''){
                 ?>
                 <div style='text-align:center;'>
-                    <div class='additional_content inline_block'>
+                    <div class='narrow_content inline_block'>
                         <?php echo $a['title'] ?>
                     </div>
                 </div>
@@ -2036,8 +2063,9 @@ class LAManagement{
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                     if($f=='la_config.md') continue;
                     $y=''; $m=''; $d='';
+                    $show_complete = isset($a['complete'])&&$a['complete']==1;
                     $this->GetFileNameDateFormat($f,$y,$m,$d);
-                    $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
+                    $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),$show_complete?10000:10);
                     ?>
                     <div class='additional_content additional_content_left hidden_on_mobile'>
                         <div class='plain_block' style='text-align:center'>
@@ -2049,13 +2077,22 @@ class LAManagement{
                             <span style='font-size:24px;'><b><?php echo $d?></b></span><br /><?php echo $y?><?php echo $m?'/'.$m:'' ?>
                         </div>
                         <div class='btn block' style='text-align:unset;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
-                            <div class='preview' style='max-height:200px;'><?php echo $this->HTMLFromMarkdown($rows);?></div>
+                            <div class='preview' <?php echo $show_complete?'':'style="max-height:200px;overflow:hidden;"'?>><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
                     </div>
                     <div style='clear:both'></div>
                     <?php
                     $i++;
                     if($i>=$a['count']) break;
+                }
+                if(isset($a['more']) && $a['more']!=''){
+                    ?>
+                    <div style='text-align:center;'>
+                        <div class='narrow_content inline_block'>
+                            <a href='?page=<?php echo $a['path']?>&operation=timeline'><?php echo $a['more'] ?></a>
+                        </div>
+                    </div>
+                    <?php
                 }
             }
         }

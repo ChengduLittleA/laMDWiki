@@ -29,8 +29,6 @@ admin
 
 <!-- End of Groups -->
 
-
-
 ## MDConf示例
 
 <!-- Demo of how to modify markdown conf -->
@@ -70,7 +68,8 @@ Additional
 - Style = 3
 - Count = 10
 - QuickPost = 1
-- Title = <b>最近更新的帖子</b>
+- Title = 最近更新的帖子
+- More = 听小A讲那过去的故事
 
 <!-- End of index.md -->
 
