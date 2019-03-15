@@ -66,7 +66,7 @@ admin admin
 Additional
 - Path = ./SubFolder
 - Style = 3
-- Count = 10
+- Count = 2
 - QuickPost = 1
 - Title = 最近更新的帖子
 - More = 听小A讲那过去的故事

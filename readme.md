@@ -56,4 +56,4 @@ la_config.md
 LAMDWIKI作者是成都小A。
 LAMDWIKI is made by ChengduLittleA.
 
-访问小A的博客 / Visit ChengdulittleA's Website：http://www.wellobeserve.com
+访问小A的博客 / Visit ChengdulittleA's Website：http://www.wellobserve.com

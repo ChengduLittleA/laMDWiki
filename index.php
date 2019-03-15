@@ -98,7 +98,9 @@ $LAManagement->SetInterlinkPath($la_page_path);
 echo $LAManagement->DoLogin();
 
 if(!$LAManagement->IsLoggedIn()){
-    if (isset($la_operation) && $la_operation!='tile'){
+    if (isset($la_operation)
+        && $la_operation!='tile'
+        && $la_operation!='timeline'){
         $LAManagement->LimitAccess(1);
     }
 }
@@ -170,6 +172,12 @@ if($la_operation == 'new'){
 
     echo $LAManagement->MakeFileList(isset($_GET["moving"])?$_GET["moving"]:"",False);
 
+}else if($la_operation == 'timeline' && isset($_GET['folder'])){
+    
+    $pos=0;
+    if(isset($_GET['position'])) $pos = $_GET['position'];
+    echo $LAManagement->MakeAdditionalContent($_GET['folder'],$pos);
+
 }else if($la_operation == 'additional' && isset($_GET['action']) && $_GET['action']=='view'){
 
     echo $LAManagement->MakeFileList($_GET["page"],True);
@@ -188,7 +196,7 @@ if($la_operation == 'new'){
     echo $LAManagement->HTMLFromMarkdownFile($la_page_path);
     echo $LAManagement->MakeMainContentEnd();
     
-    echo $LAManagement->MakeAdditionalContent();
+    echo $LAManagement->MakeAdditionalContent(Null,Null);
 }
 
 echo $LAManagement->MakeFooter();

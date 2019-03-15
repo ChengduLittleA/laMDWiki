@@ -1902,10 +1902,30 @@ class LAManagement{
         </div>
         <?php
     }
-    function MakeAdditionalContent(){
-        $ad = $this->GetAdditionalDisplayData();
-        $this->Additional = $ad;
-        if(!isset($ad[0])) return;
+    function MakeAdditionalContent($folder,$position){
+        if(!isset($folder)){
+            $ad = $this->GetAdditionalDisplayData();
+            $this->Additional = $ad;
+            if(!isset($ad[0])) return;
+        }else{
+            $aa['path'] = $folder;
+            $aa['style'] = 3;
+            $aa['complete'] = 1;
+            $aa['count'] = 10;
+            $ad[] = $aa;
+            $this->Additional = $ad;
+            
+            ?>
+            <div class='top_panel block'>
+                <a href='?page=<?php echo $this->PagePath?>'>不看了</a>
+                <div style='text-align:right;float:right;right:0px;'>
+                    <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder?>&position=<?php echo $position-1?>'><b>上一页</b></a>
+                    <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder?>&position=<?php echo $position+1?>'><b>下一页</b></a>
+                </div>
+            </div>
+            <?php
+        }
+
         foreach($ad as $a){
             $this->FileNameList=[];
             $path = $a['path'];
@@ -2007,7 +2027,7 @@ class LAManagement{
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     ?>
                     <div class='additional_content'>
-                        <div class='btn block' style='text-align:unset;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
+                        <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
                             <div class='preview' style='max-height:300px;'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
                     </div>
@@ -2023,7 +2043,8 @@ class LAManagement{
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     ?>
                     <div class='tile_content tile_item'>
-                        <div class='btn block' style='text-align:unset;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
+                        □
+                        <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
                             <div class='preview' style='max-height:300px;'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
                     </div>
@@ -2089,7 +2110,7 @@ class LAManagement{
                     ?>
                     <div style='text-align:center;'>
                         <div class='narrow_content inline_block'>
-                            <a href='?page=<?php echo $a['path']?>&operation=timeline'><?php echo $a['more'] ?></a>
+                            <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $a['path']?>'><?php echo $a['more'] ?></a>
                         </div>
                     </div>
                     <?php

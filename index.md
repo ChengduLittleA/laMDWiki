@@ -62,4 +62,4 @@ LAMDWIKI is made by ChengduLittleA.
 
 xp8110@outlook.com
 
-访问小A的博客 / Visit ChengdulittleA's Website：http://www.wellobeserve.com
+访问小A的博客 / Visit ChengdulittleA's Website：http://www.wellobserve.com
