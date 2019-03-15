@@ -23,8 +23,6 @@ LAMDWIKI is a website backend whose aim is to replace the aging MDWIKI.
 - 文件夹隐藏功能。
 - 使用Markdown文件配置，配置内容和文件中包含的其他文字内容共存。
 
-[查看演示文件](Demo.md)
-
 - Ugly user interface, which eliminates long time use of the website.
 - Large font, reduce the risk of eye deseases.
 - Light weight, insecure, good for hackers to attack.
@@ -36,8 +34,6 @@ LAMDWIKI is a website backend whose aim is to replace the aging MDWIKI.
 - Support admin login, users who haven't logged in can't modify content.
 - Blog-like passage list, can choose between different styles.
 - Use Markdown files to config. Config entries co-exist with other content in the file.
-
-[DEMO](Demo.md)
 
 ## 如何使用 How to use
 
@@ -59,7 +55,5 @@ la_config.md
 
 LAMDWIKI作者是成都小A。
 LAMDWIKI is made by ChengduLittleA.
-
-xp8110@outlook.com
 
 访问小A的博客 / Visit ChengdulittleA's Website：http://www.wellobeserve.com
