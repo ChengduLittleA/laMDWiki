@@ -58,7 +58,7 @@ class LAManagement{
         while($path[0]=='/' || $path[0]=='\\') $path = substr($path,1);
         $len = strlen($path);
         if (is_dir($path)){
-            if($path[$len-1] != '/' || $path[$len-1] != '\\') $path = $path.'/';
+            if($path[$len-1] != '/' && $path[$len-1] != '\\') $path = $path.'/';
             $path=$path.'index.md';
         }
         if ((!file_exists($path) || is_readable($path) == false)
@@ -907,6 +907,24 @@ class LAManagement{
                 .gallery_main_height    { height: unset; }
             }
             
+            @media print {
+                body{ width:100%; min-width: unset; }
+                #Header                 { display: none; }
+                .top_panel,
+                .footer                 { display: none; }
+                .main_content,
+                .narrow_content,
+                .additional_content,
+                .additional_content_left,
+                .tile_content,
+                .top_panel              { padding:0;  border: none; background-color:#FFF; box-shadow: unset; margin:0; overflow: unset; }
+                .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:1000; max-height: unset;}
+                .gallery_left           { height: unset; width: unset; position: unset; padding:0;  border: none; background-color:#FFF; box-shadow: unset; margin:0; overflow: unset; }
+                .gallery_right          { height: unset; width: unset; left: unset; z-index:10; position: unset; padding:0;  border: none; background-color:#FFF; box-shadow: unset; margin:0; overflow: unset; }
+                .gallery_main_height    { max-height: unset }
+                .no_padding             { padding: 0px; }
+            }
+            
             @media (min-resolution: 192dpi),
             (-webkit-min-device-pixel-ratio: 2), (min--moz-device-pixel-ratio: 2),
             (-o-min-device-pixel-ratio: 2/1),
@@ -916,6 +934,8 @@ class LAManagement{
                 .login_half{ width:75%; }
                 .big_string{ height:100px; }
             }
+            
+            
             
         </style>
         <script>
