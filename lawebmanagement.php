@@ -787,6 +787,7 @@ class LAManagement{
             h3 > img{ float: right; margin-left: 10px; max-width:30%;}
             h4 > img{ float: left; margin-right: 10px; max-width:30%;}
             a > img{ pointer-events: none; }
+            .gallery_left img{ float: unset; margin: 5px auto; max-width: 100%;}
             
             table{ width:100%; }
             
@@ -818,7 +819,8 @@ class LAManagement{
             .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:1000; max-height: unset;}
             .gallery_left           { height:calc(100% - 160px); position: fixed; width:350px; }
             .gallery_right          { width:calc(100% - 365px); left: 365px; z-index:10; position: relative;}
-            .gallery_main_height    { height: 100%; }
+            .gallery_main_height    { max-height: 100%; }
+            .no_padding             { padding: 0px; }
             
             .btn          { border:1px solid #000; padding: 5px; color:#000; display: inline; background-color:#FFF; font-size:16px; cursor: pointer; text-align: center; }
             .btn:hover    { border:3px double #000; padding: 3px; }
@@ -1849,7 +1851,7 @@ class LAManagement{
             }else if (isset($a['style']) && $a['style']==1){
                 $cc = $a['column']?$a['column']:4;
                 ?><div class='tile_container'><?php
-                $i=0;
+                $i=0;$j=0;
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                     if($f=='la_config.md') continue;
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
@@ -1861,37 +1863,33 @@ class LAManagement{
                         </div>
                     </div>
                     <?php
-                    $i++;
+                    $i++;$j++;
+                    if($j>=$a['count']) break;
                     if($i>=$cc){
                         ?><div style='display: table-row;'></div><?php
                         $i=0;
                     }
-                    if($i>=$a['count']) break;
                 }
                 ?></div><?php
             }else if (isset($a['style']) && $a['style']==2){
                 $cc = $a['column']?$a['column']:4;
                 ?><div class='tile_container'><?php
-                $i=0;
+                $i=0;$j=0;
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                     if($f=='la_config.md') continue;
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     ?>
                     <div class='tile_content tile_item'>
-                        □
-                        <div class='btn block' style='text-align:unset;overflow:hidden'>
-                            <div class='preview' style='max-height:300px;'>
-                                <img src='<?php echo $path.'/'.$f?>'></img>
-                            </div>
+                        <div class='btn block' style='height:200px; background-image:url("<?php echo $path.'/'.$f?>"); background-repeat: no-repeat;  background-position: center; background-size: cover;'>
                         </div>
                     </div>
                     <?php
-                    $i++;
+                    $i++;$j++;
+                    if($j>=$a['count']) break;
                     if($i>=$cc){
                         ?><div style='display: table-row;'></div><?php
                         $i=0;
-                    }
-                    if($i>=$a['count']) break;
+                    } 
                 }
                 ?></div><?php
             }else if (isset($a['style']) && $a['style']==3){
@@ -2292,12 +2290,23 @@ class LAManagement{
             var image_alt=document.getElementById("image_alt")
             var image_white=document.getElementById("image_white_area")
             var img = document.getElementsByTagName("img");
+            var bkg_img = document.getElementsByTagName("div");
             for (var i=0; i<img.length-1;i++){
                 img[i].onclick=function(){
                     image.src=this.src;
                     image_alt.innerHTML=this.alt;
                     dialog.style.display="block";
                 }
+                
+            }
+            for (var i=0; i<bkg_img.length;i++){
+                if(!bkg_img[i].style.backgroundImage) continue;
+                bkg_img[i].onclick=function(){
+                    image.src=this.style.backgroundImage.match(/url\(["']?([^"']*)["']?\)/)[1];
+                    image_alt.innerHTML=image.src;
+                    dialog.style.display="block";
+                }
+                
             }
             close.onclick=function(){
                 dialog.style.display='none';
@@ -2410,7 +2419,7 @@ class LAManagement{
                         delete_inner.style.display='none';
                         cancel_button.style.display='none';
                     });
-                }catch{
+                }catch(err){
                 }
    
                 <?php

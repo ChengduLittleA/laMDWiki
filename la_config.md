@@ -69,7 +69,12 @@ Additional
 - Path = ./img
 - Style = 2
 - Count = 1000
-- Title = 照片墙
+- Title = 
+
+Additional
+- Path = ./SubFolder
+- Style = 3
+- Title = 我在说什么
 
 <!-- End of index.md -->
 
