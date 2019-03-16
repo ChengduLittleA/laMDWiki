@@ -1,5 +1,7 @@
 # LA-MDWIKI
 
+### ![Markdown-mark](img/Markdown-mark.svg)
+
 欢迎使用LAMDWIKI！
 
 Thanks for choosing LAMDWIKI.
