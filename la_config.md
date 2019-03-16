@@ -63,13 +63,13 @@ admin admin
 
 <!-- index.md -->
 
+Layout = Gallery
+
 Additional
-- Path = ./SubFolder
-- Style = 3
-- Count = 10
-- QuickPost = 1
-- Title = 最近更新的帖子
-- More = 听小A讲那过去的故事
+- Path = ./img
+- Style = 2
+- Count = 1000
+- Title = 照片墙
 
 <!-- End of index.md -->
 

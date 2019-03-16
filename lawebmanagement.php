@@ -31,6 +31,7 @@ class LAManagement{
     protected $NextFile;
     
     protected $Additional;
+    protected $AdditionalLayout;
     
     function __construct() {
         $this->PDE = new ParsedownExtra();
@@ -795,7 +796,7 @@ class LAManagement{
             ::selection{ background:#000; color:#FFF; }
             ::-webkit-selection{ background:#000; color:#FFF; }
             
-            #Header{ position: sticky; top:0px; left:15%; display: block; }
+            #Header{ position: sticky; top:0px; left:15%; display: block; z-index:100; }
             #WebsiteTitle{ border:1px solid #000; display: inline-block; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-left:0px; margin-right:0px; margin-bottom:15px;
                 background-color:#FFF; box-shadow: 5px 5px #000;
             }	
@@ -808,13 +809,16 @@ class LAManagement{
             }
             .login_half{ float: right; right: 10px; width: 50%; text-align: right;}
             
-            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; }
+            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin; }
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; overflow: hidden; }
             .additional_content_left{ margin-right: 15px; float: left; text-align: center; }
             .tile_content           { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .top_panel              { padding:10px; padding-top:15px; padding-bottom:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: hidden; }
             .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:1000; max-height: unset;}
+            .gallery_left           { height:calc(100% - 160px); position: fixed; width:350px; }
+            .gallery_right          { width:calc(100% - 365px); left: 365px; z-index:10; position: relative;}
+            .gallery_main_height    { height: 100%; }
             
             .btn          { border:1px solid #000; padding: 5px; color:#000; display: inline; background-color:#FFF; font-size:16px; cursor: pointer; text-align: center; }
             .btn:hover    { border:3px double #000; padding: 3px; }
@@ -896,6 +900,9 @@ class LAManagement{
                 .tile_container{ display: block; table-layout: unset; width: 100%; margin: 0px; }
                 .tile_item{ display: block; }
                 
+                .gallery_left           { height: unset; position: unset; width: unset; }
+                .gallery_right          { width: unset; left: unset; z-index:10; position: unset; }
+                .gallery_main_height    { height: unset; }
             }
             
             @media (min-resolution: 192dpi),
@@ -926,7 +933,7 @@ class LAManagement{
     }
     function PageHeaderEnd(){
         ?>
-        </div>
+            </div>
         <?php
     }
     function MakeTitleButton($Title){
@@ -938,14 +945,31 @@ class LAManagement{
         <?php
     }
     function MakeMainContentBegin(){
+        $layout = $this->GetAdditionalLayout();
+        $this->AdditionalLayout = $layout;
+        if($layout == 'Gallery' && (!isset($_GET['operation'])||$_GET['operation']=='additional')){
         ?>
-        <div class='main_content'>
+            <div class='gallery_left'>
+            <div class='main_content gallery_main_height'>
         <?php
+        }else{
+        ?>
+            <div class='main_content'>
+        <?php
+        }
     }
     function MakeMainContentEnd(){
+        $layout = $this->AdditionalLayout;
+        if($layout == 'Gallery'){
         ?>
-        </div>
+            </div>
+            </div>
         <?php
+        }else{
+        ?>
+            </div>
+        <?php
+        }
     }
     function MakeLoginDiv(){
     ?> 
@@ -1390,18 +1414,33 @@ class LAManagement{
             fclose($ConfRead);
             $i=0;
             while($this->GetLineByNamesN($Config,$file_name,'Additional',$i)!==Null){
-                $arr[$i]['path'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Path');
-                $arr[$i]['style'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Style');
-                $arr[$i]['count'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Count');
+                $arr[$i]['path']       = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Path');
+                $arr[$i]['style']      = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Style');
+                $arr[$i]['count']      = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Count');
+                $arr[$i]['column']     = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'ColumnCount');
                 $arr[$i]['quick_post'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'QuickPost');
-                $arr[$i]['title'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Title');
-                $arr[$i]['complete'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Complete');
-                $arr[$i]['more'] = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'More');
+                $arr[$i]['title']      = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Title');
+                $arr[$i]['complete']   = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Complete');
+                $arr[$i]['more']       = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'More');
                 if($arr[$i]['count']===Null) $arr[$i]['count'] = 4;
                 $i++;
             }       
         }
         return $arr;
+    }
+    function GetAdditionalLayout(){
+        $path = $this->InterlinkPath();
+        $file_name = pathinfo($this->PagePath,PATHINFO_BASENAME);
+        $Conf = $path.'/'.'la_config.md';
+        
+        if(is_readable($Conf)){
+            $ConfRead = fopen($Conf,'r');
+            $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($Conf)));
+            fclose($ConfRead);
+            $i=0;
+            return $this->GetLineValueByNames($Config,$file_name,'Layout');    
+        }
+        return Null;
     }
     
     function AddAdditionalDisplayData($for,$target_path){
@@ -1455,7 +1494,7 @@ class LAManagement{
 
     }
     
-    function SetAdditionalDisplay($for,$target,$style,$count,$quick,$title,$complete,$more){
+    function SetAdditionalDisplay($for,$target,$style,$count,$quick,$title,$complete,$more,$column){
         $path = pathinfo($for,PATHINFO_DIRNAME);
         $file_name = pathinfo($for,PATHINFO_BASENAME);
         $Conf = $path.'/'.'la_config.md';
@@ -1476,6 +1515,7 @@ class LAManagement{
         if($a!==Null){
             if($style!==Null)    $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Style',$style);
             if($count!==Null)    $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Count',$count);
+            if($column!==Null)   $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'ColumnCount',$column);
             if($quick!==Null)    $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'QuickPost',$quick);
             if($title!==Null)    $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Title',$title);
             if($complete!==Null) $this->EditArgumentByNamesN($Config,$file_name,'Additional',$i,'Complete',$complete);
@@ -1484,6 +1524,25 @@ class LAManagement{
             $this->WriteMarkdownConfig($Config, $ConfWrite);
             fclose($ConfWrite);
         }
+    }
+    
+    function SetAdditionalLayout($for,$layout){
+        $path = pathinfo($for,PATHINFO_DIRNAME);
+        $file_name = pathinfo($for,PATHINFO_BASENAME);
+        $Conf = $path.'/'.'la_config.md';
+        $Config = Null;
+        
+        if(is_readable($Conf)){
+            $ConfRead = fopen($Conf,'r');
+            $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($Conf)));
+            fclose($ConfRead);
+        }
+        
+        $this->EditBlock($Config,$file_name);
+        $this->EditGeneralLineByName($Config,$file_name,'Layout',$layout);
+        $ConfWrite = fopen($Conf,'w');
+        $this->WriteMarkdownConfig($Config, $ConfWrite);
+        fclose($ConfWrite);
     }
     
     function DoAdditionalConfig(){
@@ -1502,33 +1561,43 @@ class LAManagement{
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_style'){
             if(isset($_GET['target']) && isset($_GET['for'])){
                 if($s = isset($_GET['style'])){
-                    $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],$_GET['style'],Null,Null,Null,Null,Null);
+                    $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],$_GET['style'],Null,Null,Null,Null,Null,Null);
                 }
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_count'){
             if(isset($_GET['target']) && isset($_GET['for']) && isset($_POST['display_count']) && $_POST['display_count']!=''){
-                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,$_POST['display_count'],Null,Null,Null,Null);
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,$_POST['display_count'],Null,Null,Null,Null,Null);
+            }
+            header('Location:?page='.$_GET['for'].'&operation=additional');
+        }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_column_count'){
+            if(isset($_GET['target']) && isset($_GET['for']) && isset($_GET['column_count']) && $_GET['column_count']!=''){
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,Null,Null,Null,$_GET['column_count']);
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_title'){
             if(isset($_GET['target']) && isset($_GET['for']) && isset($_POST['display_title'])){
-                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,$_POST['display_title'],Null,Null);
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,$_POST['display_title'],Null,Null,Null);
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_more_title'){
             if(isset($_GET['target']) && isset($_GET['for']) && isset($_POST['display_more_title'])){
-                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,Null,Null,$_POST['display_more_title']);
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,Null,Null,$_POST['display_more_title'],Null);
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_quick_post'){
             if(isset($_GET['target']) && isset($_GET['for'])){
-                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,$_GET['quick'],Null,Null,Null);
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,$_GET['quick'],Null,Null,Null,Null);
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_complete'){
             if(isset($_GET['target']) && isset($_GET['for'])){
-                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,Null,$_GET['complete'],Null);
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,Null,Null,Null,$_GET['complete'],Null,Null);
+            }
+            header('Location:?page='.$_GET['for'].'&operation=additional');
+        }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_layout'){
+            if(isset($_GET['for'])&&isset($_GET['layout'])){
+                $this->SetAdditionalLayout($_GET['for'],$_GET['layout']);
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }
@@ -1550,11 +1619,17 @@ class LAManagement{
         $path = $this->InterlinkPath();
         $additional_disp = $this->GetAdditionalDisplayData();
         $this->Additional = $additional_disp;
+        $layout = $this->GetAdditionalLayout();
         ?>
         <div class='top_panel'>
             <a class='btn' href='?page=<?php echo $path?>&operation=list'>列表</a>
             <a class='btn' href='?page=<?php echo $this->PagePath?>'>退出</a>
             <div style="float:right;text-align:right;margin-left:5px;">
+                <?php if ((!$layout || $layout=='Normal') && isset($additional_disp)){ ?>
+                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=set_additional_layout&layout=Gallery&for=<?php echo $this->PagePath?>'>设为画廊布局</a>
+                <?php }else if($layout && $layout=='Gallery'){ ?>
+                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=set_additional_layout&layout=Normal&for=<?php echo $this->PagePath?>'>设为普通布局</a>
+                <?php } ?>
                 <div class='btn' id='additional_display_button'>附加内容</div>
                 <div id='additional_display_dialog' style='display:none'>
                     <div class='inline_height_spacer'></div>
@@ -1619,6 +1694,12 @@ class LAManagement{
             $ad[] = $aa;
             $this->Additional = $ad;
         }
+        
+        if ($this->AdditionalLayout=='Gallery'){
+        ?>
+            <div class='gallery_right'>
+        <?php
+        }
 
         foreach($ad as $a){
             $this->FileNameList=[];
@@ -1630,8 +1711,13 @@ class LAManagement{
                     continue;
                 } else if(!is_dir($sub_dir)){
                     $ext=pathinfo($file,PATHINFO_EXTENSION);
-                    if($ext=='md')
-                        $this->FileNameList[] = $file;
+                    if($a['style']==2){
+                        if($ext=='jpg' || $ext=='jpeg' || $ext=='png' || $ext=='svg' || $ext=='webp')
+                            $this->FileNameList[] = $file;
+                    }else{
+                        if($ext=='md')
+                            $this->FileNameList[] = $file;
+                    }
                 }
             }
             if($this->FileNameList)     sort($this->FileNameList);
@@ -1667,7 +1753,7 @@ class LAManagement{
                             <div class='inline_height_spacer'></div>
                             显示为：
                             <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=0"?>'>列表</a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=2"?>'>组合</a>
+                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=2"?>'>画廊</a>
                             <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=1"?>'>方块</a>
                             <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=3"?>'>我说</a>
                             <div class='inline_height_spacer'></div>
@@ -1686,7 +1772,19 @@ class LAManagement{
                                 <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['title'])?$a['title']:'') ?>" id="display_title_<?php echo $path?>" name="display_title" form="form_additional_title<?php echo $path?>">
                                 <input class="btn form_btn" type="submit" value="设置" name="button_additional_title_confirm" form="form_additional_title<?php echo $path?>" id='additional_title_confirm_<?php echo $path?>'>
                             </form>
+                            <?php if($a['style']==1 || $a['style']==2){ ?>
+                                <div class='inline_height_spacer'></div>
+                                <?php $cc = $a['column']?$a['column']:4?>
+                                方块列数量：
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=1"?>'><?php echo $cc==1?'<b>1</b>':'1'?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=2"?>'><?php echo $cc==2?'<b>2</b>':'2'?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=3"?>'><?php echo $cc==3?'<b>3</b>':'3'?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=4"?>'><?php echo $cc==4?'<b>4</b>':'4'?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=5"?>'><?php echo $cc==5?'<b>5</b>':'5'?></a>
+                            <?php } ?>
+                            
                             <?php if($a['style']==3){ if(isset($a['quick_post']) && $a['quick_post']!=0){?>
+                            
                                 <div class='inline_height_spacer'></div>
                                 时间线列表按钮：
                                 <form method = "post" style='display:inline;' 
@@ -1695,7 +1793,6 @@ class LAManagement{
                                     <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['more'])?$a['more']:'') ?>" id="display_more_title_<?php echo $path?>" name="display_more_title" form="form_additional_more_title<?php echo $path?>">
                                     <input class="btn form_btn" type="submit" value="设置" name="button_additional_more_title_confirm" form="form_additional_more_title<?php echo $path?>" id='button_additional_more_title_confirm<?php echo $path?>'>
                                 </form>
-                                
                                 <div class='inline_height_spacer'></div>
                                 <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=0"?>'>关闭快速发帖</a>
                             <?php }else if(!isset($a['quick_post']) || $a['quick_post']==0){?>
@@ -1750,6 +1847,7 @@ class LAManagement{
                     if($i>=$a['count']) break;
                 }
             }else if (isset($a['style']) && $a['style']==1){
+                $cc = $a['column']?$a['column']:4;
                 ?><div class='tile_container'><?php
                 $i=0;
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
@@ -1764,6 +1862,35 @@ class LAManagement{
                     </div>
                     <?php
                     $i++;
+                    if($i>=$cc){
+                        ?><div style='display: table-row;'></div><?php
+                        $i=0;
+                    }
+                    if($i>=$a['count']) break;
+                }
+                ?></div><?php
+            }else if (isset($a['style']) && $a['style']==2){
+                $cc = $a['column']?$a['column']:4;
+                ?><div class='tile_container'><?php
+                $i=0;
+                if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
+                    if($f=='la_config.md') continue;
+                    $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
+                    ?>
+                    <div class='tile_content tile_item'>
+                        □
+                        <div class='btn block' style='text-align:unset;overflow:hidden'>
+                            <div class='preview' style='max-height:300px;'>
+                                <img src='<?php echo $path.'/'.$f?>'></img>
+                            </div>
+                        </div>
+                    </div>
+                    <?php
+                    $i++;
+                    if($i>=$cc){
+                        ?><div style='display: table-row;'></div><?php
+                        $i=0;
+                    }
                     if($i>=$a['count']) break;
                 }
                 ?></div><?php
@@ -1847,6 +1974,11 @@ class LAManagement{
             }
         }
         
+        if ($this->AdditionalLayout=='Gallery'){
+        ?>
+            </div>
+        <?php
+        }
     }
     function MakeFileList($moving,$viewing){
         $move_mode = $moving==''?$viewing:True;
