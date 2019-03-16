@@ -11,6 +11,7 @@ $UserData = "LAUsers.md";
 include 'Parsedown.php';    
 include 'ParsedownExtra.php';
 
+
 class LAManagement{
     protected $PDE;
     protected $UserConfig;
@@ -452,7 +453,7 @@ class LAManagement{
     }
     function FirstRows($content,$rows){
         $array = null;
-        $a = explode("\n",$content);img
+        $a = explode("\n",$content);
         $i=0;
         while ($i<$rows){
             if (isset($a[$i]) )
@@ -636,7 +637,7 @@ class LAManagement{
             fclose($file);
 
             header('Location:?page='.(isset($_GET['quick'])?$this->PagePath:$file_path));
-            exit;img
+            exit;
         }
     }
     function DoNewFolder(){
@@ -784,7 +785,7 @@ class LAManagement{
             img{ max-width: 100%; margin: 5px auto; display: block; }
             h3 > img{ float: right; margin-left: 10px; max-width:30%;}
             h4 > img{ float: left; margin-right: 10px; max-width:30%;}
-            a  > img{ pointer-events: none; }
+            a > img{ pointer-events: none; }
             
             table{ width:100%; }
             
@@ -1584,6 +1585,27 @@ class LAManagement{
         </div>
         <?php
     }
+    function GetAdditionalContent($page,&$prev,&$next,&$max){
+        $list = $this->FileNameList;
+        $ret=Null;
+        if($page<0) $page=0;
+        if(!$page) $prev=Null;
+        $i=0;
+        $skip=$page*10;
+        $to = $skip+10;
+        while($i<$skip){
+            $i++;
+        }
+        while(isset($list[$i])){
+            $ret[]=$list[$i];
+            $i++;
+            if($i>=$to) break;
+        }
+        if(isset($list[$i])) $next=$page+1;
+        else $next=Null;
+        $max = ceil(count($list)/10);
+        return $ret;
+    }
     function MakeAdditionalContent($folder,$position){
         if(!isset($folder)){
             $ad = $this->GetAdditionalDisplayData();
@@ -1593,19 +1615,9 @@ class LAManagement{
             $aa['path'] = $folder;
             $aa['style'] = 3;
             $aa['complete'] = 1;
-            $aa['count'] = 10;
+            $aa['count'] = 1000000;
             $ad[] = $aa;
             $this->Additional = $ad;
-            
-            ?>
-            <div class='top_panel block'>
-                <a href='?page=<?php echo $this->PagePath?>'>不看了</a>
-                <div style='text-align:right;float:right;right:0px;'>
-                    <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder?>&position=<?php echo $position-1?>'><b>上一页</b></a>
-                    <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder?>&position=<?php echo $position+1?>'><b>下一页</b></a>
-                </div>
-            </div>
-            <?php
         }
 
         foreach($ad as $a){
@@ -1624,6 +1636,26 @@ class LAManagement{
             }
             if($this->FileNameList)     sort($this->FileNameList);
             $this->FileNameList = array_reverse($this->FileNameList);
+            
+            if(isset($folder)){
+                $prev_page=0;
+                $next_page=0;
+                $max_page=0;
+                $this->FileNameList = $this->GetAdditionalContent($position,$prev_page,$next_page,$max_page);
+                
+                ?>
+                <div class='top_panel block'>
+                    <a href='?page=<?php echo $this->PagePath?>'>不看了</a>
+                    <div style='text-align:right;float:right;right:0px;'>
+                        <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b>上一页</b></a><?php } ?>
+                        &nbsp;
+                        <?php echo ($position+1).'/'.$max_page ?>
+                        &nbsp;
+                        <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?>'><b>下一页</b></a><?php } ?>
+                    </div>
+                </div>
+                <?php
+            }
             
             if(isset($_GET['operation']) && $_GET['operation'] == 'additional'){
             ?>
@@ -1682,8 +1714,8 @@ class LAManagement{
                     
                     <script>
                         var btn = document.getElementById("additional_options_btn_<?php echo $path?>");
-                        var options_dialog = document.getElementById("additional_options_dialog_<?php echo $path?>");
                         btn.addEventListener("click", function() {
+                            var options_dialog = document.getElementById("additional_options_dialog_<?php echo $path?>");
                             var disp = options_dialog.style.display;
                             options_dialog.style.cssText = disp=='none'?'display:block':'display:none';
                         });
@@ -1797,6 +1829,21 @@ class LAManagement{
                     </div>
                     <?php
                 }
+            }
+            if(isset($folder)){
+                ?>
+                <div style='text-align:center;'>
+                    <div class='top_panel inline_block'>
+                        <div style='text-align:right;float:right;right:0px;'>
+                            <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b>上一页</b></a><?php } ?>
+                            &nbsp;
+                            <?php echo ($position+1).'/'.$max_page ?>
+                            &nbsp;
+                            <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?>'><b>下一页</b></a><?php } ?>
+                        </div>
+                    </div>
+                </div>
+                <?php
             }
         }
         
@@ -2170,66 +2217,69 @@ class LAManagement{
             if (!isset($_GET["moving"]) && isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                 ?>
                 
-                document.getElementById("passage_show_detail_<?php echo $f;?>").
-                    addEventListener("click", function() {
+                try{
+                    document.getElementById("passage_show_detail_<?php echo $f;?>").
+                        addEventListener("click", function() {
+                        
+                        var detail_l = document.getElementById("passage_preview_<?php echo $f;?>");
+                        var detail_r = document.getElementById("passage_detail_<?php echo $f;?>");
+                        var summary_l = document.getElementById("passage_title_<?php echo $f;?>");
+                        var summary_r = document.getElementById("passage_filename_<?php echo $f;?>");
+                        detail_l.style.display = "block";
+                        detail_r.style.display = "block";
+                        summary_l.style.display =" none";
+                        summary_r.style.display = "none";
+                    });
+                    document.getElementById("passage_close_detail_<?php echo $f;?>").
+                        addEventListener("click", function() {
+                        
+                        var detail_l = document.getElementById("passage_preview_<?php echo $f;?>");
+                        var detail_r = document.getElementById("passage_detail_<?php echo $f;?>");
+                        var summary_l = document.getElementById("passage_title_<?php echo $f;?>");
+                        var summary_r = document.getElementById("passage_filename_<?php echo $f;?>");
+                        detail_l.style.display = "none";
+                        detail_r.style.display = "none";
+                        summary_l.style.display =" block";
+                        summary_r.style.display = "block";
+                    });
                     
-                    var detail_l = document.getElementById("passage_preview_<?php echo $f;?>");
-                    var detail_r = document.getElementById("passage_detail_<?php echo $f;?>");
-                    var summary_l = document.getElementById("passage_title_<?php echo $f;?>");
-                    var summary_r = document.getElementById("passage_filename_<?php echo $f;?>");
-                    detail_l.style.display = "block";
-                    detail_r.style.display = "block";
-                    summary_l.style.display =" none";
-                    summary_r.style.display = "none";
-                });
-                document.getElementById("passage_close_detail_<?php echo $f;?>").
-                    addEventListener("click", function() {
+                    document.getElementById("passage_rename_button_<?php echo $f;?>").
+                        addEventListener("click", function() {
+                        var original_inner = document.getElementById("passage_detail_inner_<?php echo $f;?>");
+                        var rename_inner = document.getElementById("passage_rename_inner_<?php echo $f;?>");
+                        var delete_inner = document.getElementById("passage_delete_inner_<?php echo $f;?>");
+                        var cancel_button = document.getElementById("passage_operation_close_<?php echo $f;?>");
+                        original_inner.style.display='none';
+                        rename_inner.style.display='block';
+                        delete_inner.style.display='none';
+                        cancel_button.style.display='inline';
+                    });
                     
-                    var detail_l = document.getElementById("passage_preview_<?php echo $f;?>");
-                    var detail_r = document.getElementById("passage_detail_<?php echo $f;?>");
-                    var summary_l = document.getElementById("passage_title_<?php echo $f;?>");
-                    var summary_r = document.getElementById("passage_filename_<?php echo $f;?>");
-                    detail_l.style.display = "none";
-                    detail_r.style.display = "none";
-                    summary_l.style.display =" block";
-                    summary_r.style.display = "block";
-                });
-                
-                document.getElementById("passage_rename_button_<?php echo $f;?>").
-                    addEventListener("click", function() {
-                    var original_inner = document.getElementById("passage_detail_inner_<?php echo $f;?>");
-                    var rename_inner = document.getElementById("passage_rename_inner_<?php echo $f;?>");
-                    var delete_inner = document.getElementById("passage_delete_inner_<?php echo $f;?>");
-                    var cancel_button = document.getElementById("passage_operation_close_<?php echo $f;?>");
-                    original_inner.style.display='none';
-                    rename_inner.style.display='block';
-                    delete_inner.style.display='none';
-                    cancel_button.style.display='inline';
-                });
-                
-                document.getElementById("passage_delete_button_<?php echo $f;?>").
-                    addEventListener("click", function() {
-                    var original_inner = document.getElementById("passage_detail_inner_<?php echo $f;?>");
-                    var rename_inner = document.getElementById("passage_rename_inner_<?php echo $f;?>");
-                    var delete_inner = document.getElementById("passage_delete_inner_<?php echo $f;?>");
-                    var cancel_button = document.getElementById("passage_operation_close_<?php echo $f;?>");
-                    original_inner.style.display='none';
-                    rename_inner.style.display='none';
-                    delete_inner.style.display='block';
-                    cancel_button.style.display='inline';
-                });
-                
-                document.getElementById("passage_operation_close_<?php echo $f;?>").
-                    addEventListener("click", function() {
-                    var original_inner = document.getElementById("passage_detail_inner_<?php echo $f;?>");
-                    var rename_inner = document.getElementById("passage_rename_inner_<?php echo $f;?>");
-                    var delete_inner = document.getElementById("passage_delete_inner_<?php echo $f;?>");
-                    var cancel_button = document.getElementById("passage_operation_close_<?php echo $f;?>");
-                    original_inner.style.display='block';
-                    rename_inner.style.display='none';
-                    delete_inner.style.display='none';
-                    cancel_button.style.display='none';
-                });
+                    document.getElementById("passage_delete_button_<?php echo $f;?>").
+                        addEventListener("click", function() {
+                        var original_inner = document.getElementById("passage_detail_inner_<?php echo $f;?>");
+                        var rename_inner = document.getElementById("passage_rename_inner_<?php echo $f;?>");
+                        var delete_inner = document.getElementById("passage_delete_inner_<?php echo $f;?>");
+                        var cancel_button = document.getElementById("passage_operation_close_<?php echo $f;?>");
+                        original_inner.style.display='none';
+                        rename_inner.style.display='none';
+                        delete_inner.style.display='block';
+                        cancel_button.style.display='inline';
+                    });
+                    
+                    document.getElementById("passage_operation_close_<?php echo $f;?>").
+                        addEventListener("click", function() {
+                        var original_inner = document.getElementById("passage_detail_inner_<?php echo $f;?>");
+                        var rename_inner = document.getElementById("passage_rename_inner_<?php echo $f;?>");
+                        var delete_inner = document.getElementById("passage_delete_inner_<?php echo $f;?>");
+                        var cancel_button = document.getElementById("passage_operation_close_<?php echo $f;?>");
+                        original_inner.style.display='block';
+                        rename_inner.style.display='none';
+                        delete_inner.style.display='none';
+                        cancel_button.style.display='none';
+                    });
+                }catch{
+                }
    
                 <?php
             }
