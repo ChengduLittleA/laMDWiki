@@ -12,6 +12,16 @@
 
 我对你有一点动心，却如此害怕看你的眼睛；有那么一点点动心，一点点迟疑，不敢相信我的情不自禁。我对你有一点动心，不知结果是悲伤还是喜；有那么一点点动心，一点点迟疑，害怕爱过以后还要失去，难以抗拒。人最怕就是动了情，虽然不想不看也不听，却陷入爱里。我和你，男和女都逃不过爱情，***也许应该放心，让爱一步步靠近***。
 
+### 白噪声音频文件播放示例
+
+<audio controls id='audio1'>
+    <source src="../snd/LA_WhiteNoise.ogg" type="audio/ogg">
+</audio>
+
+<audio controls id='audio2'>
+    <source src="../snd/LA_WhiteNoise.ogg" type="audio/ogg">
+</audio>
+
 ##  中标题
 
 ### ![Markdown-mark](img/Markdown-mark.svg)

@@ -193,6 +193,8 @@ if($la_operation == 'new'){
     if($LAManagement->IsLoggedIn())
         echo $LAManagement->MakePassageEditButtons();
     
+    $LAManagement->ConfirmMainPassage();
+    
     echo $LAManagement->HTMLFromMarkdownFile($la_page_path);
     echo $LAManagement->MakeMainContentEnd();
     
@@ -200,5 +202,7 @@ if($la_operation == 'new'){
 }
 
 echo $LAManagement->MakeFooter();
+
+echo $LAManagement->MakeAudioPlayer();
 
 ?>

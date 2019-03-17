@@ -33,6 +33,10 @@ class LAManagement{
     protected $Additional;
     protected $AdditionalLayout;
     
+    protected $IsMainPassage;
+    
+    protected $AudioList;
+    
     function __construct() {
         $this->PDE = new ParsedownExtra();
         $this->PDE->SetInterlinkPath('/');
@@ -76,6 +80,10 @@ class LAManagement{
     
     function GetEditMode(){
         return $this->IsEditing;
+    }
+    
+    function ConfirmMainPassage(){
+        $this->IsMainPassage=1;
     }
     
     //===========================================================================================================
@@ -417,6 +425,19 @@ class LAManagement{
     
     //======================================================================================================
     
+    function ScanForTagsInContent($Content){
+        $this->AudioList = [];
+        preg_match_all("/<audio[\s\S]*id=[\"']([\S]*)[\"'][\s\S]*<source[\s\S]*src=[\"']([\S]*)[\"']/U", $Content, $Matches, PREG_SET_ORDER);
+        if($Matches){
+            foreach($Matches as $m){
+                $group['id'] = $m[1];
+                $group['src'] = $m[2];
+                $this->AudioList[] = $group;
+            }
+        }
+        $this->IsMainPassage=0;
+    }
+    
     function ContentOfMarkdownFile($FileName){
         if(!isset($FileName)) return Null;
         while($FileName[0]=='/' || $FileName[0]=='\\') $FileName = substr($FileName,1);
@@ -435,6 +456,11 @@ class LAManagement{
         if ($length==0) $R="*空文件*";
         else $R = fread($File,$length);
         fclose($File);
+        
+        if($this->IsMainPassage){
+            $this->ScanForTagsInContent($R);
+        }
+        
         return $R;
     }
     function HTMLFromMarkdown($Content){
@@ -784,8 +810,8 @@ class LAManagement{
             }
             
             img{ max-width: 100%; margin: 5px auto; display: block; }
-            h3 > img{ float: right; margin-left: 10px; max-width:30%;}
-            h4 > img{ float: left; margin-right: 10px; max-width:30%;}
+            h3 > img{ float: right; margin-left: 10px; max-width:30%; clear: right;}
+            h4 > img{ float: left; margin-right: 10px; max-width:30%; clear: left;}
             a > img{ pointer-events: none; }
             .gallery_left img{ float: unset; margin: 5px auto; max-width: 100%;}
             
@@ -820,7 +846,13 @@ class LAManagement{
             .gallery_left           { height:calc(100% - 160px); position: fixed; width:350px; }
             .gallery_right          { width:calc(100% - 365px); left: 365px; z-index:10; position: relative;}
             .gallery_main_height    { max-height: 100%; }
+            .gallery_multi_height   { position: relative;}
+            .gallery_multi_height:before   { content: " "; display: block; padding-top: 100%; }
+            .gallery_multi_content  { position: absolute;top: 5px; left: 5px; bottom: 5px; right: 5px; display: flex; align-items: center; overflow: hidden;}
+            .gallery_image          { max-width: unset; min-width: 100%; min-height: 100%; object-fit: cover; }
             .no_padding             { padding: 0px; }
+            
+            .audio_player_box       { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px;}
             
             .btn          { border:1px solid #000; padding: 5px; color:#000; display: inline; background-color:#FFF; font-size:16px; cursor: pointer; text-align: center; }
             .btn:hover    { border:3px double #000; padding: 3px; }
@@ -905,6 +937,9 @@ class LAManagement{
                 .gallery_left           { height: unset; position: unset; width: unset; }
                 .gallery_right          { width: unset; left: unset; z-index:10; position: unset; }
                 .gallery_main_height    { height: unset; }
+                .gallery_multi_height:before    { display: none; }
+                .gallery_multi_content  { position: unset;}
+                .gallery_image          { max-width: 100%; min-width: unset; min-height: unset; object-fit: unset;}
             }
             
             @media print {
@@ -942,6 +977,9 @@ class LAManagement{
         function la_auto_grow(element) {
             element.style.height = "20px";
             element.style.height = (element.scrollHeight+10)+"px";
+        }
+        function la_pad(num, n) {
+            return (Array(n).join(0) + num).slice(-n);
         }
         </script>
         </head>
@@ -1899,9 +1937,14 @@ class LAManagement{
                     if($f=='la_config.md') continue;
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     ?>
-                    <div class='tile_content tile_item'>
-                        <div class='btn block' style='height:200px; background-image:url("<?php echo $path.'/'.$f?>"); background-repeat: no-repeat;  background-position: center; background-size: cover;'>
-                        </div>
+                    <div class='tile_content tile_item <?php echo$cc==1?"":"gallery_multi_height" ?>' style='max-height:unset;'>
+                        <?php if($cc==1){ ?>
+                            <img src='<?php echo $path.'/'.$f?>' style='max-width:100%;'></img>
+                        <?php }else{ ?>
+                            <div class='gallery_multi_content'>
+                            <img src='<?php echo $path.'/'.$f?>' class='gallery_image'></img>
+                            </div>
+                        <?php } ?>
                     </div>
                     <?php
                     $i++;$j++;
@@ -2256,6 +2299,93 @@ class LAManagement{
         </div>
         <?php
     }
+    function MakeAudioPlayer(){
+        if(!isset($this->AudioList[0])) return;
+        ?>
+        <div class='audio_player_box'>
+        
+            <div id='audio_player_playlist' style='display:none;'>
+                <div class='inline_block_height_spacer'></div>
+                <?php foreach($this->AudioList as $audio){ ?>
+                    <a>放这个</a>
+                    <?php echo pathinfo($audio['src'],PATHINFO_BASENAME); ?>
+                    <div class='inline_height_spacer'></div>
+                <?php } ?>
+            </div>
+            
+            <div style='display:inline;'>
+            
+                <div style='margin-right:5px;display:inline-block'>
+                    <b><a id='audio_player_btn_play' class='btn'>播放</a></b>
+                    <a id='audio_player_btn_list' class='btn'>列表</a>
+                </div>
+                
+                <div id='audio_player_bar' class='plain_block' style='display: inline-block; width: calc(100% - 115px); position:relative;'>
+                    
+                    <div id='audio_player_progress' style='width:0%; background-color:#000; position:absolute; display:inline_block; z-index:-1; margin: -5px; height: 100%;'>
+                        &nbsp;
+                    </div>
+                    
+                    <div id='audio_player_buffer' class='halftone1' style='width:0%; position:absolute; display:inline_block; z-index:-2; margin: -5px; height: 100%;'>
+                        &nbsp;
+                    </div>
+                    
+                    <div id='audio_player_time' style='background-color:#FFF; align-items: center; display: inline-block;'>
+                        已停止
+                    </div>
+                    
+                    <div id='audio_total_time' style='float:right; margin-right:4px; background-color:#FFF; align-items: center; display: inline-block;'>
+                        请稍候
+                    </div>
+                    
+                </div>
+                
+            </div>
+
+        </div>
+        <script>
+            <?php if(True) { ?>
+            var music = document.getElementById("<?php echo $this->AudioList[0]['id'] ?>");
+            var play = document.getElementById('audio_player_btn_play');
+            var list_btn = document.getElementById('audio_player_btn_list');
+            var list = document.getElementById('audio_player_playlist');
+            var time = document.getElementById('audio_player_time');
+            var duration = document.getElementById('audio_total_time');
+            var progress = document.getElementById('audio_player_progress');
+            var buffer = document.getElementById('audio_player_buffer');
+            var bar = document.getElementById('audio_player_bar');
+            play.addEventListener("click", function() {
+                if(music.paused){
+                    music.play();
+                    play.innerHTML='暂停';
+                }else{
+                    music.pause();
+                    play.innerHTML='播放';
+                }
+            });
+            list_btn.addEventListener("click", function() {
+                disp = list.style.display;
+                list.style.display = disp=='none'?'block':'none';
+            });
+            bar.addEventListener('click', function(event){
+                l = bar.getBoundingClientRect().left;
+                r = bar.getBoundingClientRect().right;
+                percent = ((event.clientX-l)/(r-l));
+                music.currentTime = music.duration*Math.min(Math.max(percent,0),1);
+            });
+            music.ontimeupdate = function(){
+                time.innerHTML=(Math.floor(music.currentTime/60))+':'+la_pad((Math.round(music.currentTime)%60),2);
+                progress.style.width=100*(music.currentTime/music.duration)+'%';
+                buffer.style.width = 100*(music.buffered.end(0)/music.duration)+'%';
+            }
+            music.oncanplay = function(){
+                duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
+            }
+            
+            <?php } ?>
+        </script>
+        <?php
+    }
     function MakeFooter(){
         $this->GetPrevNextPassage($this->PagePath);
         
@@ -2263,10 +2393,6 @@ class LAManagement{
         
         <div style='text-align:right;'>
             <div class='footer'>
-                <div style='display:none;'>
-                <?php if($this->PrevFile) {?><a class='btn' href='<?php echo "?page=".$this->PrevFile?>'>前一篇</a><?php } else { ?> 没有前一篇了 <?php } ?>
-                <?php if($this->NextFile) {?><a class='btn' href='<?php echo "?page=".$this->NextFile?>'>后一篇</a><?php } else { ?> 没有后一篇了 <?php } ?>
-                </div>
                 <a class='btn' href="javascript:scrollTo(0,0);">返回顶部</a>
                 <br />
                 <div class = 'inline_block_height_spacer'></div>

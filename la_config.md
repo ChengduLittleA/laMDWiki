@@ -70,6 +70,7 @@ Additional
 - Style = 2
 - Count = 1000
 - Title = 
+- ColumnCount = 3
 
 Additional
 - Path = ./SubFolder
