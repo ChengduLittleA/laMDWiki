@@ -58,6 +58,17 @@ class LAManagement{
         }
     }
     
+    function GetRelativePath($from, $to) {
+        $dir = explode('/', is_file($from) ? dirname($from) : rtrim($from, '/'));
+        $file = explode('/', $to);
+
+        while ($dir && $file && ($dir[0] == $file[0])) {
+            array_shift($dir);
+            array_shift($file);
+        }
+        return str_repeat('..'.'/', count($dir)) . implode('/', $file);
+    }
+    
     function SetPagePath($path){
         while($path[0]=='/' || $path[0]=='\\') $path = substr($path,1);
         $len = strlen($path);
@@ -810,9 +821,10 @@ class LAManagement{
             }
             
             img{ max-width: 100%; margin: 5px auto; display: block; }
-            h3 > img{ float: right; margin-left: 10px; max-width:30%; clear: right;}
-            h4 > img{ float: left; margin-right: 10px; max-width:30%; clear: left;}
+            h3 img{ float: right; margin-left: 10px; max-width:30%; clear: right;}
+            h4 img{ float: left; margin-right: 10px; max-width:30%; clear: left;}
             a > img{ pointer-events: none; }
+            .btn img{ pointer-events: none; }
             .gallery_left img{ float: unset; margin: 5px auto; max-width: 100%;}
             
             table{ width:100%; }
@@ -847,9 +859,10 @@ class LAManagement{
             .gallery_right          { width:calc(100% - 365px); left: 365px; z-index:10; position: relative;}
             .gallery_main_height    { max-height: 100%; }
             .gallery_multi_height   { position: relative;}
-            .gallery_multi_height:before   { content: " "; display: block; padding-top: 100%; }
+            .gallery_multi_height::before   { content: " "; display: block; padding-top: 100%; }
             .gallery_multi_content  { position: absolute;top: 5px; left: 5px; bottom: 5px; right: 5px; display: flex; align-items: center; overflow: hidden;}
             .gallery_image          { max-width: unset; min-width: 100%; min-height: 100%; object-fit: cover; }
+            .gallery_box_when_bkg   { position: relative; width:30%; max-width:300px;}
             .no_padding             { padding: 0px; }
             
             .audio_player_box       { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px;}
@@ -857,6 +870,9 @@ class LAManagement{
             .btn          { border:1px solid #000; padding: 5px; color:#000; display: inline; background-color:#FFF; font-size:16px; cursor: pointer; text-align: center; }
             .btn:hover    { border:3px double #000; padding: 3px; }
             .btn:active   { border:5px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; }
+            .btn_nopadding          { padding: 2px; }
+            .btn_nopadding:hover    { padding: 0px; }
+            .btn_nopadding:active   { padding: 0px; }
             .block        { display: block; }
             .inline_block { display: inline-block; }
             .form_btn     { float: right; margin-top:-6px; margin-bottom:-6px; margin-left:5px; }
@@ -919,8 +935,8 @@ class LAManagement{
             
                 body{ left:10px; width:calc(100% - 20px); min-width: unset; }
                 
-                h3 > img{ float: unset; max-width:100%; margin: 5px auto;}
-                h4 > img{ float: unset; max-width:100%; margin: 5px auto;}
+                h3 img{ float: unset; max-width:100%; margin: 5px auto;}
+                h4 img{ float: unset; max-width:100%; margin: 5px auto;}
                 
                 .navigation { display: none; margin: 0px; margin-bottom: 15px; }
                 .navigation p{ display: block; }
@@ -937,9 +953,14 @@ class LAManagement{
                 .gallery_left           { height: unset; position: unset; width: unset; }
                 .gallery_right          { width: unset; left: unset; z-index:10; position: unset; }
                 .gallery_main_height    { height: unset; }
-                .gallery_multi_height:before    { display: none; }
+                .gallery_multi_height::before    { display: none; }
                 .gallery_multi_content  { position: unset;}
                 .gallery_image          { max-width: 100%; min-width: unset; min-height: unset; object-fit: unset;}
+                .gallery_box_when_bkg   { width:60%; max-width: unset;}
+                
+                .passage_detail         { width:60%; }
+                .login_half             { width:75%; }
+                .big_string             { height:100px; }
             }
             
             @media print {
@@ -965,9 +986,7 @@ class LAManagement{
             (-o-min-device-pixel-ratio: 2/1),
             (min-device-pixel-ratio: 2),
             (min-resolution: 2dppx) {
-                .passage_detail{ width:60%; }
-                .login_half{ width:75%; }
-                .big_string{ height:100px; }
+                
             }
             
             
@@ -1020,7 +1039,7 @@ class LAManagement{
     }
     function MakeMainContentEnd(){
         $layout = $this->AdditionalLayout;
-        if($layout == 'Gallery'){
+        if($layout == 'Gallery' && (!isset($_GET['operation'])||$_GET['operation']=='additional')){
         ?>
             </div>
             </div>
@@ -1031,16 +1050,28 @@ class LAManagement{
         <?php
         }
     }
+    function MakeSettings(){
+        ?>
+            <div class='btn' onclick='location.href="?page=<?php echo $this->PagePath;?>"'>退出</div>
+            <h1>设置中心</h1>
+            <h2>网站设置</h2>
+            <h2>管理员设置</h2>
+        <?php
+    }
     function MakeLoginDiv(){
     ?> 
     
         <div id='LoginPanel' class='top_panel' style='display:none;'>
+            
+            <?php if ($this->IsLoggedIn()) { ?>
+                <a href='?page=<?php echo $this->PagePath;?>&operation=settings'>网站设置</a>
+            <?php } ?>
         
             <div class='login_half'>
         
                 <?php
                 
-                if(!isset($_SESSION['user_id'])){
+                if(!$this->IsLoggedIn()){
                     echo '<h3 class = "inline_components">'.'欢迎'.'</h3>';
                     echo '<p class = "inline_components">'.'您尚未登录'.'</p>';
                 ?>
@@ -1462,12 +1493,17 @@ class LAManagement{
         <?php
     }
     
-    function GetAdditionalDisplayData(){
-        $path = $this->InterlinkPath();
-        $file_name = pathinfo($this->PagePath,PATHINFO_BASENAME);
-        $Conf = $path.'/'.'la_config.md';
-        $arr = Null;
-        
+    function GetAdditionalDisplayData($for=Null){
+        if($for){
+            $Conf = pathinfo($for,PATHINFO_DIRNAME).'/'.'la_config.md';
+            $file_name = pathinfo($for,PATHINFO_BASENAME);
+            $arr=Null;
+        }else{
+            $path = $this->InterlinkPath();
+            $file_name = pathinfo($this->PagePath,PATHINFO_BASENAME);
+            $Conf = $path.'/'.'la_config.md';
+            $arr = Null;
+        }
         if(is_readable($Conf)){
             $ConfRead = fopen($Conf,'r');
             $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($Conf)));
@@ -1741,6 +1777,27 @@ class LAManagement{
         $max = ceil(count($list)/10);
         return $ret;
     }
+    function GetAdditionalContentBackground($for){
+        $ad = $this->GetAdditionalDisplayData($for);
+        if(!isset($ad[0])) return null;
+        
+        foreach($ad as $a){
+            $path = $a['path'];
+            $current_dir = opendir($path);
+            while(($file = readdir($current_dir)) !== false) {
+                $sub_dir = $path . '/' . $file;
+                if($file == '.' || $file == '..' || $file=='index.md') {
+                    continue;
+                } else if(!is_dir($sub_dir)){
+                    $ext=pathinfo($file,PATHINFO_EXTENSION);
+                    if($ext=='jpg' || $ext=='jpeg' || $ext=='png' || $ext=='svg' || $ext=='webp' || $ext=='gif'){
+                        return $this->GetRelativePath($this->InterlinkPath(),$sub_dir);
+                    }
+                }
+            }
+        }
+        return Null;
+    }
     function MakeAdditionalContent($folder,$position){
         if(!isset($folder)){
             $ad = $this->GetAdditionalDisplayData();
@@ -1766,13 +1823,13 @@ class LAManagement{
             $path = $a['path'];
             $current_dir = opendir($path);
             while(($file = readdir($current_dir)) !== false) {
-                $sub_dir = $path . DIRECTORY_SEPARATOR . $file;
+                $sub_dir = $path . '/' . $file;
                 if($file == '.' || $file == '..' || $file=='index.md') {
                     continue;
                 } else if(!is_dir($sub_dir)){
                     $ext=pathinfo($file,PATHINFO_EXTENSION);
                     if($a['style']==2){
-                        if($ext=='jpg' || $ext=='jpeg' || $ext=='png' || $ext=='svg' || $ext=='webp')
+                        if($ext=='jpg' || $ext=='jpeg' || $ext=='png' || $ext=='svg' || $ext=='webp' || $ext=='gif')
                             $this->FileNameList[] = $file;
                     }else{
                         if($ext=='md')
@@ -1843,7 +1900,7 @@ class LAManagement{
                                 <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=5"?>'><?php echo $cc==5?'<b>5</b>':'5'?></a>
                             <?php } ?>
                             
-                            <?php if($a['style']==3){ if(isset($a['quick_post']) && $a['quick_post']!=0){?>
+                            <?php if($a['style']==3){?>
                             
                                 <div class='inline_height_spacer'></div>
                                 时间线列表按钮：
@@ -1853,6 +1910,7 @@ class LAManagement{
                                     <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['more'])?$a['more']:'') ?>" id="display_more_title_<?php echo $path?>" name="display_more_title" form="form_additional_more_title<?php echo $path?>">
                                     <input class="btn form_btn" type="submit" value="设置" name="button_additional_more_title_confirm" form="form_additional_more_title<?php echo $path?>" id='button_additional_more_title_confirm<?php echo $path?>'>
                                 </form>
+                            <?php if(isset($a['quick_post']) && $a['quick_post']==1){ ?>
                                 <div class='inline_height_spacer'></div>
                                 <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=0"?>'>关闭快速发帖</a>
                             <?php }else if(!isset($a['quick_post']) || $a['quick_post']==0){?>
@@ -1864,8 +1922,8 @@ class LAManagement{
                             <?php }else if(!isset($a['complete']) || $a['complete']==0){?>
                                 <a href='?page=<?php echo $this->PagePath."&operation=set_additional_complete&for=".$this->PagePath."&target=".$path."&complete=1"?>'>改显示为全文</a>
                             <?php }?>
-
                             <?php }?>
+
                         </div>
                     </div>
                     
@@ -1989,6 +2047,7 @@ class LAManagement{
                     $show_complete = isset($a['complete'])&&$a['complete']==1;
                     $this->GetFileNameDateFormat($f,$y,$m,$d);
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),$show_complete?10000:10);
+                    $background = $this->GetAdditionalContentBackground($path.'/'.$f);
                     ?>
                     <div class='additional_content additional_content_left hidden_on_mobile'>
                         <div class='plain_block' style='text-align:center'>
@@ -1999,8 +2058,11 @@ class LAManagement{
                         <div class='hidden_on_desktop' style='clear:both;text-align:center'>
                             <span style='font-size:24px;'><b><?php echo $d?></b></span><br /><?php echo $y?><?php echo $m?'/'.$m:'' ?>
                         </div>
-                        <div class='btn block' style='text-align:unset;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
-                            <div class='preview' <?php echo $show_complete?'':'style="max-height:200px;overflow:hidden;"'?>><?php echo $this->HTMLFromMarkdown($rows);?></div>
+                        <div style=';'>
+                        </div>
+                        <div class='btn block' style="text-align:unset;<?php if(!$folder && $background) echo "background-image:url('".$background."');background-repeat:no-repeat;background-size:cover;background-position:center;" ?>"
+                             onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
+                                <div class='preview <?php echo (!$folder && $background)?"gallery_box_when_bkg top_panel":""?>' style="<?php echo $show_complete?'':'max-height:200px;overflow:hidden;'?>"><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
                     </div>
                     <div style='clear:both'></div>
@@ -2317,7 +2379,7 @@ class LAManagement{
             
                 <div style='margin-right:5px;display:inline-block'>
                     <b><a id='audio_player_btn_play' class='btn'>播放</a></b>
-                    <a id='audio_player_btn_list' class='btn'>列表</a>
+                    <a id='audio_player_btn_list' class='btn'>&nbsp;#&nbsp;</a>
                 </div>
                 
                 <div id='audio_player_bar' class='plain_block' style='display: inline-block; width: calc(100% - 115px); position:relative;'>
@@ -2396,7 +2458,7 @@ class LAManagement{
                 <a class='btn' href="javascript:scrollTo(0,0);">返回顶部</a>
                 <br />
                 <div class = 'inline_block_height_spacer'></div>
-                <p style='font-size:12px;margin:0px;'>网站使用LAMDWIKI创建</p>
+                <p style='font-size:12px;margin:0px;'>网站使用<a href='https://github.com/Nicksbest/lamdwiki' style='padding:1px;border:none;'>LAMDWIKI</a>创建</p>
             </div>
         </div>
         
@@ -2445,15 +2507,17 @@ class LAManagement{
                 }
                 
             }
-            for (var i=0; i<bkg_img.length;i++){
-                if(!bkg_img[i].style.backgroundImage) continue;
-                bkg_img[i].onclick=function(){
-                    image.src=this.style.backgroundImage.match(/url\(["']?([^"']*)["']?\)/)[1];
-                    image_alt.innerHTML=image.src;
-                    dialog.style.display="block";
-                }
-                
-            }
+            //for (var i=0; i<bkg_img.length;i++){
+            //    if(!bkg_img[i].style.backgroundImage) continue;
+            //    
+            //    bkg_img[i].onclick=function(){
+            //    
+            //        image.src=this.style.backgroundImage.match(/url\(["']?([^"']*)["']?\)/)[1];
+            //        image_alt.innerHTML=image.src;
+            //        dialog.style.display="block";
+            //        alert("SSSS");
+            //    }  
+            //}
             close.onclick=function(){
                 dialog.style.display='none';
             }

@@ -186,6 +186,12 @@ if($la_operation == 'new'){
 
     echo $LAManagement->MakePassageTiles();
     
+}else if($la_operation == 'settings'){
+
+    echo $LAManagement->MakeMainContentBegin();
+    echo $LAManagement->MakeSettings();
+    echo $LAManagement->MakeMainContentEnd();
+
 }else{
 
     echo $LAManagement->MakeMainContentBegin();
