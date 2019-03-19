@@ -2082,7 +2082,7 @@ class LAManagement{
             }
             if(isset($folder)){
                 ?>
-                <div style='text-align:center;'>
+                <div style='text-align:center;position:sticky;bottom:0px;'>
                     <div class='top_panel inline_block'>
                         <div style='text-align:right;float:right;right:0px;'>
                             <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b>上一页</b></a><?php } ?>
