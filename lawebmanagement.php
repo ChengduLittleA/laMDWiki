@@ -851,7 +851,7 @@ class LAManagement{
             .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin; }
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; overflow: hidden; }
-            .additional_content_left{ margin-right: 15px; float: left; text-align: center; }
+            .additional_content_left{ margin-right: 15px; float: left; text-align: center; position: sticky; top:82px; margin-bottom:0px;}
             .tile_content           { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .top_panel              { padding:10px; padding-top:15px; padding-bottom:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: hidden; }
             .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:1000; max-height: unset;}
@@ -2037,7 +2037,6 @@ class LAManagement{
                             <script> la_auto_grow(document.getElementById("data_passage_content"));</script>
                         </div>
                     </div>
-                    <div style='clear:both'></div>
                     <?php
                 }
                 $i=0;
@@ -2049,6 +2048,7 @@ class LAManagement{
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),$show_complete?10000:10);
                     $background = $this->GetAdditionalContentBackground($path.'/'.$f);
                     ?>
+                    <div>
                     <div class='additional_content additional_content_left hidden_on_mobile'>
                         <div class='plain_block' style='text-align:center'>
                         <span style='font-size:24px;'><b><?php echo $d?></b></span><br /><?php echo $y?><?php echo $m?'/'.$m:'' ?>
@@ -2065,7 +2065,8 @@ class LAManagement{
                                 <div class='preview <?php echo (!$folder && $background)?"gallery_box_when_bkg top_panel":""?>' style="<?php echo $show_complete?'':'max-height:200px;overflow:hidden;'?>"><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
                     </div>
-                    <div style='clear:both'></div>
+                    </div>
+                    
                     <?php
                     $i++;
                     if($i>=$a['count']) break;
