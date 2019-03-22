@@ -18,6 +18,7 @@ class LAManagement{
     
     protected $UserDsipName;
     protected $UserID;
+    protected $userIsMature;
     
     protected $PagePath;
     
@@ -36,6 +37,9 @@ class LAManagement{
     protected $IsMainPassage;
     
     protected $AudioList;
+    
+    protected $MainFileIsNSFW;
+    protected $FileIsNSFW;
     
     function __construct() {
         $this->PDE = new ParsedownExtra();
@@ -448,7 +452,9 @@ class LAManagement{
         }
         $this->IsMainPassage=0;
     }
-    
+    function LookForKeywordsFromContent($content,&$is_nsfw){
+        if(preg_match("/\([nN][sS][fF][wW]\)/",$content,$match,PREG_OFFSET_CAPTURE)) $is_nsfw=True;
+    }
     function ContentOfMarkdownFile($FileName){
         if(!isset($FileName)) return Null;
         while($FileName[0]=='/' || $FileName[0]=='\\') $FileName = substr($FileName,1);
@@ -468,8 +474,25 @@ class LAManagement{
         else $R = fread($File,$length);
         fclose($File);
         
+        $is_nsfw=False;
+        $this->LookForKeywordsFromContent($R,$is_nsfw);
+        if(!isset($_GET['no_nsfw']) && $is_nsfw && (($this->IsLoggedIn() && !$this->UserIsMature) || !$this->IsLoggedIn())){
+            $this_file = pathinfo($FileName,PATHINFO_BASENAME);
+            $R=
+            "# 请留意\n\n".
+            "本文中含有可能不适合在工作或其他正式场合下阅读的内容。\n\n".
+            "作者建议仅成年人阅读其中的材料。\n\n".
+            "[仍然继续]($this_file&no_nsfw=1)";
+            if($this->IsMainPassage) $this->MainFileIsNSFW=True;
+            else $this->FileIsNSFW=True;
+            return $R;
+        }
+        
         if($this->IsMainPassage){
+            $this->MainFileIsNSFW=False;
             $this->ScanForTagsInContent($R);
+        }else{
+            $this->FileIsNSFW=False;
         }
         
         return $R;
@@ -652,6 +675,7 @@ class LAManagement{
             $ConfContent = fread($this->UserConfig,filesize("la_config.md"));
             $Conf = $this->ParseMarkdownConfig($ConfContent);
             $this->UserDisplayName = $this->GetArgumentByNames($Conf, "Users",$_SESSION['user_id'],'DisplayName');
+            $this->UserIsMature = $this->GetArgumentByNames($Conf, "Users",$_SESSION['user_id'],'Mature');
             $this->UserID = $_SESSION['user_id'];
             
             fclose($this->UserConfig);
@@ -921,6 +945,7 @@ class LAManagement{
             
             .preview{ margin: 10px; }
             .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6, .preview blockqoute                                  { margin-top: 3px; margin-bottom: 3px; }
+            .preview a {pointer-events: none;}
             .name_preview h1, .name_preview h2, .name_preview h3 .name_preview h4, .name_preview h5, .name_preview h6, .name_preview p         { font-size:16px; display: inline; }
             .preview_large h1, .preview_large h2, .preview_large h3, .preview_large h4, .preview_large h5, .preview_large h6, .preview_large p { display: block; }
             .preview_large h1{ font-size:24px; }
@@ -1957,7 +1982,7 @@ class LAManagement{
                     ?>
                     <div class='additional_content'>
                         <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
-                            <div class='preview' style='max-height:300px;'><?php echo $this->HTMLFromMarkdown($rows);?></div>
+                            <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:right;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
                     </div>
                     <?php
@@ -1975,7 +2000,7 @@ class LAManagement{
                     <div class='tile_content tile_item'>
                         □
                         <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
-                            <div class='preview' style='max-height:300px;'><?php echo $this->HTMLFromMarkdown($rows);?></div>
+                            <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:right;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
                     </div>
                     <?php
@@ -1992,8 +2017,6 @@ class LAManagement{
                 ?><div class='tile_container'><?php
                 $i=0;$j=0;
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
-                    if($f=='la_config.md') continue;
-                    $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     ?>
                     <div class='tile_content tile_item <?php echo$cc==1?"":"gallery_multi_height" ?>' style='max-height:unset;'>
                         <?php if($cc==1){ ?>
@@ -2062,7 +2085,9 @@ class LAManagement{
                         </div>
                         <div class='btn block' style="text-align:unset;<?php if(!$folder && $background) echo "background-image:url('".$background."');background-repeat:no-repeat;background-size:cover;background-position:center;" ?>"
                              onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
-                                <div class='preview <?php echo (!$folder && $background)?"gallery_box_when_bkg top_panel":""?>' style="<?php echo $show_complete?'':'max-height:200px;overflow:hidden;'?>"><?php echo $this->HTMLFromMarkdown($rows);?></div>
+                                <div class='preview <?php echo (!$folder && $background)?"gallery_box_when_bkg top_panel":""?>' style="<?php echo $show_complete?'':'max-height:200px;overflow:hidden;'?><?php echo $this->FileIsNSFW?'text-align:right;':''?>">
+                                <?php echo $this->HTMLFromMarkdown($rows);?>
+                                </div>
                         </div>
                     </div>
                     </div>

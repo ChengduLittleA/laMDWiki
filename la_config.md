@@ -20,6 +20,7 @@ admin
 - LoginTry = 0
 - Locked = 0
 - Admin = 1
+- Mature = 1
 
 <!-- End of Users -->
 
