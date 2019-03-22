@@ -1240,8 +1240,12 @@ class LAManagement{
         ?>
         <div>
             <textarea class='string_input big_string ' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
+            <div>
+                <span id='data_passage_character_count'>字数</span>
+            </div>
             <script>
                 var text_area = document.getElementById("data_passage_content");
+                var count = document.getElementById("data_passage_character_count");
                 var btn_h1 = document.getElementById("EditorToggleH1");
                 var btn_h2 = document.getElementById("EditorToggleH2");
                 var btn_h3 = document.getElementById("EditorToggleH3");
@@ -1259,6 +1263,12 @@ class LAManagement{
                 var div_more_btns = document.getElementById("EditorMoreBtns");
                 var sp1 = document.getElementById("EditorSpacer1");
                 var sp2 = document.getElementById("EditorSpacer2");
+                
+                count.innerHTML=text_area.value.length+" 个字符";
+                
+                text_area.addEventListener("input",function(){
+                    count.innerHTML=this.value.length+" 个字符";
+                });
 
                 function selectionStart(){
                     return text_area.selectionStart;
@@ -1982,7 +1992,7 @@ class LAManagement{
                     ?>
                     <div class='additional_content'>
                         <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
-                            <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:right;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
+                            <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:center;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
                     </div>
                     <?php
@@ -2000,7 +2010,7 @@ class LAManagement{
                     <div class='tile_content tile_item'>
                         □
                         <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
-                            <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:right;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
+                            <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:center;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
                     </div>
                     <?php
@@ -2085,7 +2095,7 @@ class LAManagement{
                         </div>
                         <div class='btn block' style="text-align:unset;<?php if(!$folder && $background) echo "background-image:url('".$background."');background-repeat:no-repeat;background-size:cover;background-position:center;" ?>"
                              onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
-                                <div class='preview <?php echo (!$folder && $background)?"gallery_box_when_bkg top_panel":""?>' style="<?php echo $show_complete?'':'max-height:200px;overflow:hidden;'?><?php echo $this->FileIsNSFW?'text-align:right;':''?>">
+                                <div class='preview <?php echo (!$folder && $background)?"gallery_box_when_bkg top_panel":""?>' style="<?php echo $show_complete?'':'max-height:200px;overflow:hidden;'?><?php echo $this->FileIsNSFW?'text-align:center;':''?>">
                                 <?php echo $this->HTMLFromMarkdown($rows);?>
                                 </div>
                         </div>

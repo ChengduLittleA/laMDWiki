@@ -36,15 +36,25 @@ admin
 
 admin1 admin
 
+
+
 ad min = 123
 - password = abc
 - my data = 123123
 
+
+
 yiming admin
+
+
 
 你可以随意在配置区域写东西，只是不建议这么做
 
+
+
 配置格式会自动整理。
+
+
 
 admin = infinite
 - admin = Nico
@@ -66,6 +76,8 @@ admin admin
 
 Layout = Gallery
 
+
+
 Additional
 - Path = ./img
 - Style = 2
@@ -73,11 +85,14 @@ Additional
 - Title = 照片墙功能
 - ColumnCount = 3
 
+
+
 Additional
 - Path = ./SubFolder
 - Style = 3
 - Title = 我在说什么
 - More = 啥
+- QuickPost = 1
 
 <!-- End of index.md -->
 
