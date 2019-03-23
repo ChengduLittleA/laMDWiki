@@ -41,6 +41,11 @@ class LAManagement{
     protected $MainFileIsNSFW;
     protected $FileIsNSFW;
     
+    
+    protected $Title;
+    protected $StringTitle;
+    protected $Footnote;
+    
     function __construct() {
         $this->PDE = new ParsedownExtra();
         $this->PDE->SetInterlinkPath('/');
@@ -828,13 +833,57 @@ class LAManagement{
             header('Location:?page='.$_GET['to'].'&operation=list');
         }
     }
+    function DoApplySettings(){
+        if(isset($_POST['settings_button_confirm'])){
+        
+            $this->UserConfig = fopen("la_config.md",'r');
+            $ConfContent = fread($this->UserConfig,filesize("la_config.md"));
+            $Conf = $this->ParseMarkdownConfig($ConfContent);
+            $this->EditBlock($Config,'Website');
+            $this->EditBlock($Config,'Users');
+            
+            if(isset($_POST['settings_website_title'])){
+                $this->EditGeneralLineByName($Conf,'Website','Title',$_POST['settings_website_title']);
+            }
+            if(isset($_POST['settings_website_display_title'])){
+                $this->EditGeneralLineByName($Conf,'Website','DisplayTitle',$_POST['settings_website_display_title']);
+            }
+            if(isset($_POST['settings_footer_notes'])){
+                $this->EditGeneralLineByName($Conf,'Website','Footnote',$_POST['settings_footer_notes']);
+            }
+            if(isset($_POST['settings_admin_password']) && $_POST['settings_admin_password']!=''){
+                $this->EditArgumentByNames($Conf,'Website','Users',$this->UserID,'Password',$_POST['settings_admin_password']);
+            }
+            
+            fclose($this->UserConfig);
+            $this->UserConfig = fopen("la_config.md",'w');
+            $this->WriteMarkdownConfig($Conf,$this->UserConfig);
+            fclose($this->UserConfig);
+            
+            header('Location:?page='.$this->PagePath.'&operation=settings');
+            exit;
+        }
+    }
     
-    function MakeHTMLHead($title){
+    function GetWebsiteSettings(){
+        $this->UserConfig = fopen("la_config.md",'r');
+        $ConfContent = fread($this->UserConfig,filesize("la_config.md"));
+        fclose($this->UserConfig);
+        $Conf = $this->ParseMarkdownConfig($ConfContent);
+        $this->Title       = $this->GetLineValueByNames($Conf,"Website","Title");
+        $this->StringTitle = $this->GetLineValueByNames($Conf,"Website","DisplayTitle");
+        $this->Footnote    = $this->GetLineValueByNames($Conf,"Website","Footnote");
+        if(!$this->Title) $this->Title='LA<b>MDWIKI</b>';
+        if(!$this->StringTitle) $this->StringTitle='LAMDWIKI';
+    }
+    
+    function MakeHTMLHead(){
+        $this->GetWebsiteSettings();
         ?>
         <!doctype html>
         <head>
         <meta name="viewport" content="user-scalable=no, width=device-width" />
-        <title><?php echo $title ?></title>
+        <title><?php echo $this->StringTitle ?></title>
         <style>
         
             html{ text-align:center; }
@@ -902,6 +951,7 @@ class LAManagement{
             .form_btn     { float: right; margin-top:-6px; margin-bottom:-6px; margin-left:5px; }
             .preview_btn  { height:250px; overflow: hidden; }
             .full_btn     { width:100%; }
+            .no_float     { float: unset; }
             
             .inline_height_spacer      { display: block; height:15px; width:100%; }
             .inline_block_height_spacer{ display: block; height:10px; width:100%; }
@@ -926,7 +976,7 @@ class LAManagement{
             
             .no_horizon_margin { margin-left:0px; margin-right:0px; }
             
-            .navigation        { border:1px solid #000; display: inline; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; right:0px; background-color:#FFF; box-shadow: 5px 5px #000; white-space: nowrap; }
+            .navigation        { border:1px solid #000; display: inline; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; right:0px; background-color:#FFF; box-shadow: 5px 5px #000; white-space: nowrap; text-align: center;}
             .navigation p      { display: inline; }
             
             .tile_container    { display: table; table-layout: fixed; width: calc(100% + 30px); border-spacing:15px 7px; margin-left: -15px; margin-top: -7px; margin-bottom: 8px; }
@@ -1040,11 +1090,11 @@ class LAManagement{
             </div>
         <?php
     }
-    function MakeTitleButton($Title){
+    function MakeTitleButton(){
         ?>
         <div id='WebsiteTitle'>
-            <a class='home_button hidden_on_mobile' href="?page=index.md"><?php echo $Title;?></a>
-            <a class='home_button hidden_on_desktop_inline' id='HomeButton' ><?php echo $Title;?>...</a>
+            <a class='home_button hidden_on_mobile' href="?page=index.md"><?php echo $this->Title;?></a>
+            <a class='home_button hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
         </div>
         <?php
     }
@@ -1076,11 +1126,32 @@ class LAManagement{
         }
     }
     function MakeSettings(){
+        $Title='LAMDWIKI';
+        $Footnote='';
         ?>
             <div class='btn' onclick='location.href="?page=<?php echo $this->PagePath;?>"'>退出</div>
+            <form method="post" id='settings_form' style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=settings';?>"></form>
             <h1>设置中心</h1>
             <h2>网站设置</h2>
+            <div>
+                <input class='string_input no_horizon_margin' type='text' name='settings_website_title' name='settings_website_title' form='settings_form' value='<?php echo $this->Title ?>' />
+                网站标题
+                <br />
+                <input class='string_input no_horizon_margin' type='text' name='settings_website_display_title' name='settings_website_display_title' form='settings_form' value='<?php echo $this->StringTitle ?>' />
+                标签显示标题
+                <br />
+                <input class='string_input no_horizon_margin' type='text' name='settings_footer_notes' name='settings_footer_notes' form='settings_form' value='<?php echo $this->Footnote ?>' />
+                页脚附加文字
+            </div>
             <h2>管理员设置</h2>
+            <div>
+                <input class='string_input no_horizon_margin' type='text' name='settings_admin_id' name='settings_admin_id' form='settings_form' />
+                重新设置管理账户名(INOP)
+                <br />
+                <input class='string_input no_horizon_margin' type='text' name='settings_admin_password' name='settings_admin_password' form='settings_form' />
+                重新设置管理密码
+            </div>
+            <input class='btn form_btn' type='submit' value='确定' name="settings_button_confirm" form='settings_form' />
         <?php
     }
     function MakeLoginDiv(){
@@ -1156,7 +1227,7 @@ class LAManagement{
     function MakeNavigationBegin(){
         ?>
         <div class="navigation" id='Navigation'>
-            <a class='home_button hidden_on_desktop' href="?page=index.md">前往首页</a>
+            <a class='home_button hidden_on_desktop' href="?page=index.md"><b>前往首页</b></a>
         <?php
     }
     function MakeNavigationEnd(){
@@ -2494,7 +2565,8 @@ class LAManagement{
                 <a class='btn' href="javascript:scrollTo(0,0);">返回顶部</a>
                 <br />
                 <div class = 'inline_block_height_spacer'></div>
-                <p style='font-size:12px;margin:0px;'>网站使用<a href='https://github.com/Nicksbest/lamdwiki' style='padding:1px;border:none;'>LAMDWIKI</a>创建</p>
+                <p style='font-size:12px;margin:0px;'><?php echo $this->Footnote ?></p>
+                <p style='font-size:12px;margin:0px;'>使用 <a href='https://github.com/Nicksbest/lamdwiki' style='padding:1px;border:none;'>LAMDWIKI</a> 创建</p>
             </div>
         </div>
         

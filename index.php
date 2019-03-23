@@ -65,11 +65,6 @@ if (isset($_GET["operation"])) $la_operation = $_GET["operation"];
 $LAManagement = new LAManagement();
 $LAManagement->SetPagePath($la_page_path);
 
-$ConfRead = fopen('la_config.md','r');
-$Config = $LAManagement->ParseMarkdownConfig(fread($ConfRead,filesize('la_config.md')));
-
-$WebsiteName = $LAManagement->GetLineValueByNames($Config,"Website","Title");
-
 //test---------------
 //$ConfSave = fopen('MarkdownConf.md','w');
 //$LAManagement->AddBlock($Config,"Fuck Me");
@@ -86,7 +81,6 @@ $WebsiteName = $LAManagement->GetLineValueByNames($Config,"Website","Title");
 //$LAManagement->RemoveArgument($Config,$Block,$Line,$Arg);
 //$LAManagement->WriteMarkdownConfig($Config, $ConfSave);
 //fclose($ConfSave);
-fclose($ConfRead);
 
 //if($LAManagement->CheckArgumentByNames($Config,'Users','admin','password','abc')) echo 'OH YEAH BAE! <br />';
 //if(!$LAManagement->CheckArgumentByNames($Config,'Users','admin','password','ab2c')) echo 'FUCK YOU BITCH! <br />';
@@ -116,13 +110,13 @@ echo $LAManagement->DoRenameFile();
 echo $LAManagement->DoChangePermission();
 echo $LAManagement->DoMoveFile();
 echo $LAManagement->DoAdditionalConfig();
+echo $LAManagement->DoApplySettings();
 
-
-echo $LAManagement->MakeHTMLHead($WebsiteName);
+echo $LAManagement->MakeHTMLHead();
 
 echo $LAManagement->PageHeaderBegin();
 
-echo $LAManagement->MakeTitleButton($WebsiteName);
+echo $LAManagement->MakeTitleButton();
 echo $LAManagement->MakeNavigationBegin();
 $LAManagement->SetInterlinkPath('index.md');
 echo $LAManagement->HTMLFromMarkdownFile('navigation.md');
