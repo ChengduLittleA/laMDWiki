@@ -933,6 +933,7 @@ class LAManagement{
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; overflow: hidden; }
             .additional_content_left{ margin-right: 15px; float: left; text-align: center; position: sticky; top:82px; margin-bottom:0px;}
+            .small_shadow           { box-shadow: 2px 2px #000; }
             .tile_content           { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .top_panel              { padding:10px; padding-top:15px; padding-bottom:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: hidden; }
             .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:1000; max-height: unset;}
@@ -943,7 +944,7 @@ class LAManagement{
             .gallery_multi_height::before   { content: " "; display: block; padding-top: 100%; }
             .gallery_multi_content  { position: absolute;top: 5px; left: 5px; bottom: 5px; right: 5px; display: flex; align-items: center; overflow: hidden;}
             .gallery_image          { max-width: unset; min-width: 100%; min-height: 100%; object-fit: cover; }
-            .gallery_box_when_bkg   { position: relative; width:30%; max-width:300px;}
+            .gallery_box_when_bkg   { width:30%; max-width:300px;}
             .no_padding             { padding: 0px; }
             
             .audio_player_box       { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px;}
@@ -963,7 +964,7 @@ class LAManagement{
             
             .inline_height_spacer      { display: block; height:15px; width:100%; }
             .inline_block_height_spacer{ display: block; height:10px; width:100%; }
-            .block_block_height_spacer { display: block; height:4px; width:100%; }
+            .block_height_spacer { display: block; height:4px; width:100%; }
             
             .halftone1  { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgIBH8HxyKaQ+Icg71FGEAAMIRBftlPpkVAAAAAElFTkSuQmCC) repeat; }
             .halftone1w { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAMElEQVQYlWP4TyRg+P///38GBgbiFBKjGEUWn2LCdlJdIcw5eBUiuxmnQnSPEe1GAL6NfJLaO8bfAAAAAElFTkSuQmCC) repeat; }
@@ -1044,6 +1045,8 @@ class LAManagement{
                 .passage_detail         { width:60%; }
                 .login_half             { width:75%; }
                 .big_string             { height:100px; }
+                
+                .no_overflow_mobile     { overflow: unset;}
             }
             
             @media print {
@@ -2166,7 +2169,7 @@ class LAManagement{
                             <input style='display:none;' type="text" id="EditorFileName" name="editor_file_name" value='<?php echo $this->GetUniqueName(date("Ymd"));?>'/ form='form_passage'>
                             <textarea type='text' class='quick_post_string' form='form_passage' id='data_passage_content' name='data_passage_content'
                                       onfocus="if (value =='我有一个想法…'){value =''}"onblur="if (value ==''){value='我有一个想法…';la_auto_grow(this);}" oninput="la_auto_grow(this)">我有一个想法…</textarea>
-                            <div class='block_block_height_spacer'></div>
+                            <div class='block_height_spacer'></div>
                             <div style='text-align:right;'>
                                 <input class='btn' type="submit" value="和世界分享您刚编的故事" name="button_new_passage" form='form_passage' />
                             </div>
@@ -2190,9 +2193,12 @@ class LAManagement{
                         <span style='font-size:24px;'><b><?php echo $d?></b></span><br /><?php echo $y?><?php echo $m?'/'.$m:'' ?>
                         </div>
                     </div>
-                    <div class='additional_content'>
-                        <div class='hidden_on_desktop' style='clear:both;text-align:center'>
-                            <span style='font-size:24px;'><b><?php echo $d?></b></span><br /><?php echo $y?><?php echo $m?'/'.$m:'' ?>
+                    <div class='additional_content no_overflow_mobile'>
+                        <div class='hidden_on_desktop' style='clear:both;text-align:right;position:sticky;top:80px;'>
+                            <div class='plain_block small_shadow' style='text-align:center;display:inline-block;background-color:#FFF;'>
+                                <?php echo $m?($y.'/'.$m.'/<b>'.$d.'</b>'):'<b>过去</b>的某一天'?>
+                            </div>
+                            <div class='block_height_spacer'></div>
                         </div>
                         <div style=';'>
                         </div>
@@ -2322,18 +2328,18 @@ class LAManagement{
                             <div class='inline_block_height_spacer'></div>
                             <div style='width:100%;display:block;' id='passage_detail_inner_<?php echo $f;?>'>
                                 <a class='btn block' href="?page=<?php echo $path.'/'.$f.'&operation=edit';?>">编辑文档</a>
-                                <div class='block_block_height_spacer'></div>
+                                <div class='block_height_spacer'></div>
                                 <div class='plain_block'>
                                     <?php echo $f;?><br />
                                     <?php echo "创建：".date("Y-m-d H:i:s",filectime($path.'/'.$f));?><br />
                                     <?php echo "访问：".date("Y-m-d H:i:s",fileatime($path.'/'.$f));?><br />
                                     <?php echo "修改：".date("Y-m-d H:i:s",filemtime($path.'/'.$f));?><br />
                                 </div>
-                                <div class='block_block_height_spacer'></div>
+                                <div class='block_height_spacer'></div>
                                 <a class='btn block' id='passage_rename_button_<?php echo $f;?>'>重命名</a>
-                                <div class='block_block_height_spacer'></div>
+                                <div class='block_height_spacer'></div>
                                 <a  class='btn block' href='?page=<?php echo $path ?>&operation=list&moving=<?php echo $path.'/'.$f ?>'>移动到</a>
-                                <div class='block_block_height_spacer'></div>
+                                <div class='block_height_spacer'></div>
                                 <a class='btn block' href='?page=<?php echo $path.'/'.$f ?>&operation=additional'>附加选项</a>
                                 <div class='inline_block_height_spacer'></div>
                                 <a class='btn' id='passage_delete_button_<?php echo $f;?>'>删除文件</a>
