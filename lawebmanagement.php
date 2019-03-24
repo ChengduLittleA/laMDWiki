@@ -38,6 +38,7 @@ class LAManagement{
     
     protected $AudioList;
     
+    protected $MainFileTitle;
     protected $MainFileIsNSFW;
     protected $FileIsNSFW;
     
@@ -527,6 +528,13 @@ class LAManagement{
             $i=$i+1;
         }
         return implode("\n",$array);
+    }
+    function TitleOfFile($content){
+        if(preg_match('/(# .*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
+            return $match[1][0];
+        }else{
+            return $this->FirstRows($content,1);
+        }
     }
     
     //============================================================================================================
@@ -1261,6 +1269,8 @@ class LAManagement{
                 <div id='EditorToggleUnderline' class='btn'><u>线</u></div>
                 <div id='EditorToggleStrike' class='btn'><s>删</s></div>
                 <div id='EditorToggleQoute' class='btn'><b>“</b></div>
+                <div id='EditorToggleSuper' class='btn'>A<sup>TM</sup></div>
+                <div id='EditorToggleSub' class='btn'>B<sub>AE</sub></div>
                 &nbsp;
                 <div id='EditorAddLink' class='btn'>链</div>
             </div>
@@ -1326,6 +1336,8 @@ class LAManagement{
                 var btn_u = document.getElementById("EditorToggleUnderline");
                 var btn_s = document.getElementById("EditorToggleStrike");
                 var btn_q = document.getElementById("EditorToggleQoute");
+                var btn_sup = document.getElementById("EditorToggleSuper");
+                var btn_sub = document.getElementById("EditorToggleSub");
                 var btn_link = document.getElementById("EditorAddLink");
                 var btn_more = document.getElementById("EditorToggleMore");
                 var div_more = document.getElementById("EditorMoreOptions");
@@ -1487,6 +1499,18 @@ class LAManagement{
                     var line_begin = getLineBegin(content,select);
                     toggleQoute(content,line_begin);
                     text_area.setSelectionRange(select, select);
+                });
+                btn_sup.addEventListener("click", function() {
+                    var content = getContent();
+                    var begin = selectionStart();
+                    var end = selectionEnd();
+                    toggleBrackets(content,begin,end,"<sup>","</sup>");
+                });
+                btn_sub.addEventListener("click", function() {
+                    var content = getContent();
+                    var begin = selectionStart();
+                    var end = selectionEnd();
+                    toggleBrackets(content,begin,end,"<sub>","</sub>");
                 });
                 btn_link.addEventListener("click", function() {
                     var content = getContent();
@@ -1887,6 +1911,8 @@ class LAManagement{
         $ad = $this->GetAdditionalDisplayData($for);
         if(!isset($ad[0])) return null;
         
+        $list=Null;
+        
         foreach($ad as $a){
             $path = $a['path'];
             $current_dir = opendir($path);
@@ -1897,12 +1923,18 @@ class LAManagement{
                 } else if(!is_dir($sub_dir)){
                     $ext=pathinfo($file,PATHINFO_EXTENSION);
                     if($ext=='jpg' || $ext=='jpeg' || $ext=='png' || $ext=='svg' || $ext=='webp' || $ext=='gif'){
-                        return $this->GetRelativePath($this->InterlinkPath(),$sub_dir);
+                        $list[] = $this->GetRelativePath($this->InterlinkPath(),$sub_dir);
                     }
                 }
             }
         }
-        return Null;
+        
+        if(!isset($list[0])) return Null;
+        
+        sort($list);
+        $list = array_reverse($list);
+        
+        return $list[0];
     }
     function MakeAdditionalContent($folder,$position){
         if(!isset($folder)){
@@ -2273,7 +2305,7 @@ class LAManagement{
         }
         if (!$move_mode && isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
             $rows = $this->FirstRows($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f),20);
-            $title = $this->FirstRows($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f),1);
+            $title = $this->TitleOfFile($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f));
             ?>
                 <div>
                      <div class = 'narrow_content' style='overflow:hidden;'>
@@ -2455,7 +2487,7 @@ class LAManagement{
                     <?php
                 }
                 $rows = $this->FirstRows($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f),20);
-                $title = $this->FirstRows($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f),1);
+                $title = $this->TitleOfFile($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f));
                 ?>
                     <div class = 'tile_content tile_item' style='overflow:auto;'>
                          □
