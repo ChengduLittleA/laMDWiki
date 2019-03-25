@@ -530,10 +530,10 @@ class LAManagement{
         return implode("\n",$array);
     }
     function TitleOfFile($content){
-        if(preg_match('/# (.*)\n[\s\S]*\n## (.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
+        if(preg_match('/# [ ]*(.*)\n[\s\S]*\n## [ ]*(.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
             return '**'.$match[1][0].'**: '.$match[2][0];
         }else{
-            if(preg_match('/# (.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
+            if(preg_match('/# [ ]*(.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
                 return '**'.$match[1][0].'**';
             }
             return $this->FirstRows($content,1);
