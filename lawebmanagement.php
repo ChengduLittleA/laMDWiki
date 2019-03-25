@@ -2099,6 +2099,7 @@ class LAManagement{
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                     if($f=='la_config.md') continue;
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
+                    $this->SetInterlinkPath($path.'/'.$f);
                     ?>
                     <div class='additional_content'>
                         <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
@@ -2116,6 +2117,7 @@ class LAManagement{
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                     if($f=='la_config.md') continue;
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
+                    $this->SetInterlinkPath($path.'/'.$f);
                     ?>
                     <div class='tile_content tile_item'>
                         □
@@ -2191,6 +2193,7 @@ class LAManagement{
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),$show_complete?10000:10);
                     $title = $this->TitleOfFile($rows);
                     $background = $this->GetAdditionalContentBackground($path.'/'.$f);
+                    $this->SetInterlinkPath($path.'/'.$f);
                     ?>
                     <div>
                     <div class='additional_content additional_content_left hidden_on_mobile'>

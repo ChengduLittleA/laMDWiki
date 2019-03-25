@@ -83,6 +83,7 @@ Additional
 - Title = 我在说什么
 - More = 啥
 - QuickPost = 1
+- Complete = 1
 
 <!-- End of index.md -->
 
