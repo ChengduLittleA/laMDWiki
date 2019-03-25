@@ -530,9 +530,12 @@ class LAManagement{
         return implode("\n",$array);
     }
     function TitleOfFile($content){
-        if(preg_match('/# (.*)\n[\s\S]*## (.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
+        if(preg_match('/# (.*)\n[\s\S]*\n## (.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
             return '**'.$match[1][0].'**: '.$match[2][0];
         }else{
+            if(preg_match('/# (.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
+                return '**'.$match[1][0].'**';
+            }
             return $this->FirstRows($content,1);
         }
     }
@@ -1011,6 +1014,7 @@ class LAManagement{
             .preview_large h2{ font-size:20px; }
             .preview_large h3{ font-size:18px; }
             .passage_detail{ float: right; text-align: right; margin-left:5px; width:20%; min-width:210px; }
+            .small_shadow p{ display: inline; }
             
             .hidden_on_desktop       { display: none; }
             .hidden_on_desktop_inline{ display: none; }
@@ -2185,6 +2189,7 @@ class LAManagement{
                     $show_complete = isset($a['complete'])&&$a['complete']==1;
                     $this->GetFileNameDateFormat($f,$y,$m,$d);
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),$show_complete?10000:10);
+                    $title = $this->TitleOfFile($rows);
                     $background = $this->GetAdditionalContentBackground($path.'/'.$f);
                     ?>
                     <div>
@@ -2196,7 +2201,12 @@ class LAManagement{
                     <div class='additional_content no_overflow_mobile'>
                         <div class='hidden_on_desktop' style='clear:both;text-align:right;position:sticky;top:80px;'>
                             <div class='plain_block small_shadow' style='text-align:center;display:inline-block;background-color:#FFF;'>
-                                <?php echo $m?($y.'/'.$m.'/<b>'.$d.'</b>'):'<b>过去</b>的某一天'?>
+                                <div style='float:right'>
+                                    &nbsp;<?php echo $m?($y.'/'.$m.'/<b>'.$d.'</b>'):'<b>过去</b>的某一天'?>
+                                </div>
+                                <div style='overflow:hidden;max-height:24px;'>
+                                    <?php echo $this->HTMLFromMarkdown($title)?>
+                                </div>
                             </div>
                             <div class='block_height_spacer'></div>
                         </div>
