@@ -530,8 +530,8 @@ class LAManagement{
         return implode("\n",$array);
     }
     function TitleOfFile($content){
-        if(preg_match('/(# .*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
-            return $match[1][0];
+        if(preg_match('/# (.*)\n[\s\S]*## (.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
+            return '**'.$match[1][0].'**: '.$match[2][0];
         }else{
             return $this->FirstRows($content,1);
         }
@@ -2493,7 +2493,6 @@ class LAManagement{
                     <?php
                 }
                 $rows = $this->FirstRows($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f),20);
-                $title = $this->TitleOfFile($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f));
                 ?>
                     <div class = 'tile_content tile_item' style='overflow:auto;'>
                          □
