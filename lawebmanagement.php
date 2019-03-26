@@ -775,7 +775,16 @@ class LAManagement{
             exit;
         }
     }
-    
+    function FolderDisplayAs($path){
+        $file = $path.'/la_config.md';
+        if(is_readable($file) && filesize($file)!=0){
+            $ConfRead = fopen($file,'r');
+            $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($file)));
+            fclose($ConfRead);
+            if($this->CheckLineByNames($Config,'FolderConf','Display','Timeline')) return 'Timeline';
+            else return 'Normal';
+        }else return False;
+    }
     function PermissionForSingleFolder($path){
         $file = $path.'/la_config.md';
         if(is_readable($file) && filesize($file)!=0){
@@ -824,6 +833,27 @@ class LAManagement{
             fclose($ConfWrite);
         }
     }
+    function SetFolderDisplay($path,$display){
+        $file = $path.'/la_config.md';
+        if(is_readable($file)){
+            $ConfRead = fopen($file,'r');
+            $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($file)));
+            fclose($ConfRead);
+            $Block = $this->GetBlock($Config,'FolderConf');
+            if(!isset($Block)) $this->AddBlock($Config,'FolderConf');
+            $this->EditGeneralLineByName($Config,'FolderConf','Display',$display);
+            $ConfWrite = fopen($file,'w');
+            $this->WriteMarkdownConfig($Config, $ConfWrite);
+            fclose($ConfWrite);
+        }else{
+            $ConfWrite = fopen($file,'w');
+            $Config = [];
+            $this->AddBlock($Config,'FolderConf');
+            $this->EditGeneralLineByName($Config,'FolderConf','Display',$display);
+            $this->WriteMarkdownConfig($Config, $ConfWrite);
+            fclose($ConfWrite);
+        }
+    }
     
     function DoChangePermission(){
         if(isset($_GET['operation'])){
@@ -832,6 +862,17 @@ class LAManagement{
                 header('Location:?page='.$this->InterlinkPath().'&operation=list');
             }else if($_GET['operation']=='set_permission_on'){
                 $this->SetFolderPermission($this->InterlinkPath(),True);
+                header('Location:?page='.$this->InterlinkPath().'&operation=list');
+            }
+        }
+    }
+    function DoChangeFolderDisplay(){
+        if(isset($_GET['operation'])){
+            if($_GET['operation']=='set_display_timeline'){
+                $this->SetFolderDisplay($this->InterlinkPath(),'Timeline');
+                header('Location:?page='.$this->InterlinkPath().'&operation=list');
+            }else if($_GET['operation']=='set_display_normal'){
+                $this->SetFolderDisplay($this->InterlinkPath(),'Normal');
                 header('Location:?page='.$this->InterlinkPath().'&operation=list');
             }
         }
@@ -1216,19 +1257,20 @@ class LAManagement{
     }
     function MakeHeaderQuickButtons(){
         $path = $this->InterlinkPath();
+        $disp = $this->FolderDisplayAs($path)=='Timeline'?1:0;
         ?>
         <div id='HeaderQuickButtons'>
         <?php
 
             if(!isset($_SESSION['user_id'])){
             ?>
-                <a class='btn' href="?page=<?php echo $path ?>&operation=tile">文章列表</a>
+                <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">文章列表</a>
                 <div id='LoginToggle' class='btn'>欢迎</div>
             <?php
             }else{
                 ?>
                 <div id='LoginToggle' class='btn'><?php echo $this->UserDisplayName ?></div>
-                <a class='btn' href="?page=<?php echo $path ?>&operation=tile">文章</a>
+                <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">文章</a>
                 <a href="?page=<?php echo $this->PagePath?>&operation=list">管理</a> 
                 <a href="?page=<?php echo $this->PagePath?>&operation=new">写文</a>
                 <?php
@@ -1547,6 +1589,7 @@ class LAManagement{
         $upper='.';
         if($path!='.')$upper = $this->GetInterlinkPath('..');
         $permission = $this->PermissionForSingleFolder($path);
+        $display_as = $this->FolderDisplayAs($path);
         ?>
         <div class='top_panel'>
         
@@ -1582,6 +1625,12 @@ class LAManagement{
                             文件夹对外公开 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_permission_off'>设为不公开</a>
                         <?php }else{ ?>
                             文件夹不公开 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_permission_on'>设为公开</a>
+                        <?php }?>
+                        <div class='inline_height_spacer'></div>
+                        <?php if($display_as=='Timeline'){ ?>
+                            文件显示为时间线 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_display_normal'>设为瓷砖</a>
+                        <?php }else{ ?>
+                            文件显示为瓷砖 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_display_timeline'>设为时间线</a>
                         <?php }?>
                     </div>
                     <script>

@@ -4,6 +4,8 @@
 
 visible = 0
 
+Display = Timeline
+
 <!-- End of FolderConf -->
 
 
