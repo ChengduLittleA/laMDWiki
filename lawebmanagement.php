@@ -2242,6 +2242,7 @@ class LAManagement{
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),$show_complete?10000:10);
                     $title = $this->TitleOfFile($rows);
                     $background = $this->GetAdditionalContentBackground($path.'/'.$f);
+                    $last_interlink = $this->InterlinkPath();
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
                     <div>
@@ -2276,6 +2277,7 @@ class LAManagement{
                     <?php
                     $i++;
                     if($i>=$a['count']) break;
+                    $this->SetInterlinkPath($last_interlink);
                 }
                 if(isset($a['more']) && $a['more']!=''){
                     ?>
