@@ -2,7 +2,7 @@
 
 <!-- FolderConf -->
 
-visible = 0
+visible = 1
 
 Display = Timeline
 

@@ -1885,7 +1885,7 @@ class LAManagement{
         }
     }
     
-    function GetFileNameDateFormat($file,&$year,&$month,&$day){
+    function GetFileNameDateFormat($file,&$year,&$month,&$day,&$is_draft){
         if(preg_match("/(\d{4})(\d{2})(\d{2})/",$file,$matches,PREG_OFFSET_CAPTURE)){
             $year =  $matches[1][0];
             $month = $matches[2][0];
@@ -1894,6 +1894,11 @@ class LAManagement{
             $year='的某一天';
             $month='';
             $day ='过去';
+        }
+        if(preg_match("/DRAFT/",$file,$matches,PREG_OFFSET_CAPTURE)){
+            $is_draft = True;
+        }else{
+            $is_draft = False;
         }
     }
     
@@ -2147,6 +2152,9 @@ class LAManagement{
                 $i=0;
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                     if($f=='la_config.md') continue;
+                    $this->GetFileNameDateFormat($f,$y,$m,$d,$is_draft);
+                    if($is_draft && !$this->IsLoggedIn()) continue;
+                    
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
@@ -2165,6 +2173,9 @@ class LAManagement{
                 $i=0;$j=0;
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                     if($f=='la_config.md') continue;
+                    $this->GetFileNameDateFormat($f,$y,$m,$d,$is_draft);
+                    if($is_draft && !$this->IsLoggedIn()) continue;
+                    
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
@@ -2218,7 +2229,7 @@ class LAManagement{
                         </div>
                         <div class='additional_content'>
                             <div class='hidden_on_desktop' style='clear:both;text-align:center'>
-                                <span style='font-size:24px;'><b><?php echo date("d")?></b></span><br /><?php echo date("Y")?><?php echo date("m") ?>
+                                <span style='font-size:24px;'><b><?php echo date("d")?></b></span><br /><?php echo date("Y")?>/<?php echo date("m") ?>
                             </div>
                             <form method = "post" style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&quick='.$path;?>" id='form_passage'></form>
                             <input style='display:none;' type="text" id="EditorFileName" name="editor_file_name" value='<?php echo $this->GetUniqueName(date("Ymd"));?>'/ form='form_passage'>
@@ -2236,9 +2247,10 @@ class LAManagement{
                 $i=0;
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                     if($f=='la_config.md') continue;
-                    $y=''; $m=''; $d='';
+                    $y=''; $m=''; $d=''; $is_draft=False;
                     $show_complete = isset($a['complete'])&&$a['complete']==1;
-                    $this->GetFileNameDateFormat($f,$y,$m,$d);
+                    $this->GetFileNameDateFormat($f,$y,$m,$d,$is_draft);
+                    if($is_draft && !$this->IsLoggedIn()) continue;
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),$show_complete?10000:10);
                     $title = $this->TitleOfFile($rows);
                     $background = $this->GetAdditionalContentBackground($path.'/'.$f);
@@ -2248,14 +2260,14 @@ class LAManagement{
                     <div>
                     <div class='additional_content additional_content_left hidden_on_mobile'>
                         <div class='plain_block' style='text-align:center'>
-                        <span style='font-size:24px;'><b><?php echo $d?></b></span><br /><?php echo $y?><?php echo $m?'/'.$m:'' ?>
+                        <span style='font-size:24px;'><b><?php echo $is_draft?'草稿':$d?></b></span><br /><?php echo $y?><?php echo $m?'/'.$m:'' ?>
                         </div>
                     </div>
                     <div class='additional_content no_overflow_mobile'>
                         <div class='hidden_on_desktop' style='clear:both;text-align:right;position:sticky;top:80px;'>
                             <div class='plain_block small_shadow' style='text-align:center;display:inline-block;background-color:#FFF;'>
                                 <div style='float:right'>
-                                    &nbsp;<?php echo $m?($y.'/'.$m.'/<b>'.$d.'</b>'):'<b>过去</b>的某一天'?>
+                                    &nbsp;<?php echo $is_draft?'<b>草稿</b>':($m?('于'.$y.'/'.$m.'/<b>'.$d.'</b>'):'<b>过去</b>的某一天') ?>
                                 </div>
                                 <div style='overflow:hidden;max-height:24px;'>
                                     <?php echo $this->HTMLFromMarkdown($title)?>
@@ -2549,6 +2561,9 @@ class LAManagement{
             }
             if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                 if ($f=='LAUsers.md' || $f=='la_config.md') continue;
+                $this->GetFileNameDateFormat($f,$y,$m,$d,$is_draft);
+                if($is_draft && !$this->IsLoggedIn()) continue;
+                
                 $column_count++;
                 if ($column_count>3){
                     $column_count=0;
