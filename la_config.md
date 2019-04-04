@@ -93,5 +93,7 @@ Additional
 
 Display = Normal
 
+Layout = 0
+
 <!-- End of FolderConf -->
 

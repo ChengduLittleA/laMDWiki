@@ -785,6 +785,16 @@ class LAManagement{
             else return 'Normal';
         }else return False;
     }
+    function FolderNovelMode($path){
+        $file = $path.'/la_config.md';
+        if(is_readable($file) && filesize($file)!=0){
+            $ConfRead = fopen($file,'r');
+            $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($file)));
+            fclose($ConfRead);
+            if($this->CheckLineByNames($Config,'FolderConf','Layout','1')) return True;
+            else return False;
+        }else return False;
+    }
     function PermissionForSingleFolder($path){
         $file = $path.'/la_config.md';
         if(is_readable($file) && filesize($file)!=0){
@@ -854,6 +864,27 @@ class LAManagement{
             fclose($ConfWrite);
         }
     }
+    function SetFolderLayout($path,$layout){
+        $file = $path.'/la_config.md';
+        if(is_readable($file)){
+            $ConfRead = fopen($file,'r');
+            $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($file)));
+            fclose($ConfRead);
+            $Block = $this->GetBlock($Config,'FolderConf');
+            if(!isset($Block)) $this->AddBlock($Config,'FolderConf');
+            $this->EditGeneralLineByName($Config,'FolderConf','Layout',$layout);
+            $ConfWrite = fopen($file,'w');
+            $this->WriteMarkdownConfig($Config, $ConfWrite);
+            fclose($ConfWrite);
+        }else{
+            $ConfWrite = fopen($file,'w');
+            $Config = [];
+            $this->AddBlock($Config,'FolderConf');
+            $this->EditGeneralLineByName($Config,'FolderConf','Layout',$layout);
+            $this->WriteMarkdownConfig($Config, $ConfWrite);
+            fclose($ConfWrite);
+        }
+    }
     
     function DoChangePermission(){
         if(isset($_GET['operation'])){
@@ -873,6 +904,17 @@ class LAManagement{
                 header('Location:?page='.$this->InterlinkPath().'&operation=list');
             }else if($_GET['operation']=='set_display_normal'){
                 $this->SetFolderDisplay($this->InterlinkPath(),'Normal');
+                header('Location:?page='.$this->InterlinkPath().'&operation=list');
+            }
+        }
+    }
+    function DoChangeFolderLayout(){
+        if(isset($_GET['operation'])){
+            if($_GET['operation']=='set_layout_0'){
+                $this->SetFolderLayout($this->InterlinkPath(),'0');
+                header('Location:?page='.$this->InterlinkPath().'&operation=list');
+            }else if($_GET['operation']=='set_layout_1'){
+                $this->SetFolderLayout($this->InterlinkPath(),'1');
                 header('Location:?page='.$this->InterlinkPath().'&operation=list');
             }
         }
@@ -977,6 +1019,8 @@ class LAManagement{
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; overflow: hidden; }
             .additional_content_left{ margin-right: 15px; float: left; text-align: center; position: sticky; top:82px; margin-bottom:0px;}
+            .novel_content          { max-width:600px; margin:0px auto; line-height:2; }
+            .more_vertical_margin   { margin-top: 100px; margin-bottom: 100px; }
             .small_shadow           { box-shadow: 2px 2px #000; }
             .tile_content           { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .top_panel              { padding:10px; padding-top:15px; padding-bottom:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: hidden; }
@@ -1057,6 +1101,8 @@ class LAManagement{
             .passage_detail{ float: right; text-align: right; margin-left:5px; width:20%; min-width:210px; }
             .small_shadow p{ display: inline; }
             
+            .novel_content hr { height: 5em; border: none; }
+            
             .hidden_on_desktop       { display: none; }
             .hidden_on_desktop_inline{ display: none; }
             
@@ -1091,6 +1137,9 @@ class LAManagement{
                 .login_half             { width:75%; }
                 .big_string             { height:100px; }
                 
+                .novel_content          { max-width: unset;}
+                .more_vertical_margin   { margin-top: 0px; margin-bottom: 0px; }
+                
                 .no_overflow_mobile     { overflow: unset;}
             }
             
@@ -1110,6 +1159,7 @@ class LAManagement{
                 .gallery_right          { height: unset; width: unset; left: unset; z-index:10; position: unset; padding:0;  border: none; background-color:#FFF; box-shadow: unset; margin:0; overflow: unset; }
                 .gallery_main_height    { max-height: unset }
                 .no_padding             { padding: 0px; }
+                
             }
             
             @media (min-resolution: 192dpi),
@@ -1157,6 +1207,8 @@ class LAManagement{
     function MakeMainContentBegin(){
         $layout = $this->GetAdditionalLayout();
         $this->AdditionalLayout = $layout;
+        $novel_mode = $this->FolderNovelMode($this->InterlinkPath());
+        
         if($layout == 'Gallery' && (!isset($_GET['operation'])||$_GET['operation']=='additional')){
         ?>
             <div class='gallery_left'>
@@ -1165,21 +1217,15 @@ class LAManagement{
         }else{
         ?>
             <div class='main_content'>
+            <div class='<?php echo ($novel_mode && !$this->GetEditMode())?"novel_content more_vertical_margin":""?>'>
         <?php
         }
     }
     function MakeMainContentEnd(){
-        $layout = $this->AdditionalLayout;
-        if($layout == 'Gallery' && (!isset($_GET['operation'])||$_GET['operation']=='additional')){
         ?>
             </div>
             </div>
         <?php
-        }else{
-        ?>
-            </div>
-        <?php
-        }
     }
     function MakeSettings(){
         $Title='LAMDWIKI';
@@ -1590,6 +1636,7 @@ class LAManagement{
         if($path!='.')$upper = $this->GetInterlinkPath('..');
         $permission = $this->PermissionForSingleFolder($path);
         $display_as = $this->FolderDisplayAs($path);
+        $novel_mode = $this->FolderNovelMode($path);
         ?>
         <div class='top_panel'>
         
@@ -1631,6 +1678,12 @@ class LAManagement{
                             文件显示为时间线 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_display_normal'>设为瓷砖</a>
                         <?php }else{ ?>
                             文件显示为瓷砖 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_display_timeline'>设为时间线</a>
+                        <?php }?>
+                        <div class='inline_height_spacer'></div>
+                        <?php if($novel_mode){ ?>
+                            内容显示为小说样式 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_layout_0'>设为节约纸张</a>
+                        <?php }else{ ?>
+                            内容显示为节约纸张 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_layout_1'>设为小说样式</a>
                         <?php }?>
                     </div>
                     <script>
@@ -2039,6 +2092,8 @@ class LAManagement{
             if($this->FileNameList)     sort($this->FileNameList);
             $this->FileNameList = array_reverse($this->FileNameList);
             
+            $novel_mode = $this->FolderNovelMode($a['path']);
+            
             if(isset($folder)){
                 $prev_page=0;
                 $next_page=0;
@@ -2280,7 +2335,9 @@ class LAManagement{
                         <div class='btn block' style="text-align:unset;<?php if(!$folder && $background) echo "background-image:url('".$background."');background-repeat:no-repeat;background-size:cover;background-position:center;" ?>"
                              onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
                                 <div class='preview <?php echo (!$folder && $background)?"gallery_box_when_bkg top_panel":""?>' style="<?php echo $show_complete?'':'max-height:200px;overflow:hidden;'?><?php echo $this->FileIsNSFW?'text-align:center;':''?>">
-                                <?php echo $this->HTMLFromMarkdown($rows);?>
+                                    <div class='<?php echo $novel_mode?"novel_content":"" ?>'>
+                                        <?php echo $this->HTMLFromMarkdown($rows);?>
+                                    </div>
                                 </div>
                         </div>
                     </div>

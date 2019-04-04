@@ -109,6 +109,7 @@ echo $LAManagement->DoDeleteFile();
 echo $LAManagement->DoRenameFile();
 echo $LAManagement->DoChangePermission();
 echo $LAManagement->DoChangeFolderDisplay();
+echo $LAManagement->DoChangeFolderLayout();
 echo $LAManagement->DoMoveFile();
 echo $LAManagement->DoAdditionalConfig();
 echo $LAManagement->DoApplySettings();
