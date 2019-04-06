@@ -189,6 +189,10 @@ if($la_operation == 'new'){
     echo $LAManagement->MakeMainContentEnd();
 
 }else{
+    
+    $LAManagement->ExtractPassageConfigFromFile($la_page_path);
+    
+    $LAManagement->Make3DContent();
 
     echo $LAManagement->MakeMainContentBegin();
     
@@ -197,7 +201,7 @@ if($la_operation == 'new'){
     
     $LAManagement->ConfirmMainPassage();
     
-    echo $LAManagement->HTMLFromMarkdownFile($la_page_path);
+    echo $LAManagement->Insert3DContent($LAManagement->HTMLFromMarkdownFile($la_page_path));
     echo $LAManagement->MakeMainContentEnd();
     
     echo $LAManagement->MakeAdditionalContent(Null,Null);

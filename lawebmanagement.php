@@ -37,6 +37,7 @@ class LAManagement{
     protected $IsMainPassage;
     
     protected $AudioList;
+    protected $SceneList;
     
     protected $MainFileTitle;
     protected $MainFileIsNSFW;
@@ -503,8 +504,38 @@ class LAManagement{
         
         return $R;
     }
+    
+    function ExtractPassageConfig($Content){
+        $Conf = $this->ParseMarkdownConfig($Content);
+        $this->SceneList=[];
+        $i=0;
+        while($this->GetLineByNamesN($Conf,'3D','Scene',$i)!==Null){
+            $scene['file']    = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'File');
+            $scene['id']      = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'ID');
+            $scene['mode']    = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Mode');   // Block - Inline - Background (2nd background treat as block)
+            $scene['expand']  = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Expand'); // 0 - 1 (default 0)
+            $scene['hook']    = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Hook');   // some heading
+            $scene['padding'] = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Padding');// 0 - 1 (default 1)
+            $scene['hang']    = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Hang');   // 0 - 1 (default 0)
+            $scene['lock_center']  = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'LockCenter');   // 0 - 1 (default 0)
+            $scene['paralax']      = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Paralax');      // 0 - 1 (default 0)
+            $scene['paralax_size'] = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'ParalaxSize');  
+            $this->SceneList[] = $scene;
+            $i++;
+        }
+    }
+    
+    function ExtractPassageConfigFromFile($FileName){
+        $Content = $this->ContentOfMarkdownFile($FileName);
+        if($Content) $this->ExtractPassageConfig($Content);
+    }
+
+    function RemoveMarkdownConfig($Content){
+        return preg_replace("/((?<!<!--)*)(<!--)(.*)(-->)(([\S\s](?!<!--))*)(([\S\s](?<!<!--))*)(<!--)(.*)(-->)/", "", $Content);
+    }
+    
     function HTMLFromMarkdown($Content){
-        return $this->PDE->text($Content);
+        return $this->PDE->text($this->RemoveMarkdownConfig($Content));
     }
     
     function HTMLFromMarkdownFile($FileName){
@@ -981,11 +1012,13 @@ class LAManagement{
         <style>
         
             html{ text-align:center; }
-            body{ width:60%; text-align:left; min-width:900px; margin: 0 auto;
+            body{ width:100%; text-align:left; margin:0px;
                 background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAGUlEQVQImWNgYGD4z4AGMARwSvxnYGBgAACJugP9M1YqugAAAABJRU5ErkJggg==) repeat;
                 background-attachment: fixed;
                 font-size:16px;
             }
+            
+            .the_body{ width:60%; min-width:900px; margin: 0 auto; }
             
             img{ max-width: 100%; margin: 5px auto; display: block; }
             h3 img{ float: right; margin-left: 10px; max-width:30%; clear: right;}
@@ -1035,7 +1068,18 @@ class LAManagement{
             .gallery_box_when_bkg   { width:30%; max-width:300px;}
             .no_padding             { padding: 0px; }
             
-            .audio_player_box       { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px;}
+            .audio_player_box       { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto;  width:calc(60% - 55px); min-width:845px;}
+            
+            canvas                  { width:100%; height:100%; }
+            .canvas_box_warpper_wide           { position: relative;}
+            .canvas_box_warpper_wide::before   { content: " "; display: block; padding-top: 56.25%; }
+            .canvas_box_warpper_super          { position: relative;}
+            .canvas_box_warpper_super::before  { content: " "; display: block; padding-top: 41.8%; }
+            .canvas_box                        { position: absolute;top: 0px; left: 0px; bottom: 0px; right: 0px; display: flex; align-items: center; overflow: hidden;}
+            .canvas_box_expanded               { position: relative; height:100%; max-height:calc(100% - 250px); min-height:200px;}
+            
+            .box_complete_background           { position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; z-index: -1;}            
+            .box_hang_right                    { float: right; width:30%;}
             
             .btn          { border:1px solid #000; padding: 5px; color:#000; display: inline; background-color:#FFF; font-size:16px; cursor: pointer; text-align: center; }
             .btn:hover    { border:3px double #000; padding: 3px; }
@@ -1108,7 +1152,9 @@ class LAManagement{
             
             @media screen and (max-width: 1000px) {
             
-                body{ left:10px; width:calc(100% - 20px); min-width: unset; }
+                
+                
+                .the_body{ left:10px; width:calc(100% - 20px); min-width: unset; }
                 
                 h3 img{ float: unset; max-width:100%; margin: 5px auto;}
                 h4 img{ float: unset; max-width:100%; margin: 5px auto;}
@@ -1132,6 +1178,8 @@ class LAManagement{
                 .gallery_multi_content  { position: unset;}
                 .gallery_image          { max-width: 100%; min-width: unset; min-height: unset; object-fit: unset;}
                 .gallery_box_when_bkg   { width:60%; max-width: unset;}
+                
+                .box_hang_right         { float: unset; width: unset;}
                 
                 .passage_detail         { width:60%; }
                 .login_half             { width:75%; }
@@ -1188,12 +1236,13 @@ class LAManagement{
     }
     function PageHeaderBegin(){
         ?>
-        <div id='Header'>
+        <div id='Header' class='the_body'>
         <?php
     }
     function PageHeaderEnd(){
         ?>
             </div>
+            <div class='the_body'>
         <?php
     }
     function MakeTitleButton(){
@@ -1208,6 +1257,9 @@ class LAManagement{
         $layout = $this->GetAdditionalLayout();
         $this->AdditionalLayout = $layout;
         $novel_mode = $this->FolderNovelMode($this->InterlinkPath());
+        
+        ?>
+        <?php
         
         if($layout == 'Gallery' && (!isset($_GET['operation'])||$_GET['operation']=='additional')){
         ?>
@@ -1226,6 +1278,283 @@ class LAManagement{
             </div>
             </div>
         <?php
+    }
+    
+    function Make3DContentActual($sc,$hooked,$id){
+        $expanded  =       (isset($sc['expand'])&&$sc['expand']!=0);
+        $no_padding =      (isset($sc['padding'])&&$sc['padding']==0);
+        $inline =          (isset($sc['mode'])&&$sc['mode']=='Inline'&&$hooked);
+        $hang = $inline && (isset($sc['hang'])&&$sc['hang']=='1');
+        $hook = $hooked;
+        $lock_center =     (isset($sc['lock_center'])&&$sc['lock_center']=='1');
+        $is_background =   (isset($sc['mode'])&&$sc['mode']=='Background');
+        
+        if(!$is_background){
+        if(!$inline){
+        if($hooked) echo '</div></div>';
+        ?>
+        </div>
+        <div class='the_body' style="<?php echo $expanded?'width:calc(100% - 20px);':''?>">
+            <div class='main_content' style="<?php echo $no_padding?'padding:0px;':''?>">
+                 <div>
+        <?php } 
+        if($hang){
+            ?>
+            <div class='additional_content box_hang_right'>
+            <?php
+        }
+        }// not background
+        ?>
+                
+                <div class="<?php echo $is_background?'box_complete_background':($expanded?'canvas_box_expanded':'canvas_box_warpper_wide')?>">
+                    <div class='canvas_box'>
+                        <canvas id="<?php echo $id ?>">HTML5 Canvas</canvas>
+                    </div>
+                </div>
+                <script src="three.min.js"></script>
+                <script src="GLTFLoader.js"></script>
+                <script src="Controls.js"></script>
+                <script>
+                    var scene<?php echo $id?> = new THREE.Scene();
+                    var clock<?php echo $id?> = new THREE.Clock();
+                    var mixer<?php echo $id?> = null;
+			        var camera<?php echo $id?> = null;
+                    
+                    var canvasElm<?php echo $id?> = document.getElementById("<?php echo $id ?>");
+                    
+                    var renderer<?php echo $id?> = new THREE.WebGLRenderer( { canvas: canvasElm<?php echo $id?>, antialias: true } ); 
+                    renderer<?php echo $id?>.setSize(canvasElm<?php echo $id?>.clientWidth, canvasElm<?php echo $id?>.clientHeight);
+                    
+                    canvasElm<?php echo $id?>.oncontextmenu = () => false;
+                    
+                    var solid_mat<?php echo $id?> = new THREE.MeshBasicMaterial({color:0xffffff, polygonOffset: true,
+                                                                    polygonOffsetFactor: 1,
+                                                                    polygonOffsetUnits: 1});
+			        //var line_mat<?php echo $id?> = 
+			        
+			        scene<?php echo $id?>.background = new THREE.Color( 0xffffff );
+			        
+			        var directionalLight = new THREE.DirectionalLight(0xffffff,2);
+                    directionalLight.position.set(1, 0, 1).normalize();
+                    scene<?php echo $id?>.add(directionalLight);
+			        
+			        function loadScene<?php echo $id?>() {              
+                        var loader = new THREE.GLTFLoader();
+                        loader.load("<?php echo $this->InterlinkPath().'/'.$sc['file']?>",
+                            function (gltf) {
+                                var model = gltf.scene;
+                                scene<?php echo $id?>.add(model);
+                                scene<?php echo $id?>.traverse( function ( child ) {
+                                    if ( child.isMesh ) {
+                                        //child.doubleSided = true;
+                                        var line_mat = child.material.la_line;
+                                        if(!line_mat){
+                                            line_mat = new THREE.LineBasicMaterial( { color: 0x000000, linewidth: 1+child.material.roughness, linecap: 'round', linejoin:  'round'} );
+                                            child.material.la_line = line_mat;
+                                        }
+                                        var edges = new THREE.EdgesGeometry(child.geometry, thresholdAngle=5);
+                                        var lines = new THREE.LineSegments( edges, line_mat );
+                                        child.material = solid_mat<?php echo $id?>;
+
+                                        // color roughness emissive metalness  ---> available from blender export
+                                        
+                                        child.add(lines);
+                                    }
+                                    if(child.isCamera){
+                                        document_camera = scene<?php echo $id?>.getObjectByName(child.name);
+                                        camera<?php echo $id?> = new THREE.PerspectiveCamera( child.fov, canvasElm<?php echo $id?>.clientWidth / canvasElm<?php echo $id?>.clientHeight, 0.1, 1000 );
+                                        camera<?php echo $id?>.position.set(child.position.x,child.position.y,child.position.z);
+                                        camera<?php echo $id?>.rotation.set(child.rotation.x,child.rotation.y,child.rotation.z);
+                                    }
+						        });
+						        
+						        if(gltf.animations.length){
+						            mixer<?php echo $id?> = new THREE.AnimationMixer(model);
+						            for(var i=0; i<gltf.animations.length; i++){
+                                        mixer<?php echo $id?>.clipAction(gltf.animations[i]).play();
+						            }
+                                }
+                                if(!camera<?php echo $id?>){
+                                    camera<?php echo $id?> = new THREE.PerspectiveCamera( 75, canvasElm<?php echo $id?>.clientWidth / canvasElm<?php echo $id?>.clientHeight, 0.1, 100 );
+                                }
+                               
+                                animate<?php echo $id?>();
+                                
+                                var center<?php echo $id?> = new THREE.Vector3(0,0,0);
+                                
+                                var radius = camera<?php echo $id?>.position.distanceTo(center<?php echo $id?>); 
+                                
+                                var po = camera<?php echo $id?>.position;
+                                camera<?php echo $id?>.translateZ(-radius);
+                                center<?php echo $id?>.set(po.x,po.y,po.z);
+                                camera<?php echo $id?>.translateZ(radius);
+                                
+                                var mat=camera<?php echo $id?>.matrix.elements;
+                                original_roll<?php echo $id?> =-Math.atan2(-mat[2],mat[6]);
+	                            
+	                            camera<?php echo $id?>.up=new THREE.Vector4(0,0,1,0);
+	                            camera<?php echo $id?>.lookAt(center<?php echo $id?>);
+                                camera<?php echo $id?>.rotateZ(original_roll<?php echo $id?>);
+                                
+	                            function drag<?php echo $id?>(deltaX, deltaY) {
+		                            var radPerPixel = (Math.PI / canvasElm<?php echo $id?>.clientWidth * 2),
+		                                deltaPhi = radPerPixel * deltaX,
+		                                deltaTheta = radPerPixel * deltaY,
+		                                pos = camera<?php echo $id?>.position.sub(center<?php echo $id?>),
+		                                radius = pos.length(),
+		                                theta = Math.acos(pos.z / radius),
+		                                phi = Math.atan2(pos.y, pos.x);
+
+		                            // Subtract deltaTheta and deltaPhi
+		                            theta = Math.min(Math.max(theta - deltaTheta, 0), Math.PI);
+		                            phi -= deltaPhi;
+
+		                            // Turn back into Cartesian coordinates
+		                            pos.x = radius * Math.sin(theta) * Math.cos(phi);
+		                            pos.y = radius * Math.sin(theta) * Math.sin(phi);
+		                            pos.z = radius * Math.cos(theta);
+                                    
+		                            camera<?php echo $id?>.position.add(center<?php echo $id?>);
+		                            camera<?php echo $id?>.lookAt(center<?php echo $id?>);
+		                            camera<?php echo $id?>.rotateZ(original_roll<?php echo $id?>);
+	                            }
+		                        
+		                        <?php if(!$lock_center){?>
+	                            function move<?php echo $id?>(deltaX, deltaY) {
+			                        if ( camera<?php echo $id?>.isPerspectiveCamera ) {
+				                        var position = camera<?php echo $id?>.position;
+				                        var pos = camera<?php echo $id?>.position.sub(center<?php echo $id?>);
+		                                var targetDistance = pos.length();
+		                                camera<?php echo $id?>.position.add(center<?php echo $id?>);
+                                        var v = new THREE.Vector3();
+
+				                        targetDistance *= Math.tan( ( camera<?php echo $id?>.fov / 2 ) * Math.PI / 180.0 );
+                                        
+                                        v.setFromMatrixColumn( camera<?php echo $id?>.matrix, 0 );
+                                        v.multiplyScalar( - 2 * deltaX * targetDistance / canvasElm<?php echo $id?>.clientHeight);
+				                        camera<?php echo $id?>.position.add(v);
+				                        center<?php echo $id?>.add( v );
+				                        
+				                        v.setFromMatrixColumn( camera<?php echo $id?>.matrix, 1 );
+                                        v.multiplyScalar( 2 * deltaY * targetDistance / canvasElm<?php echo $id?>.clientHeight);
+                                        camera<?php echo $id?>.position.add(v);
+                                        center<?php echo $id?>.add( v );
+			                        } else if ( camera<?php echo $id?>.isOrthographicCamera ) {
+			                            var v = new THREE.Vector3();
+			                            v.setFromMatrixColumn( camera<?php echo $id?>.matrix, 0 );
+                                        v.multiplyScalar(deltaX * ( camera<?php echo $id?>.right - camera<?php echo $id?>.left ) / camera<?php echo $id?>.zoom / canvasElm<?php echo $id?>.clientWidth);
+                                        camera<?php echo $id?>.position.add(v);
+				                        center<?php echo $id?>.add( v );
+				                        
+				                        v.setFromMatrixColumn( camera<?php echo $id?>.matrix, 1 );
+                                        v.multiplyScalar(deltaY * ( camera<?php echo $id?>.top - camera<?php echo $id?>.bottom ) / camera<?php echo $id?>.zoom / canvasElm<?php echo $id?>.clientHeight);
+                                        camera<?php echo $id?>.position.add(v);
+                                        center<?php echo $id?>.add( v );
+			                        }
+	                            }
+	                            <?php } ?>
+	                            
+	                            function zoom<?php echo $id?>(deltaX, deltaY) {
+                                    camera<?php echo $id?>.position.sub(center<?php echo $id?>).multiplyScalar((-deltaX+deltaY)/2*0.01+1).add(center<?php echo $id?>);
+	                            }
+
+	                            Controls.addMouseHandler(renderer<?php echo $id?>.domElement, drag<?php echo $id?>, <?php echo $lock_center?'null':('move'.$id)?>,zoom<?php echo $id?>);
+                            });
+                            window.addEventListener("resize", function(){
+			                    canvasElm<?php echo $id?>.style.width='100%';
+			                    canvasElm<?php echo $id?>.style.height='100%';
+                                camera<?php echo $id?>.aspect = canvasElm<?php echo $id?>.clientWidth / canvasElm<?php echo $id?>.clientHeight;
+                                camera<?php echo $id?>.updateProjectionMatrix();
+                                renderer<?php echo $id?>.setSize(canvasElm<?php echo $id?>.clientWidth, canvasElm<?php echo $id?>.clientHeight);
+                                animate<?php echo $id?>();
+			                }, false);
+                    }
+                    
+			        
+			        
+			        function animate<?php echo $id?>() {
+			            requestAnimationFrame( animate<?php echo $id?> );
+                        if (mixer<?php echo $id?> != null) {
+                            var delta = clock<?php echo $id?>.getDelta();
+                            
+                            mixer<?php echo $id?>.update(delta);
+                            
+                        };
+                        
+                        renderer<?php echo $id?>.render( scene<?php echo $id?>, camera<?php echo $id?> );
+			        };
+			        
+                    loadScene<?php echo $id?>();
+			        
+                </script>
+                
+        <?php
+        if(!$is_background){
+        if(!$inline){
+        ?>          </div>
+                </div>
+            </div>
+        <div class='the_body'>
+        <?php 
+        if($hooked) echo '<div class="main_content"><div>';
+        } 
+        if($hang){
+            ?>
+            </div>
+            <?php
+        }
+        }//not background
+        ?>
+            
+        <?php
+    }
+    
+    function Make3DContent(){
+        if(!isset($this->SceneList[0])) return;
+        $i=0;
+        foreach ($this->SceneList as $sc){
+            if ((isset($sc['mode']) && ($sc['mode']=='Inline' && isset($sc['hook'])))||
+                (isset($sc['hook']))){
+                $i++;
+                continue;
+            }
+            if($sc['mode']=='Background'){
+                ob_start();
+                $this->Make3DContentActual($sc,False,$i);
+                $Inserts = ob_get_contents();
+                ob_end_clean();
+                
+                echo $Inserts;
+                
+            }else{
+                $this->Make3DContentActual($sc,False,$i);
+            }
+            $i++;
+        }
+    }
+    function Insert3DContent($Content){
+        if(!isset($this->SceneList[0])) return $Content;
+        $i=0;
+        foreach ($this->SceneList as $sc){
+            if (!isset($sc['hook'])){
+                $i++;
+                continue;
+            }
+
+            ob_start();
+            $this->Make3DContentActual($sc,True,$i);
+            $Inserts = ob_get_contents();
+            ob_end_clean();
+                
+            $split = preg_split('/(<h[0-6]>'.$sc['hook'].'<\/h[0-6]>)/U',$Content,3,PREG_SPLIT_DELIM_CAPTURE);
+            if(count($split)>2){    
+                $Content = $split[0].$split[1].$Inserts.$split[2];
+            }else{
+                $Content.=$Inserts;
+            }
+            $i++;
+        }
+        return $Content;
     }
     function MakeSettings(){
         $Title='LAMDWIKI';
@@ -2954,6 +3283,7 @@ class LAManagement{
 
             ?>
         </script>
+        </div>
         </body>
         <?php
     }
