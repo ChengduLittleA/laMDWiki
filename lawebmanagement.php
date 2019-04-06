@@ -48,6 +48,8 @@ class LAManagement{
     protected $StringTitle;
     protected $Footnote;
     
+    protected $BackgroundSemi;
+    
     function __construct() {
         $this->PDE = new ParsedownExtra();
         $this->PDE->SetInterlinkPath('/');
@@ -113,6 +115,9 @@ class LAManagement{
         $Returns = Null;
         $BeginOffset = 0;
         $i = 0;
+        
+        $Content = preg_replace("/([\S\s]*)```([\S\s]*)```/U", "", $Content);
+        
         while (preg_match("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", $Content, $Matches, PREG_OFFSET_CAPTURE)){
             $BlockName = trim($Matches[2][0]);
             
@@ -449,7 +454,7 @@ class LAManagement{
     
     function ScanForTagsInContent($Content){
         $this->AudioList = [];
-        preg_match_all("/<audio[\s\S]*id=[\"']([\S]*)[\"'][\s\S]*<source[\s\S]*src=[\"']([\S]*)[\"']/U", $Content, $Matches, PREG_SET_ORDER);
+        preg_match_all("/!@@\[(.*)\]\((.*)\)/U", $Content, $Matches, PREG_SET_ORDER);
         if($Matches){
             foreach($Matches as $m){
                 $group['id'] = $m[1];
@@ -497,7 +502,6 @@ class LAManagement{
         
         if($this->IsMainPassage){
             $this->MainFileIsNSFW=False;
-            $this->ScanForTagsInContent($R);
         }else{
             $this->FileIsNSFW=False;
         }
@@ -509,6 +513,7 @@ class LAManagement{
         $Conf = $this->ParseMarkdownConfig($Content);
         $this->SceneList=[];
         $i=0;
+        
         while($this->GetLineByNamesN($Conf,'3D','Scene',$i)!==Null){
             $scene['file']    = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'File');
             $scene['id']      = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'ID');
@@ -529,17 +534,34 @@ class LAManagement{
         $Content = $this->ContentOfMarkdownFile($FileName);
         if($Content) $this->ExtractPassageConfig($Content);
     }
+    
+    function MakeAudioTag($name,$file){
+
+        
+    }
 
     function RemoveMarkdownConfig($Content){
         $TMP='';
-        if(preg_match_all("/([\S\s]*)```([\S\s]*)```/U", $Content, $Matches, PREG_SET_ORDER)){
-
+        if(preg_match_all("/([\S\s]*)```([\S\s]*)(```)/U", $Content, $Matches, PREG_SET_ORDER|PREG_OFFSET_CAPTURE)){
             foreach($Matches as $m){
-                $TMP.= $m[1]."```".preg_replace("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", "$1<!--@$2-->$3<!--@$4-->", $m[2])."```";
+                $m[2][0] = preg_replace("/!@@\[(.*)\]\((.*)\)/U", "!@@@[$1]($2)",$m[2][0]);
+                $TMP.= $m[1][0]."```".preg_replace("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", "$1<!--@$2-->$3<!--@$4-->", $m[2][0])."```";
             }
+            $TMP.= substr($Content,end($Matches)[3][1]+3);
+            $TMP = preg_replace("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", "$1", $TMP);
+        }else{
+            $TMP = $Content;
+            $TMP = preg_replace("/([\S\s]*)<!--(.*)-->([\S\s]*)<!--(.*)-->/U", "$1<!--$2-->$3<!--$4-->", $TMP);
         }
         
-        $TMP = preg_replace("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", "$1", $TMP);
+        // also make audio tags
+        $this->ScanForTagsInContent($TMP);
+        $TMP = preg_replace("/!@@\[(.*)\]\((.*)\)/U", 
+            '<audio id="AUDIO_$1"><source src="'.$this->InterlinkPath().'/$2" type="audio/ogg"></audio>
+<div class="btn" style="pointer-events:none;">音频：$1</div>'
+            ,$TMP);
+
+        $TMP = preg_replace("/!@@@\[(.*)\]\((.*)\)/U", "!@@[$1]($2)",$TMP);
         return preg_replace("/([\S\s]*)<!--@(.*)-->([\S\s]*)<!--@(.*)-->/U", "$1<!--$2-->$3<!--$4-->", $TMP);
     }
     
@@ -1038,6 +1060,8 @@ class LAManagement{
             
             table{ width:100%; }
             
+            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 10;}
+            
             blockquote{ border-top:1px solid #000; border-bottom:1px solid #000; text-align: center; }
             
             ::-moz-selection{ background:#000; color:#FFF; }
@@ -1077,7 +1101,7 @@ class LAManagement{
             .gallery_box_when_bkg   { width:30%; max-width:300px;}
             .no_padding             { padding: 0px; }
             
-            .audio_player_box       { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto;  width:calc(60% - 55px); min-width:845px;}
+            .audio_player_box       { z-index:20; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto;  width:calc(60% - 55px); min-width:845px;}
             
             canvas                  { width:100%; height:100%; }
             .canvas_box_warpper_wide           { position: relative;}
@@ -1277,7 +1301,7 @@ class LAManagement{
         <?php
         }else{
         ?>
-            <div class='main_content'>
+            <div class='main_content' style='<?php echo $this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":""?>'>
             <div class='<?php echo ($novel_mode && !$this->GetEditMode())?"novel_content more_vertical_margin":""?>'>
         <?php
         }
@@ -1304,12 +1328,12 @@ class LAManagement{
         ?>
         </div>
         <div class='the_body' style="<?php echo $expanded?'width:calc(100% - 20px);':''?>">
-            <div class='main_content' style="<?php echo $no_padding?'padding:0px;':''?>">
+            <div class='main_content' style="<?php echo $no_padding?'padding:0px;':''?> <?php echo $this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":""?>">
                  <div>
         <?php } 
         if($hang){
             ?>
-            <div class='additional_content box_hang_right'>
+            <div class='additional_content box_hang_right' style='padding:0px;'>
             <?php
         }
         }// not background
@@ -1505,7 +1529,7 @@ class LAManagement{
             </div>
         <div class='the_body'>
         <?php 
-        if($hooked) echo '<div class="main_content"><div>';
+        if($hooked) echo '<div class="main_content" style="'.($this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":"").'"><div>';
         } 
         if($hang){
             ?>
@@ -1534,6 +1558,8 @@ class LAManagement{
                 ob_end_clean();
                 
                 echo $Inserts;
+                
+                $this->BackgroundSemi = True;
                 
             }else{
                 $this->Make3DContentActual($sc,False,$i);
@@ -3025,7 +3051,7 @@ class LAManagement{
         </div>
         <script>
             <?php if(True) { ?>
-            var music = document.getElementById("<?php echo $this->AudioList[0]['id'] ?>");
+            var music = document.getElementById("<?php echo 'AUDIO_'.$this->AudioList[0]['id'] ?>");
             var play = document.getElementById('audio_player_btn_play');
             var list_btn = document.getElementById('audio_player_btn_list');
             var list = document.getElementById('audio_player_playlist');
@@ -3042,6 +3068,7 @@ class LAManagement{
                     music.pause();
                     play.innerHTML='播放';
                 }
+                duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
             });
             list_btn.addEventListener("click", function() {
                 disp = list.style.display;
@@ -3054,11 +3081,15 @@ class LAManagement{
                 music.currentTime = music.duration*Math.min(Math.max(percent,0),1);
             });
             music.ontimeupdate = function(){
+                duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
                 time.innerHTML=(Math.floor(music.currentTime/60))+':'+la_pad((Math.round(music.currentTime)%60),2);
                 progress.style.width=100*(music.currentTime/music.duration)+'%';
                 buffer.style.width = 100*(music.buffered.end(0)/music.duration)+'%';
             }
             music.oncanplay = function(){
+                duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
+            }
+            music.oncanplaythrough = function(){
                 duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
             }
             

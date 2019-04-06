@@ -14,13 +14,12 @@
 
 ### 白噪声音频文件播放示例
 
-<audio controls id='audio1'>
-    <source src="../snd/LA_WhiteNoise.ogg" type="audio/ogg">
-</audio>
+```
+!@@[aaaa](../snd/LA_WhiteNoise.ogg)
 
-<audio controls id='audio2'>
-    <source src="../snd/LA_WhiteNoise.ogg" type="audio/ogg">
-</audio>
+```
+
+!@@[aaaa](../snd/LA_WhiteNoise.ogg)
 
 ##  中标题
 
