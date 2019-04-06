@@ -113,8 +113,8 @@ class LAManagement{
         $Returns = Null;
         $BeginOffset = 0;
         $i = 0;
-        while (preg_match("/(([\S\s](?<!<!--))*)(<!--)(.*)(-->)(([\S\s](?!<!--))*)(([\S\s](?<!<!--))*)(<!--)(.*)(-->)/", $Content, $Matches, PREG_OFFSET_CAPTURE)){
-            $BlockName = trim($Matches[4][0]);
+        while (preg_match("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", $Content, $Matches, PREG_OFFSET_CAPTURE)){
+            $BlockName = trim($Matches[2][0]);
             
             $Returns[$i]["IsConfig"] = False;
             $Returns[$i]["Content"] = trim($Matches[1][0]);
@@ -124,7 +124,7 @@ class LAManagement{
             $Returns[$i]["BlockName"] = $BlockName;
             
             $j = -1; $k = 0;
-            foreach(explode("\n",trim($Matches[6][0])) as $Line){
+            foreach(explode("\n",trim($Matches[3][0])) as $Line){
                 if (!isset($Line[0])) continue;
                 if ($Line[0] == "-"){
                     if ($j<0) continue;
@@ -151,7 +151,7 @@ class LAManagement{
             
             $i++;
             
-            $Content = preg_replace("/(([\S\s](?<!<!--))*)(<!--)(.*)(-->)(([\S\s](?!<!--))*)(([\S\s](?<!<!--))*)(<!--)(.*)(-->)/", "", $Content, $limit=1);
+            $Content = preg_replace("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", "", $Content, $limit=1);
         }
         return $Returns;
     }
@@ -531,7 +531,16 @@ class LAManagement{
     }
 
     function RemoveMarkdownConfig($Content){
-        return preg_replace("/((?<!<!--)*)(<!--)(.*)(-->)(([\S\s](?!<!--))*)(([\S\s](?<!<!--))*)(<!--)(.*)(-->)/", "", $Content);
+        $TMP='';
+        if(preg_match_all("/([\S\s]*)```([\S\s]*)```/U", $Content, $Matches, PREG_SET_ORDER)){
+
+            foreach($Matches as $m){
+                $TMP.= $m[1]."```".preg_replace("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", "$1<!--@$2-->$3<!--@$4-->", $m[2])."```";
+            }
+        }
+        
+        $TMP = preg_replace("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", "$1", $TMP);
+        return preg_replace("/([\S\s]*)<!--@(.*)-->([\S\s]*)<!--@(.*)-->/U", "$1<!--$2-->$3<!--$4-->", $TMP);
     }
     
     function HTMLFromMarkdown($Content){
