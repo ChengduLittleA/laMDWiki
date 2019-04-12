@@ -822,6 +822,18 @@ class LAManagement{
                 exit;
             }
         }
+        if(isset($_GET['set_draft'])){
+            $original_path = $this->PagePath;
+            if($_GET['set_draft']==0){
+                $target_path = preg_replace("/DRAFT/",'',$original_path);
+                rename($original_path,$target_path);
+            }else{
+                $target_path = preg_replace("/.md/",'DRAFT.md',$original_path);
+                rename($original_path,$target_path);
+            }
+            header('Location:?page='.$target_path);
+            exit;
+        }
     }
     
     function DoDeleteFile(){
@@ -1060,7 +1072,7 @@ class LAManagement{
             
             table{ width:100%; }
             
-            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 10;}
+            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 10; }
             
             blockquote{ border-top:1px solid #000; border-bottom:1px solid #000; text-align: center; }
             
@@ -1214,6 +1226,8 @@ class LAManagement{
                 
                 .box_hang_right         { float: unset; width: unset;}
                 
+                .audio_player_box       { margin:10px auto;  width:calc(100% - 60px); min-width:unset;}
+                
                 .passage_detail         { width:60%; }
                 .login_half             { width:75%; }
                 .big_string             { height:100px; }
@@ -1226,6 +1240,9 @@ class LAManagement{
             
             @media print {
                 body{ width:100%; min-width: unset; }
+                
+                .the_body{ width:100%; min-width:unset; margin: 0 auto; }
+                
                 #Header                 { display: none; }
                 .top_panel,
                 .footer                 { display: none; }
@@ -1265,6 +1282,55 @@ class LAManagement{
         </script>
         </head>
         <body>
+        <?php
+    }
+    function SpetialStripeSegment($width,$color){
+        ?>
+                <div style='display:inline-block; height:100%; width:<?php echo $width?>; background-color:<?php echo $color?>;'></div>
+        <?php
+    }
+    function MakeSpecialStripe(){
+        ?>
+        <div style='background-color:#000; height:10px;'>
+            <div style='width:600px; max-width:100%; height:100%; font-size:0px; overflow:hidden;'>
+            <?php
+                $this->SpetialStripeSegment('3.97%','#550000');
+                $this->SpetialStripeSegment('2.26%','#800000');
+                $this->SpetialStripeSegment('0.53%','#d40000');
+                $this->SpetialStripeSegment('1.75%','#cd4a00');
+                $this->SpetialStripeSegment('5.15%','#cd6200');
+                $this->SpetialStripeSegment('2.06%','#f6a400');
+                $this->SpetialStripeSegment('1.76%','#ffed22');
+                $this->SpetialStripeSegment('0.80%','#f6ff0f');
+                $this->SpetialStripeSegment('1.04%','#c7fb00');
+                $this->SpetialStripeSegment('3.50%','#59e800');
+                $this->SpetialStripeSegment('4.12%','#00c000');
+                $this->SpetialStripeSegment('1.02%','#009245');
+                $this->SpetialStripeSegment('0.55%','#00875f');
+                $this->SpetialStripeSegment('1.28%','#00796f');
+                $this->SpetialStripeSegment('3.14%','#006879');
+                $this->SpetialStripeSegment('5.14%','#005b7c');
+                $this->SpetialStripeSegment('1.58%','#004897');
+                $this->SpetialStripeSegment('1.02%','#001cb7');
+                $this->SpetialStripeSegment('0.76%','#190087');
+                $this->SpetialStripeSegment('1.90%','#4600a7');
+                $this->SpetialStripeSegment('4.35%','#6c00bd');
+                $this->SpetialStripeSegment('1.30%','#8e00c2');
+                $this->SpetialStripeSegment('1.08%','#cb00d5');
+                $this->SpetialStripeSegment('0.70%','#ff2ad4');
+                $this->SpetialStripeSegment('1.39%','#ff179c');
+                $this->SpetialStripeSegment('4.00%','#ff016b');
+                $this->SpetialStripeSegment('1.96%','#e8004e');
+                $this->SpetialStripeSegment('1.02%','#c40028');
+                $this->SpetialStripeSegment('1.95%','#a0000f');
+                $this->SpetialStripeSegment('5.54%','#900000');
+                $this->SpetialStripeSegment('11.52%','#780000');
+                $this->SpetialStripeSegment('5.20%','#5e0000');
+                $this->SpetialStripeSegment('6.14%','#4e0000');
+                $this->SpetialStripeSegment('10.51%','#3e0000');
+            ?>
+            </div>
+        </div>
         <?php
     }
     function PageHeaderBegin(){
@@ -1352,6 +1418,7 @@ class LAManagement{
                     var clock<?php echo $id?> = new THREE.Clock();
                     var mixer<?php echo $id?> = null;
 			        var camera<?php echo $id?> = null;
+			        var document_camera<?php echo $id?> = null;
                     
                     var canvasElm<?php echo $id?> = document.getElementById("<?php echo $id ?>");
                     
@@ -1360,7 +1427,7 @@ class LAManagement{
                     
                     canvasElm<?php echo $id?>.oncontextmenu = () => false;
                     
-                    var solid_mat<?php echo $id?> = new THREE.MeshBasicMaterial({color:0xffffff, polygonOffset: true,
+                    var solid_mat<?php echo $id?> = new THREE.MeshBasicMaterial({color:0xffff00, polygonOffset: true,
                                                                     polygonOffsetFactor: 1,
                                                                     polygonOffsetUnits: 1});
 			        //var line_mat<?php echo $id?> = 
@@ -1387,14 +1454,14 @@ class LAManagement{
                                         }
                                         var edges = new THREE.EdgesGeometry(child.geometry, thresholdAngle=5);
                                         var lines = new THREE.LineSegments( edges, line_mat );
-                                        child.material = solid_mat<?php echo $id?>;
+                                        child.material.color.setRGB(1,1,1);
 
                                         // color roughness emissive metalness  ---> available from blender export
                                         
                                         child.add(lines);
                                     }
                                     if(child.isCamera){
-                                        document_camera = scene<?php echo $id?>.getObjectByName(child.name);
+                                        document_camera<?php echo $id?> = scene<?php echo $id?>.getObjectByName(child.name);
                                         camera<?php echo $id?> = new THREE.PerspectiveCamera( child.fov, canvasElm<?php echo $id?>.clientWidth / canvasElm<?php echo $id?>.clientHeight, 0.1, 1000 );
                                         camera<?php echo $id?>.position.set(child.position.x,child.position.y,child.position.z);
                                         camera<?php echo $id?>.rotation.set(child.rotation.x,child.rotation.y,child.rotation.z);
@@ -1409,6 +1476,7 @@ class LAManagement{
                                 }
                                 if(!camera<?php echo $id?>){
                                     camera<?php echo $id?> = new THREE.PerspectiveCamera( 75, canvasElm<?php echo $id?>.clientWidth / canvasElm<?php echo $id?>.clientHeight, 0.1, 100 );
+                                    camera<?php echo $id?>.position.z=5;
                                 }
                                
                                 animate<?php echo $id?>();
@@ -1703,10 +1771,17 @@ class LAManagement{
         <?php
     }
     function MakePassageEditButtons(){
+        $this->GetFileNameDateFormat($this->PagePath,$y,$m,$d,$is_draft);
         ?>
-        <div style='float:right;z-index:1;'>
+        <div style='float:right;z-index:1;text-align:right;'>
             <a href="?page=<?php echo $this->PagePath ?>&operation=additional">附加</a>
             <a href="?page=<?php echo $this->PagePath;?>&operation=edit"><b>编辑</b></a>
+            <div class='block_height_spacer'></div>
+            <?php if ($is_draft){ ?>
+                <a href="?page=<?php echo $this->PagePath ?>&set_draft=0">设为公开</a>
+            <?php }else{ ?>
+                <a href="?page=<?php echo $this->PagePath ?>&set_draft=1">设为草稿</a>
+            <?php } ?>
         </div>
         <?php
     }

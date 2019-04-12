@@ -116,6 +116,8 @@ echo $LAManagement->DoApplySettings();
 
 echo $LAManagement->MakeHTMLHead();
 
+//echo $LAManagement->MakeSpecialStripe();
+
 echo $LAManagement->PageHeaderBegin();
 
 echo $LAManagement->MakeTitleButton();
