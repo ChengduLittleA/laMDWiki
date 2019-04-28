@@ -38,6 +38,7 @@ class LAManagement{
     
     protected $AudioList;
     protected $SceneList;
+    protected $LinkList;
     
     protected $MainFileTitle;
     protected $MainFileIsNSFW;
@@ -565,6 +566,39 @@ class LAManagement{
         return preg_replace("/([\S\s]*)<!--@(.*)-->([\S\s]*)<!--@(.*)-->/U", "$1<!--$2-->$3<!--$4-->", $TMP);
     }
     
+    function ProcessHREFForPrint($HTMLContent){
+        $TMP='';
+        $number=0;
+        if(preg_match_all("/([\S\s]*)<a(.*)href=[\'\"]([^\'\"]*)[\'\"](.*)>(.*)(<\/a>)/U", $HTMLContent, $Matches, PREG_SET_ORDER|PREG_OFFSET_CAPTURE)){
+            foreach($Matches as $m){
+                $number+=1;
+                $this->LinkList[] = [$number,$m[3][0]];
+                $TMP.= $m[1][0]."<a".$m[2][0].'href="'.$m[3][0].'"'.$m[4][0].'>'.$m[5][0].'<sup class="only_on_print">链'.$number.'</sup>'.'</a>';
+            }
+            $TMP.= substr($HTMLContent,end($Matches)[6][1]);
+        }else{
+            $TMP = $HTMLContent;
+        }
+        return $TMP;
+    }
+    
+    function MakeHREFListForPrint(){
+        if(!isset($this->LinkList[0])) return;
+        ?>
+        <div class='appendix only_on_print'>
+            <hr /> 
+            <h2>链接列表</h2>
+            <?php
+            foreach($this->LinkList as $l){
+                $url = preg_replace('/^\?page=/',$_SERVER['HTTP_HOST'].'/',$l[1]);
+                $url = preg_replace('/^index.php\?page=/',$_SERVER['HTTP_HOST'].'/',$url);
+                echo '<p>'.$url.' 链'.$l[0].'</p>';
+            }
+            ?>
+        </div>
+        <?php
+    }
+    
     function HTMLFromMarkdown($Content){
         return $this->PDE->text($this->RemoveMarkdownConfig($Content));
     }
@@ -1072,7 +1106,7 @@ class LAManagement{
             
             table{ width:100%; }
             
-            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 10; }
+            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 10;}
             
             blockquote{ border-top:1px solid #000; border-bottom:1px solid #000; text-align: center; }
             
@@ -1192,8 +1226,11 @@ class LAManagement{
             
             .novel_content hr { height: 5em; border: none; }
             
+            .appendix { text-align: right; font-size: 12px; line-height: 1.2;}
+            
             .hidden_on_desktop       { display: none; }
             .hidden_on_desktop_inline{ display: none; }
+            .only_on_print           { display: none; }
             
             @media screen and (max-width: 1000px) {
             
@@ -1239,12 +1276,13 @@ class LAManagement{
             }
             
             @media print {
-                body{ width:100%; min-width: unset; }
+                body{ width:100%; min-width: unset; line-height: 1.6}
                 
                 .the_body{ width:100%; min-width:unset; margin: 0 auto; }
                 
                 #Header                 { display: none; }
                 .top_panel,
+                .hidden_on_print,
                 .footer                 { display: none; }
                 .main_content,
                 .narrow_content,
@@ -1258,6 +1296,21 @@ class LAManagement{
                 .gallery_main_height    { max-height: unset }
                 .no_padding             { padding: 0px; }
                 
+                .print_document h1{ border-left: 10px solid black; padding-left:10px; border-bottom: 1px solid black; margin-bottom: 5px }
+                
+                .print_document h2{ border-left: 5px solid black; padding-left:5px;}
+                
+                .print_document h3{ border-left: 1px solid black; padding-left:9px;}
+                
+                .gallery_left h1, .gallery_left h2, .gallery_left h3, .gallery_left h4, .gallery_left h5, .gallery_left h6 { display: inline; }
+                
+                pre{ white-space: pre-wrap; border: 1px dotted black; }
+                
+                .print_document          { padding-left: 10px; }
+                .print_document h1, .print_document h2, .print_document h3, .print_document h4, .print_document h5, .print_document h6 { margin-left: -10px; }
+                .appendix h1, .appendix h2, .appendix h3, .appendix h4, .appendix h5, .appendix h6 { border: none; }
+                
+                .only_on_print           { display: unset; }
             }
             
             @media (min-resolution: 192dpi),
@@ -1367,7 +1420,7 @@ class LAManagement{
         <?php
         }else{
         ?>
-            <div class='main_content' style='<?php echo $this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":""?>'>
+            <div class='main_content <?php echo $novel_mode?"":"print_document" ?>' style='<?php echo $this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":""?>'>
             <div class='<?php echo ($novel_mode && !$this->GetEditMode())?"novel_content more_vertical_margin":""?>'>
         <?php
         }
@@ -1773,7 +1826,7 @@ class LAManagement{
     function MakePassageEditButtons(){
         $this->GetFileNameDateFormat($this->PagePath,$y,$m,$d,$is_draft);
         ?>
-        <div style='float:right;z-index:1;text-align:right;'>
+        <div class='hidden_on_print' style='float:right;z-index:1;text-align:right;'>
             <a href="?page=<?php echo $this->PagePath ?>&operation=additional">附加</a>
             <a href="?page=<?php echo $this->PagePath;?>&operation=edit"><b>编辑</b></a>
             <div class='block_height_spacer'></div>
@@ -2108,21 +2161,21 @@ class LAManagement{
                     <div id='permission_dialog' style='display:none'>
                         <div class='inline_height_spacer'></div>
                         <?php if($permission){ ?>
-                            文件夹对外公开 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_permission_off'>设为不公开</a>
+                            文件夹对外公开 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_permission_off'>设为不公开</a>
                         <?php }else{ ?>
-                            文件夹不公开 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_permission_on'>设为公开</a>
+                            文件夹不公开 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_permission_on'>设为公开</a>
                         <?php }?>
                         <div class='inline_height_spacer'></div>
                         <?php if($display_as=='Timeline'){ ?>
-                            文件显示为时间线 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_display_normal'>设为瓷砖</a>
+                            文件显示为时间线 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_display_normal'>设为瓷砖</a>
                         <?php }else{ ?>
-                            文件显示为瓷砖 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_display_timeline'>设为时间线</a>
+                            文件显示为瓷砖 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_display_timeline'>设为时间线</a>
                         <?php }?>
                         <div class='inline_height_spacer'></div>
                         <?php if($novel_mode){ ?>
-                            内容显示为小说样式 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_layout_0'>设为节约纸张</a>
+                            内容显示为小说样式 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_layout_0'>设为节约纸张</a>
                         <?php }else{ ?>
-                            内容显示为节约纸张 &nbsp;<a class='btn' id='folder_upload' href='?page=<?php echo $path?>&operation=set_layout_1'>设为小说样式</a>
+                            内容显示为节约纸张 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_layout_1'>设为小说样式</a>
                         <?php }?>
                     </div>
                     <script>

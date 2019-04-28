@@ -203,7 +203,12 @@ if($la_operation == 'new'){
     
     $LAManagement->ConfirmMainPassage();
     
-    echo $LAManagement->Insert3DContent($LAManagement->HTMLFromMarkdownFile($la_page_path));
+    echo $LAManagement->ProcessHREFForPrint(
+         $LAManagement->Insert3DContent(
+         $LAManagement->HTMLFromMarkdownFile($la_page_path)));
+    
+    echo $LAManagement->MakeHREFListForPrint();
+         
     echo $LAManagement->MakeMainContentEnd();
     
     echo $LAManagement->MakeAdditionalContent(Null,Null);

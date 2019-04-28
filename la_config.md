@@ -77,7 +77,7 @@ Additional
 - Style = 2
 - Count = 1000
 - Title = 照片墙功能
-- ColumnCount = 3
+- ColumnCount = 1
 
 Additional
 - Path = ./SubFolder
