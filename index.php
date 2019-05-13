@@ -195,6 +195,7 @@ if($la_operation == 'new'){
     $LAManagement->ExtractPassageConfigFromFile($la_page_path);
     
     $LAManagement->Make3DContent();
+    $LAManagement->Make2DContent();
 
     echo $LAManagement->MakeMainContentBegin();
     
@@ -205,7 +206,8 @@ if($la_operation == 'new'){
     
     echo $LAManagement->ProcessHREFForPrint(
          $LAManagement->Insert3DContent(
-         $LAManagement->HTMLFromMarkdownFile($la_page_path)));
+         $LAManagement->Insert2DContent(
+         $LAManagement->HTMLFromMarkdownFile($la_page_path))));
     
     echo $LAManagement->MakeHREFListForPrint();
          

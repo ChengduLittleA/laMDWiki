@@ -38,6 +38,7 @@ class LAManagement{
     
     protected $AudioList;
     protected $SceneList;
+    protected $BlockImageList;
     protected $LinkList;
     
     protected $MainFileTitle;
@@ -50,6 +51,8 @@ class LAManagement{
     protected $Footnote;
     
     protected $BackgroundSemi;
+    
+    protected $MainContentAlreadyBegun;
     
     function __construct() {
         $this->PDE = new ParsedownExtra();
@@ -117,7 +120,7 @@ class LAManagement{
         $BeginOffset = 0;
         $i = 0;
         
-        $Content = preg_replace("/([\S\s]*)```([\S\s]*)```/U", "", $Content);
+        $Content = preg_replace("/([\S\s]*)```([\S\s]*)```/U", "$1", $Content);
         
         while (preg_match("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", $Content, $Matches, PREG_OFFSET_CAPTURE)){
             $BlockName = trim($Matches[2][0]);
@@ -529,6 +532,19 @@ class LAManagement{
             $this->SceneList[] = $scene;
             $i++;
         }
+        
+        $i=0;
+        while($this->GetLineByNamesN($Conf,'2D','Image',$i)!==Null){
+            $img['file']    = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'File');
+            $img['file2']   = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'File2');
+            $img['mode']    = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Mode');   // Block - Background (2nd background treat as block)
+            $img['expand']  = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Expand'); // 0 - 1 (default 0)
+            $img['hook']    = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Hook');   // some heading
+            $img['padding'] = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Padding');// 0 - 1 (default 1)
+            $img['click_zoom']   = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'ClickZoom');// 0 - 1 (default 0)
+            $this->BlockImageList[] = $img;
+            $i++;
+        }
     }
     
     function ExtractPassageConfigFromFile($FileName){
@@ -552,7 +568,7 @@ class LAManagement{
             $TMP = preg_replace("/([\S\s]*)<!--([^@]*)-->([\S\s]*)<!--([^@]*)-->/U", "$1", $TMP);
         }else{
             $TMP = $Content;
-            $TMP = preg_replace("/([\S\s]*)<!--(.*)-->([\S\s]*)<!--(.*)-->/U", "$1<!--$2-->$3<!--$4-->", $TMP);
+            $TMP = preg_replace("/([\S\s]*)<!--(.*)-->([\S\s]*)<!--(.*)-->/U", "$1", $TMP);
         }
         
         // also make audio tags
@@ -1024,6 +1040,12 @@ class LAManagement{
             }else if($_GET['operation']=='set_layout_1'){
                 $this->SetFolderLayout($this->InterlinkPath(),'1');
                 header('Location:?page='.$this->InterlinkPath().'&operation=list');
+            }else if($_GET['operation']=='set_wide_0'){
+                $this->SetFolderWide($this->InterlinkPath(),'0');
+                header('Location:?page='.$this->InterlinkPath().'&operation=list');
+            }else if($_GET['operation']=='set_wide_1'){
+                $this->SetFolderWide($this->InterlinkPath(),'1');
+                header('Location:?page='.$this->InterlinkPath().'&operation=list');
             }
         }
     }
@@ -1156,6 +1178,11 @@ class LAManagement{
             .canvas_box_warpper_super::before  { content: " "; display: block; padding-top: 41.8%; }
             .canvas_box                        { position: absolute;top: 0px; left: 0px; bottom: 0px; right: 0px; display: flex; align-items: center; overflow: hidden;}
             .canvas_box_expanded               { position: relative; height:100%; max-height:calc(100% - 250px); min-height:200px;}
+            
+            .block_image_normal                { position: relative; text-align: center; }
+            .block_image_expanded              { position: relative; text-align: center; }
+            .block_image_expanded img          { margin: 0px auto; max-height:100vh; max-width:100vw }
+            .block_image_normal   img          { margin: 0px auto; max-height:100vh; max-width:100vw }
             
             .box_complete_background           { position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; z-index: -1;}            
             .box_hang_right                    { float: right; width:30%;}
@@ -1394,7 +1421,7 @@ class LAManagement{
     function PageHeaderEnd(){
         ?>
             </div>
-            <div class='the_body'>
+            
         <?php
     }
     function MakeTitleButton(){
@@ -1410,8 +1437,11 @@ class LAManagement{
         $this->AdditionalLayout = $layout;
         $novel_mode = $this->FolderNovelMode($this->InterlinkPath());
         
-        ?>
-        <?php
+        if(!$this->MainContentAlreadyBegun){
+            ?>
+            <div class='the_body'>
+            <?php
+        }
         
         if($layout == 'Gallery' && (!isset($_GET['operation'])||$_GET['operation']=='additional')){
         ?>
@@ -1427,6 +1457,7 @@ class LAManagement{
     }
     function MakeMainContentEnd(){
         ?>
+            </div>
             </div>
             </div>
         <?php
@@ -1650,6 +1681,7 @@ class LAManagement{
             </div>
         <div class='the_body'>
         <?php 
+        $this->MainContentAlreadyBegun=True;
         if($hooked) echo '<div class="main_content" style="'.($this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":"").'"><div>';
         } 
         if($hang){
@@ -1712,6 +1744,122 @@ class LAManagement{
         }
         return $Content;
     }
+    
+    function Make2DContentActual($sc,$hooked){
+        $expanded  =       (isset($sc['expand'])&&$sc['expand']!=0);
+        $no_padding =      (isset($sc['padding'])&&$sc['padding']==0);
+        $inline =          (isset($sc['mode'])&&$sc['mode']=='Inline'&&$hooked);
+        $hook = $hooked;
+        $is_background =   (isset($sc['mode'])&&$sc['mode']=='Background');
+        $click_zoom   =   (isset($sc['click_zoom'])&&$sc['click_zoom']!=0);
+
+        if(!$is_background){
+            if(!$inline){
+                if($hooked) echo '</div></div>';
+                ?>
+                </div>
+                <div class='the_body' style="<?php echo $expanded?'width:calc(100% - 20px);':''?>">
+                    <div class='main_content' style="<?php echo $no_padding?'padding:0px;':''?> <?php echo $this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":""?>">
+                         <div>
+            <?php } 
+        }// not background
+        ?>
+                
+                <div class="<?php echo $is_background?'box_complete_background':($expanded?'block_image_expanded':'block_image_normal')?>">
+                    <?php if (!isset($sc['file2'])){?>
+                        <img id='BlockImage1' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' >
+                    <?php }else{ ?>
+                        <table style='margin:0px;'>
+                        <td style='padding:0px; text-align:right;'>
+                            <img id='BlockImage1' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' style="max-width:100%;display:inline-block;" >
+                        </td>
+                        <td style='padding:0px; text-align:left;'>
+                            <img id='BlockImage2' src='<?php echo $this->InterlinkPath().'/'.$sc['file2']?>' style="max-width:100%;display:inline-block;" >
+                        </td>
+                        </table>
+                    <?php }?>
+                    <div id='BlockImageCover' style='position:absolute;top:0px;left:0px;right:0px;left:0px;height:100%;'>
+                    </div>
+                </div>
+                
+                <?php if ($click_zoom){ ?>
+                <script>
+                    image1=document.getElementById('BlockImage1');
+                    image2=document.getElementById('BlockImage2');
+                    document.getElementById('BlockImageCover').addEventListener("click",function(){
+                        if(image1) image1.style.maxHeight = image1.style.maxHeight=='100vh' ? 'unset' : '100vh'; 
+                        if(image2) image2.style.maxHeight = image2.style.maxHeight=='100vh' ? 'unset' : '100vh'; 
+                    });
+                </script>
+                <?php } ?>
+        <?php
+        if(!$is_background){
+            if(!$inline){
+                ?>          </div>
+                        </div>
+                    </div>
+                <div class='the_body'>
+                <?php 
+                $this->MainContentAlreadyBegun=True;
+                if($hooked) echo '<div class="main_content" style="'.($this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":"").'"><div>';
+            } 
+        }//not background
+        ?>
+            
+        <?php
+    }
+    
+    function Make2DContent(){
+        if(!isset($this->BlockImageList[0])) return;
+        $i=0;
+        foreach ($this->BlockImageList as $sc){
+            if ((isset($sc['mode']) && ($sc['mode']=='Inline' && isset($sc['hook'])))||
+                (isset($sc['hook']))){
+                $i++;
+                continue;
+            }
+            if($sc['mode']=='Background'){
+                ob_start();
+                $this->Make2DContentActual($sc,False);
+                $Inserts = ob_get_contents();
+                ob_end_clean();
+                
+                echo $Inserts;
+                
+                $this->BackgroundSemi = True;
+                
+            }else{
+                $this->Make2DContentActual($sc,False);
+            }
+            $i++;
+        }
+    }
+    function Insert2DContent($Content){
+        if(!isset($this->BlockImageList[0])) return $Content;
+        $i=0;
+        foreach ($this->BlockImageList as $sc){
+        
+            if (!isset($sc['hook'])){
+                $i++;
+                continue;
+            }
+
+            ob_start();
+            $this->Make2DContentActual($sc,True);
+            $Inserts = ob_get_contents();
+            ob_end_clean();
+                
+            $split = preg_split('/(<h[0-6]>'.$sc['hook'].'<\/h[0-6]>)/U',$Content,3,PREG_SPLIT_DELIM_CAPTURE);
+            if(count($split)>2){    
+                $Content = $split[0].$split[1].$Inserts.$split[2];
+            }else{
+                $Content.=$Inserts;
+            }
+            $i++;
+        }
+        return $Content;
+    }
+    
     function MakeSettings(){
         $Title='LAMDWIKI';
         $Footnote='';
@@ -1840,6 +1988,7 @@ class LAManagement{
     }
     function MakeEditorHeader(){
         ?>
+        <div class='the_body'>
         <div id = "EditorHeader" class="top_panel">
             <a id='EditorToggleMore' class='btn'>更多</a>
             &nbsp;
@@ -1901,6 +2050,7 @@ class LAManagement{
                 </form>
             </div>
             
+        </div>
         </div>
         <?php
     }
@@ -2177,6 +2327,7 @@ class LAManagement{
                         <?php }else{ ?>
                             内容显示为节约纸张 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_layout_1'>设为小说样式</a>
                         <?php }?>
+                        <div class='inline_height_spacer'></div>
                     </div>
                     <script>
                         var new_folder = document.getElementById("folder_new_folder");
@@ -2556,6 +2707,10 @@ class LAManagement{
             $this->Additional = $ad;
         }
         
+        ?>
+        <div class='the_body'>
+        <?php
+        
         if ($this->AdditionalLayout=='Gallery'){
         ?>
             <div class='gallery_right'>
@@ -2870,8 +3025,10 @@ class LAManagement{
         if ($this->AdditionalLayout=='Gallery'){
         ?>
             </div>
+            
         <?php
         }
+        ?></div><?php
     }
     function MakeFileList($moving,$viewing){
         $move_mode = $moving==''?$viewing:True;
@@ -2896,7 +3053,7 @@ class LAManagement{
         if($this->OtherFileNameList)sort($this->OtherFileNameList);
         if (isset($this->FolderNameList[0])) foreach ($this->FolderNameList as $f){
             ?>
-                <div>
+                <div class='the_body'>
                      <div class = 'narrow_content' style='float:left;margin-right:15px'>
                         <a href="?page=<?php echo $path.'/'.$f.($viewing?'&for='.$_GET['for'].'&operation=additional&action=view':'&operation=list'.($move_mode?'&moving='.$moving:''));?>" class='btn'><b>进入</b></a>
                      </div>
@@ -2920,7 +3077,7 @@ class LAManagement{
                         <b style='background-color:#FFF;'><?php echo $f?></b>
                      </div>
                 </div>
-                <div style='clear:both;text-align:right'>
+                <div class='the_body' style='clear:both;text-align:right'>
                     <div class = 'narrow_content' style='display:none' id='folder_delete_panel_<?php echo $f;?>'>
                     确认 <a class='btn' href='?page=<?php echo $this->InterlinkPath();?>&operation=delete_folder&target=<?php echo $f?>'>删除 <?php echo $f?></a>
                     </div>
@@ -2938,7 +3095,7 @@ class LAManagement{
             $rows = $this->FirstRows($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f),20);
             $title = $this->TitleOfFile($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f));
             ?>
-                <div>
+                <div class='the_body'>
                      <div class = 'narrow_content' style='overflow:hidden;'>
                      
                         <div style='float:right;text-align:right;margin-left:5px;' id='passage_filename_<?php echo $f;?>'>
@@ -3007,7 +3164,7 @@ class LAManagement{
         }
         if (!$move_mode && isset($this->OtherFileNameList[0])) foreach ($this->OtherFileNameList as $f){
             ?>
-                <div>
+                <div class='the_body'>
                      <div class = 'narrow_content' style='overflow:auto;'>
                         
                         <div style='float:right;'>
@@ -3073,6 +3230,7 @@ class LAManagement{
         if($this->OtherFileNameList)sort($this->OtherFileNameList);
         
         ?>
+        <div class='the_body'>
         <div class='tile_container'>
         <?php
         $column_count=-1;
@@ -3130,6 +3288,7 @@ class LAManagement{
             }
 
         ?>
+        </div>
         </div>
         <?php
     }
@@ -3229,7 +3388,7 @@ class LAManagement{
         $this->GetPrevNextPassage($this->PagePath);
         
         ?>
-        
+        <div class='the_body'>
         <div style='text-align:right;'>
             <div class='footer'>
                 <a class='btn' href="javascript:scrollTo(0,0);">返回顶部</a>
@@ -3238,6 +3397,7 @@ class LAManagement{
                 <p style='font-size:12px;margin:0px;'><?php echo $this->Footnote ?></p>
                 <p style='font-size:12px;margin:0px;'>使用 <a href='https://github.com/Nicksbest/lamdwiki' style='padding:1px;border:none;'>LAMDWIKI</a> 创建</p>
             </div>
+        </div>
         </div>
         
         <script>

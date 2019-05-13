@@ -97,5 +97,7 @@ Display = Normal
 
 Layout = 0
 
+Wide = 1
+
 <!-- End of FolderConf -->
 
