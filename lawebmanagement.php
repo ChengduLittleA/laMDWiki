@@ -21,6 +21,7 @@ class LAManagement{
     protected $userIsMature;
     
     protected $PagePath;
+    protected $LanguageAppendix;
     
     protected $FolderNameList;
     protected $FileNameList;
@@ -758,6 +759,42 @@ class LAManagement{
     }
     //========================================================================================================
     
+    function ActuallPath(){
+        return $this->PagePath;
+    }
+    
+    function ChooseLanguage($file_path){
+        if(!isset($this->LanguageAppendix) || (isset($_GET['translation'])&&$_GET['translation']=='disabled')) return $file_path;
+        
+        $path_parts = pathinfo($file_path);
+        
+        $file_orig = preg_replace('/_\D\D\.md$/','.md',$path_parts['basename']);
+        $file_prefer = preg_replace('/\.md$/','_'.$this->LanguageAppendix.'.md',$file_orig);
+        
+        $path_prefer = $path_parts['dirname'].'/'.$file_prefer;
+
+        if (file_exists($path_prefer) && is_readable($path_prefer))
+            return $path_prefer;
+        
+        return $file_orig;
+    }
+    
+    function SwitchToTargetLanguageIfPossible(){
+        if(isset($_GET['translation'])&&$_GET['translation']=='disabled') return;
+        if(isset($_COOKIE['la_language'])){
+            $this->LanguageAppendix = $_COOKIE['la_language'];
+        }
+        $this->PagePath = $this->ChooseLanguage($this->PagePath);
+    }
+    
+    function ProcessHTMLLanguageForLinks($html_content){
+        return preg_replace_callback('/<a([\s\S]*)href=[\'\"]?page=([\s\S]*)[\'\"]([\s\S]*)>([\s\S]*)<\/a>/U',
+                                     function (&$matches) {
+                                         return '<a'.$matches[1].'href="?page='.$this->ChooseLanguage($matches[2]).'"'.$matches[3].'>'.$matches[4].'</a>';
+                                     },
+                                     $html_content);
+    }
+    
     function DoLogin(){
         session_start();
 
@@ -812,21 +849,28 @@ class LAManagement{
     function IsLoggedIn(){
         return isset($_SESSION['user_id']);
     }
+    function DoSetTranslation(){
+        if(isset($_GET['set_translation'])){
+            setcookie('la_language',$_GET['set_translation']);
+            $_COOKIE['la_language'] = $_GET['set_translation'];
+        }
+    }   
     function DoNewPassage(){
         if(isset($_POST['button_new_passage'])){
             $passage = $_POST['data_passage_content'];
             $file_path = $this->PagePath;
+
             if(isset($_POST['editor_file_name'])){  //new passage
                 $file_name = $this->GetUniqueName($_POST['editor_file_name']);
                 $file_path = (isset($_GET['quick'])?$_GET['quick']:$this->InterlinkPath()).'/'.$file_name.'.md';
                 $file_path = $this->GetUniquePath($file_path);
             }
-            
+
             $file = fopen($file_path, "w");
             fwrite($file,$passage);
             fclose($file);
 
-            header('Location:?page='.(isset($_GET['quick'])?$this->PagePath:$file_path));
+            header('Location:?page='.(isset($_GET['quick'])?$this->PagePath:$file_path).'&translation=disabled');
             exit;
         }
     }
@@ -1896,16 +1940,24 @@ class LAManagement{
             
             <?php if ($this->IsLoggedIn()) { ?>
                 <a href='?page=<?php echo $this->PagePath;?>&operation=settings'>网站设置</a>
+                查看为
+                <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
+                <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
             <?php } ?>
         
             <div class='login_half'>
         
                 <?php
-                
                 if(!$this->IsLoggedIn()){
-                    echo '<h3 class = "inline_components">'.'欢迎'.'</h3>';
-                    echo '<p class = "inline_components">'.'您尚未登录'.'</p>';
                 ?>
+                <h3 class = "inline_components" >Language/语言</h3>
+                <div class='inline_height_spacer'></div>
+                <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
+                <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
+                <div class='inline_height_spacer'></div>
+                <hr />
+                <h3 class = "inline_components">欢迎</h3>
+                <p class = "inline_components">您尚未登录</p>
             
                 <form method = "post" action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>" style='margin-bottom:10px;'>
                     
@@ -1944,7 +1996,7 @@ class LAManagement{
             if(!isset($_SESSION['user_id'])){
             ?>
                 <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">文章列表</a>
-                <div id='LoginToggle' class='btn'>欢迎</div>
+                <div id='LoginToggle' class='btn'></b>&#127760;&#xfe0e;</b></div>
             <?php
             }else{
                 ?>
@@ -3105,7 +3157,7 @@ class LAManagement{
                         
                         <div class='passage_detail' id='passage_detail_<?php echo $f;?>' style='display:none;'>
                             <a class='btn' id='passage_operation_close_<?php echo $f;?>' style='display:none;'>取消操作</a>
-                            <a class='btn' href="?page=<?php echo $path.'/'.$f;?>">阅读全文</a>
+                            <a class='btn' href="?page=<?php echo $path.'/'.$f;?>&translation=disabled">阅读全文</a>
                             <a class='btn' id='passage_close_detail_<?php echo $f;?>'>收起</a>
                             <div class='inline_block_height_spacer'></div>
                             <div style='width:100%;display:block;' id='passage_detail_inner_<?php echo $f;?>'>
@@ -3150,7 +3202,7 @@ class LAManagement{
                         </div>
                         
                         <div class='name_preview' id='passage_title_<?php echo $f;?>'>
-                            <a class='btn' href="?page=<?php echo $path.'/'.$f;?>" ><?php echo $this->HTMLFromMarkdown($title);?></a>
+                            <a class='btn' href="?page=<?php echo $path.'/'.$f;?>&translation=disabled" ><?php echo $this->HTMLFromMarkdown($title);?></a>
                         </div>
                         
                         <div class='preview preview_large preview_block' style='overflow:hidden;display:none;' id='passage_preview_<?php echo $f;?>'>
@@ -3282,7 +3334,7 @@ class LAManagement{
                 ?>
                     <div class = 'tile_content tile_item' style='overflow:auto;'>
                          □
-                         <div onclick='location.href="?page=<?php echo $path.'/'.$f;?>"' class='btn block preview_btn' style='font-size:12px; text-align:left;'><?php echo $this->HTMLFromMarkdown($rows);?></div>
+                         <div onclick='location.href="?page=<?php echo $path.'/'.$f;?>&translation=disabled"' class='btn block preview_btn' style='font-size:12px; text-align:left;'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                     </div>
                 <?php
             }

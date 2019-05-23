@@ -62,162 +62,167 @@ if (isset($_GET["operation"])) $la_operation = $_GET["operation"];
 
 
 
-$LAManagement = new LAManagement();
-$LAManagement->SetPagePath($la_page_path);
+$LA = new LAManagement();
+$LA->SetPagePath($la_page_path);
+$LA->SetInterlinkPath($la_page_path);
 
 //test---------------
 //$ConfSave = fopen('MarkdownConf.md','w');
-//$LAManagement->AddBlock($Config,"Fuck Me");
-//$Block = $LAManagement->GetBlock($Config,"Users");
-//$LAManagement->RemoveBlockByName($Config,"Users");
-//$LAManagement->RemoveBlock($Config,$Block);
-//$LAManagement->SetBlockName($Config,$Block,'FUCK');
-//$Line = $LAManagement->AddGeneralLine($Config,$Block,'Fuck You!!!',123);
-//$Line = $LAManagement->AddGeneralLine($Config,$Block,'Fuck You One More Time!!!',123456);
-//$LAManagement->RemoveGeneralLine($Config,$Block,$Line);
-//$Arg = $LAManagement->AddArgument($Config,$Block,$Line,"Want to","Suck My Dick?");
-//$Arg = $LAManagement->AddArgument($Config,$Block,$Line,"Yes","You Do.");
-//$Arg = $LAManagement->AddArgument($Config,$Block,$Line,"Say that to me","One more time");
-//$LAManagement->RemoveArgument($Config,$Block,$Line,$Arg);
-//$LAManagement->WriteMarkdownConfig($Config, $ConfSave);
+//$LA->AddBlock($Config,"Fuck Me");
+//$Block = $LA->GetBlock($Config,"Users");
+//$LA->RemoveBlockByName($Config,"Users");
+//$LA->RemoveBlock($Config,$Block);
+//$LA->SetBlockName($Config,$Block,'FUCK');
+//$Line = $LA->AddGeneralLine($Config,$Block,'Fuck You!!!',123);
+//$Line = $LA->AddGeneralLine($Config,$Block,'Fuck You One More Time!!!',123456);
+//$LA->RemoveGeneralLine($Config,$Block,$Line);
+//$Arg = $LA->AddArgument($Config,$Block,$Line,"Want to","Suck My Dick?");
+//$Arg = $LA->AddArgument($Config,$Block,$Line,"Yes","You Do.");
+//$Arg = $LA->AddArgument($Config,$Block,$Line,"Say that to me","One more time");
+//$LA->RemoveArgument($Config,$Block,$Line,$Arg);
+//$LA->WriteMarkdownConfig($Config, $ConfSave);
 //fclose($ConfSave);
+//if($LA->CheckArgumentByNames($Config,'Users','admin','password','abc')) echo 'OH YEAH BAE! <br />';
+//if(!$LA->CheckArgumentByNames($Config,'Users','admin','password','ab2c')) echo 'FUCK YOU BITCH! <br />';
+//if($LA->CheckArgumentByNames($Config,'Users','admin','my data','123123')) echo 'OH YEAH BAE! <br />';
+//if(!$LA->CheckArgumentByNames($Config,'Users','admin','ab2c','ab2c')) echo 'FUCK YOU BITCH! <br />';
 
-//if($LAManagement->CheckArgumentByNames($Config,'Users','admin','password','abc')) echo 'OH YEAH BAE! <br />';
-//if(!$LAManagement->CheckArgumentByNames($Config,'Users','admin','password','ab2c')) echo 'FUCK YOU BITCH! <br />';
-//if($LAManagement->CheckArgumentByNames($Config,'Users','admin','my data','123123')) echo 'OH YEAH BAE! <br />';
-//if(!$LAManagement->CheckArgumentByNames($Config,'Users','admin','ab2c','ab2c')) echo 'FUCK YOU BITCH! <br />';
 
-$LAManagement->SetInterlinkPath($la_page_path);
+echo $LA->DoSetTranslation();
+echo $LA->SwitchToTargetLanguageIfPossible();
 
-echo $LAManagement->DoLogin();
+echo $LA->DoLogin();
 
-if(!$LAManagement->IsLoggedIn()){
+if(!$LA->IsLoggedIn()){
     if (isset($la_operation)
         && $la_operation!='tile'
         && $la_operation!='timeline'){
-        $LAManagement->LimitAccess(1);
+        $LA->LimitAccess(1);
     }
 }
 
 
 
-echo $LAManagement->DoNewPassage();
-echo $LAManagement->DoNewFolder();
-echo $LAManagement->DoDeleteFolder();
-echo $LAManagement->DoRenameFolder();
-echo $LAManagement->DoDeleteFile();
-echo $LAManagement->DoRenameFile();
-echo $LAManagement->DoChangePermission();
-echo $LAManagement->DoChangeFolderDisplay();
-echo $LAManagement->DoChangeFolderLayout();
-echo $LAManagement->DoMoveFile();
-echo $LAManagement->DoAdditionalConfig();
-echo $LAManagement->DoApplySettings();
+echo $LA->DoNewPassage();
+echo $LA->DoNewFolder();
+echo $LA->DoDeleteFolder();
+echo $LA->DoRenameFolder();
+echo $LA->DoDeleteFile();
+echo $LA->DoRenameFile();
+echo $LA->DoChangePermission();
+echo $LA->DoChangeFolderDisplay();
+echo $LA->DoChangeFolderLayout();
+echo $LA->DoMoveFile();
+echo $LA->DoAdditionalConfig();
+echo $LA->DoApplySettings();
 
-echo $LAManagement->MakeHTMLHead();
+echo $LA->MakeHTMLHead();
 
-//echo $LAManagement->MakeSpecialStripe();
+//echo $LA->MakeSpecialStripe();
 
-echo $LAManagement->PageHeaderBegin();
+echo $LA->PageHeaderBegin();
 
-echo $LAManagement->MakeTitleButton();
-echo $LAManagement->MakeNavigationBegin();
-$LAManagement->SetInterlinkPath('index.md');
-echo $LAManagement->HTMLFromMarkdownFile('navigation.md');
-echo $LAManagement->MakeNavigationEnd();
+echo $LA->MakeTitleButton();        
+    
+echo $LA->MakeNavigationBegin();
+$LA->SetInterlinkPath('index.md');
+echo $LA->ProcessHTMLLanguageForLinks(
+     $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md')));
+echo $LA->MakeNavigationEnd();
 
-$LAManagement->SetInterlinkPath($la_page_path);
-echo $LAManagement->MakeHeaderQuickButtons();
+$LA->SetInterlinkPath($la_page_path);
+echo $LA->MakeHeaderQuickButtons();
 
-echo $LAManagement->MakeLoginDiv();
+echo $LA->MakeLoginDiv();
 
 if($la_operation == 'new'){
-    echo $LAManagement->PageHeaderEnd();
-    echo $LAManagement->MakeEditorHeader();
+    echo $LA->PageHeaderEnd();
+    echo $LA->MakeEditorHeader();
 }if($la_operation == 'edit'){
-    echo $LAManagement->PageHeaderEnd();
-    $LAManagement->SetEditMode(True);
-    echo $LAManagement->MakeEditorHeader();
+    echo $LA->PageHeaderEnd();
+    $LA->SetEditMode(True);
+    echo $LA->MakeEditorHeader();
 }else if($la_operation == 'list' || ($la_operation == 'additional' && isset($_GET['action']) && $_GET['action']=='view') ){
-    echo $LAManagement->MakeFolderHeader();
-    echo $LAManagement->PageHeaderEnd();
+    echo $LA->MakeFolderHeader();
+    echo $LA->PageHeaderEnd();
 }else if($la_operation == 'additional'){
-    echo $LAManagement->MakeAdditionalHeader();
-    echo $LAManagement->PageHeaderEnd();
+    echo $LA->MakeAdditionalHeader();
+    echo $LA->PageHeaderEnd();
 }else{
-    echo $LAManagement->PageHeaderEnd();
+    echo $LA->PageHeaderEnd();
 }
 
 
 
 
-$LAManagement->SetInterlinkPath($la_page_path);
+$LA->SetInterlinkPath($la_page_path);
 
 
 if($la_operation == 'new'){
 
-    echo $LAManagement->MakeMainContentBegin();
-    echo $LAManagement->MakeEditorBody('Some text here.');
-    echo $LAManagement->MakeMainContentEnd();
+    echo $LA->MakeMainContentBegin();
+    echo $LA->MakeEditorBody('Some text here.');
+    echo $LA->MakeMainContentEnd();
     
 }else if($la_operation == 'edit'){
 
-    echo $LAManagement->MakeMainContentBegin();
-    echo $LAManagement->MakeEditorBody($LAManagement->ContentOfMarkdownFile($la_page_path));
-    echo $LAManagement->MakeMainContentEnd();
+    echo $LA->MakeMainContentBegin();
+    echo $LA->MakeEditorBody($LA->ContentOfMarkdownFile($la_page_path));
+    echo $LA->MakeMainContentEnd();
     
 }else if($la_operation == 'list'){
 
-    echo $LAManagement->MakeFileList(isset($_GET["moving"])?$_GET["moving"]:"",False);
+    echo $LA->MakeFileList(isset($_GET["moving"])?$_GET["moving"]:"",False);
 
 }else if($la_operation == 'timeline' && isset($_GET['folder'])){
     
     $pos=0;
     if(isset($_GET['position'])) $pos = $_GET['position'];
-    echo $LAManagement->MakeAdditionalContent($_GET['folder'],$pos);
+    echo $LA->MakeAdditionalContent($_GET['folder'],$pos);
 
 }else if($la_operation == 'additional' && isset($_GET['action']) && $_GET['action']=='view'){
 
-    echo $LAManagement->MakeFileList($_GET["page"],True);
+    echo $LA->MakeFileList($_GET["page"],True);
 
 }else if($la_operation == 'tile'){
 
-    echo $LAManagement->MakePassageTiles();
+    echo $LA->MakePassageTiles();
     
 }else if($la_operation == 'settings'){
 
-    echo $LAManagement->MakeMainContentBegin();
-    echo $LAManagement->MakeSettings();
-    echo $LAManagement->MakeMainContentEnd();
+    echo $LA->MakeMainContentBegin();
+    echo $LA->MakeSettings();
+    echo $LA->MakeMainContentEnd();
 
 }else{
     
-    $LAManagement->ExtractPassageConfigFromFile($la_page_path);
+    $LA->ExtractPassageConfigFromFile($la_page_path);
     
-    $LAManagement->Make3DContent();
-    $LAManagement->Make2DContent();
+    $LA->Make3DContent();
+    $LA->Make2DContent();
 
-    echo $LAManagement->MakeMainContentBegin();
+    echo $LA->MakeMainContentBegin();
     
-    if($LAManagement->IsLoggedIn())
-        echo $LAManagement->MakePassageEditButtons();
+    if($LA->IsLoggedIn())
+        echo $LA->MakePassageEditButtons();
     
-    $LAManagement->ConfirmMainPassage();
+    $LA->ConfirmMainPassage();
     
-    echo $LAManagement->ProcessHREFForPrint(
-         $LAManagement->Insert3DContent(
-         $LAManagement->Insert2DContent(
-         $LAManagement->HTMLFromMarkdownFile($la_page_path))));
+    echo $LA->ProcessHREFForPrint(
+         $LA->Insert3DContent(
+         $LA->Insert2DContent(
+         $LA->ProcessHTMLLanguageForLinks(
+         $LA->HTMLFromMarkdownFile($LA->ActuallPath())))));
     
-    echo $LAManagement->MakeHREFListForPrint();
+    echo $LA->MakeHREFListForPrint();
          
-    echo $LAManagement->MakeMainContentEnd();
+    echo $LA->MakeMainContentEnd();
     
-    echo $LAManagement->MakeAdditionalContent(Null,Null);
+    echo $LA->MakeAdditionalContent(Null,Null);
 }
 
-echo $LAManagement->MakeFooter();
+echo $LA->MakeFooter();
 
-echo $LAManagement->MakeAudioPlayer();
+echo $LA->MakeAudioPlayer();
 
 ?>
