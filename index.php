@@ -3,6 +3,8 @@
 
 $url = dirname(__FILE__);
 
+chdir(dirname(__FILE__));
+
 include 'lawebmanagement.php';
 
 ?>

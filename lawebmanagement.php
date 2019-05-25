@@ -3313,7 +3313,7 @@ class LAManagement{
                 ?>
                     <div class = 'tile_content tile_item' style='overflow:auto;'>
                     <?php echo !$fp?'▣':'■' ?>
-                    <a href="?page=<?php echo $path.'/'.$f.'&operation=tile';?>" class='btn block preview_btn'><h1><?php echo $f;?></h1><br />进入文件夹</a>
+                    <a href="?page=<?php echo $path.'/'.$f.'&operation=tile&translation=disabled';?>" class='btn block preview_btn'><h1><?php echo $f;?></h1><br />进入文件夹</a>
                     
                     </div>
                 <?php
