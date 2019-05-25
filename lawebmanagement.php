@@ -50,6 +50,7 @@ class LAManagement{
     protected $Title;
     protected $StringTitle;
     protected $Footnote;
+    protected $SmallQuoteName;
     
     protected $BackgroundSemi;
     
@@ -76,9 +77,40 @@ class LAManagement{
         }
     }
     
+    function InstallLaMDWiki(){
+        $index      = fopen('index.md','w');
+        $navigation = fopen('navigation.md','w');
+        $conf       = fopen('la_config.md','w');
+        
+        fwrite($index,'# 欢迎使用那么的维基！'.PHP_EOL.PHP_EOL);
+        fwrite($index,'那么的维基已经成功安装在您的服务器。'.PHP_EOL.PHP_EOL.'点击右上角的&#127760;&#xfe0e;图标以登录管理，管理员默认帐号是admin，密码是Admin。注意二者均区分大小写。'.PHP_EOL.PHP_EOL);
+        fwrite($index,'登录以后，点击您的用户名可以显示账户选项，也可进入网站设置页面。你可以在设置页面修改你的帐号显示名、登录名和密码，并配置网站的全局选项。'.PHP_EOL.PHP_EOL);
+        fwrite($index,'打开[那么的维基手册](http://www.wellobserve.com/?page=MDWiki/index.md)，立即学习更多网站管理窍门。'.PHP_EOL.PHP_EOL);
+        fwrite($index,'---------'.PHP_EOL.PHP_EOL.'那么的维基由BlenderCN-成都小A编写，请访问[小A的网站](http://www.wellobserve.com/)了解更多信息。'.PHP_EOL.PHP_EOL);
+        fclose($index);
+        
+        fwrite($navigation,'[首页](index.md)');
+        fclose($navigation);
+        
+        fwrite($conf,'网站配置文件'.PHP_EOL.PHP_EOL);
+        fwrite($conf,'<!-- Users -->'.PHP_EOL.PHP_EOL);
+        fwrite($conf,'admin'.PHP_EOL);
+        fwrite($conf,'- DisplayName = WikiAdmin'.PHP_EOL);
+        fwrite($conf,'- Password = Admin'.PHP_EOL);
+        fwrite($conf,'- Mature = 0'.PHP_EOL);
+        fwrite($conf, PHP_EOL);
+        fwrite($conf,'<!-- end of Users -->'.PHP_EOL.PHP_EOL);
+        fclose($conf);
+    }
+    
     function GetRelativePath($from, $to) {
+        //echo $from.' -- '.$to;
+        //$from = preg_replace('/^\.\//','',$from);
+        //if($from == '.') $from='';
         $dir = explode('/', is_file($from) ? dirname($from) : rtrim($from, '/'));
         $file = explode('/', $to);
+        
+        //if(count($dir)==1 && $dir[0]=='.') array_shift($dir);
 
         while ($dir && $file && ($dir[0] == $file[0])) {
             array_shift($dir);
@@ -88,6 +120,11 @@ class LAManagement{
     }
     
     function SetPagePath($path){
+        if ((!file_exists('la_config.md') || is_readable('la_config.md') == false) && 
+            (!file_exists('index.md') || is_readable('index.md') == false)){
+            $this->InstallLaMDWiki();
+        }
+        
         while($path[0]=='/' || $path[0]=='\\') $path = substr($path,1);
         $len = strlen($path);
         if (is_dir($path)){
@@ -133,10 +170,9 @@ class LAManagement{
             $Returns[$i]["IsConfig"] = True;
             $Returns[$i]["BlockName"] = $BlockName;
             
-            $j = -1; $k = 0;
+            $j = -1; $k = 0; $new=False;
             foreach(explode("\n",trim($Matches[3][0])) as $Line){
-                if (!isset($Line[0])) continue;
-                if ($Line[0] == "-"){
+                if (isset($Line[0]) && $Line[0] == "-"){
                     if ($j<0) continue;
                     else{
                         $Analyze = explode("=",$Line,2);
@@ -146,6 +182,8 @@ class LAManagement{
                         $k++;
                     }
                 }else{
+                    if($Line=='') $new=True; else $new=False;
+                    if($new==True) continue;
                     $j++;
                     $k=0;
                     $Analyze = explode("=", $Line,2);
@@ -171,7 +209,7 @@ class LAManagement{
             if(!isset($Block["IsConfig"])) continue;
             if($Block["IsConfig"]==False){
                 fwrite($File,$Block["Content"]);
-                fwrite($File,"\n\n");
+                fwrite($File,"\n");
             }else{
                 fwrite($File,"<!-- ".$Block["BlockName"]." -->\n\n");
                 if(isset($Block["Items"])){
@@ -183,7 +221,7 @@ class LAManagement{
                             foreach($Name["Items"] as $Argument){
                                 fwrite($File,"- ".$Argument["Argument"]." = ".$Argument["Value"]."\n");
                             }
-                    fwrite($File,"\n");
+                        fwrite($File,"\n");
                     }
                 }
                 fwrite($File,"<!-- End of ".$Block["BlockName"]." -->\n\n");
@@ -294,6 +332,17 @@ class LAManagement{
             else unset($Config[$block]['Items'][$line]['Value']);
         }else{
             $this->AddGeneralLine($Config,$block,$LineName,$Value);
+        }
+    }
+    
+    function EditGeneralLineByNameSelf(&$Config,$BlockName,$LineName,$NewLine){
+        $block = $this->GetBlock($Config,$BlockName);
+        $line = $this->FindGeneralLine($Config,$block,$LineName);
+        if (isset($line)) {
+            if($NewLine!='') $Config[$block]['Items'][$line]['Name'] = $NewLine;
+            else unset($Config[$block]['Items'][$line]);
+        }else{
+            $this->AddGeneralLine($Config,$block,$LineName,'');
         }
     }
     
@@ -763,28 +812,37 @@ class LAManagement{
         return $this->PagePath;
     }
     
-    function ChooseLanguage($file_path){
-        if(!isset($this->LanguageAppendix) || (isset($_GET['translation'])&&$_GET['translation']=='disabled')) return $file_path;
-        
+    function ChooseLanguageAppendix($file_path, $appendix){
         $path_parts = pathinfo($file_path);
         
         $file_orig = preg_replace('/_\D\D\.md$/','.md',$path_parts['basename']);
-        $file_prefer = preg_replace('/\.md$/','_'.$this->LanguageAppendix.'.md',$file_orig);
+        $file_prefer = preg_replace('/\.md$/','_'.$appendix.'.md',$file_orig);
         
         $path_prefer = $path_parts['dirname'].'/'.$file_prefer;
 
         if (file_exists($path_prefer) && is_readable($path_prefer))
             return $path_prefer;
         
-        return $file_orig;
+        return $path_parts['dirname'].'/'.$file_orig;
+    }
+    
+    function ChooseLanguage($file_path){
+        if(!isset($this->LanguageAppendix)) return $file_path;
+        
+        return $this->ChooseLanguageAppendix($file_path,$this->LanguageAppendix);
+    }
+    
+    function ChooseLanguageMain($file_path){
+        if(isset($_GET['translation'])&&$_GET['translation']=='disabled') return $file_path;
+        
+        return $this->ChooseLanguageAppendix($file_path,$this->LanguageAppendix);
     }
     
     function SwitchToTargetLanguageIfPossible(){
-        if(isset($_GET['translation'])&&$_GET['translation']=='disabled') return;
         if(isset($_COOKIE['la_language'])){
             $this->LanguageAppendix = $_COOKIE['la_language'];
         }
-        $this->PagePath = $this->ChooseLanguage($this->PagePath);
+        $this->PagePath = $this->ChooseLanguageMain($this->PagePath);
     }
     
     function ProcessHTMLLanguageForLinks($html_content){
@@ -797,7 +855,6 @@ class LAManagement{
     
     function DoLogin(){
         session_start();
-
         $error_msg = "";
         //登出
         if(isset($_GET['logout'])){
@@ -871,6 +928,17 @@ class LAManagement{
             fclose($file);
 
             header('Location:?page='.(isset($_GET['quick'])?$this->PagePath:$file_path).'&translation=disabled');
+            exit;
+        }
+    }
+    function DoNewSmallQuote(){
+        if(isset($_POST['button_new_quote'])){
+            $passage = $_POST['data_small_quote_content'];
+            $file_path = $this->PagePath;
+            if(!isset($_GET['quote_quick'])) return;
+            $folder = $_GET['quote_quick'];
+            $this->AddSmallQuoteEntry($folder,$passage);
+            header('Location:?page='.$this->PagePath);
             exit;
         }
     }
@@ -1103,12 +1171,14 @@ class LAManagement{
     }
     function DoApplySettings(){
         if(isset($_POST['settings_button_confirm'])){
-        
+            
+            $admin_changed=false;
+            
             $this->UserConfig = fopen("la_config.md",'r');
             $ConfContent = fread($this->UserConfig,filesize("la_config.md"));
             $Conf = $this->ParseMarkdownConfig($ConfContent);
-            $this->EditBlock($Config,'Website');
-            $this->EditBlock($Config,'Users');
+            $this->EditBlock($Conf,'Website');
+            $this->EditBlock($Conf,'Users');
             
             if(isset($_POST['settings_website_title'])){
                 $this->EditGeneralLineByName($Conf,'Website','Title',$_POST['settings_website_title']);
@@ -1119,8 +1189,19 @@ class LAManagement{
             if(isset($_POST['settings_footer_notes'])){
                 $this->EditGeneralLineByName($Conf,'Website','Footnote',$_POST['settings_footer_notes']);
             }
+            if(isset($_POST['settings_small_quote_name'])){
+                $this->EditGeneralLineByName($Conf,'Website','SmallQuoteName',$_POST['settings_small_quote_name']);
+            }
+            if(isset($_POST['settings_admin_display']) && $_POST['settings_admin_display']!=''){
+                $this->EditArgumentByNamesN($Conf,'Users',$this->UserID,0,'DisplayName',$_POST['settings_admin_display']);
+            }
             if(isset($_POST['settings_admin_password']) && $_POST['settings_admin_password']!=''){
-                $this->EditArgumentByNames($Conf,'Website','Users',$this->UserID,'Password',$_POST['settings_admin_password']);
+                $this->EditArgumentByNamesN($Conf,'Users',$this->UserID,0,'Password',$_POST['settings_admin_password']);
+                $admin_changed=true;
+            }
+            if(isset($_POST['settings_admin_id']) && $_POST['settings_admin_id']!=''){
+                $this->EditGeneralLineByNameSelf($Conf,'Users',$this->UserID,$_POST['settings_admin_id']);
+                $admin_changed=true;
             }
             
             fclose($this->UserConfig);
@@ -1128,9 +1209,23 @@ class LAManagement{
             $this->WriteMarkdownConfig($Conf,$this->UserConfig);
             fclose($this->UserConfig);
             
-            header('Location:?page='.$this->PagePath.'&operation=settings');
+            if($admin_changed){
+                header('Location:?page=index.md&logout=true');
+            }else{
+                header('Location:?page='.$this->PagePath.'&operation=settings');
+            }
             exit;
         }
+    }
+    
+    function rrmdir($dir) {
+        foreach(glob($dir . '/*') as $file) {
+            if(is_dir($file))
+                rrmdir($file);
+            else
+                unlink($file);
+        }
+        rmdir($dir);
     }
     
     function GetWebsiteSettings(){
@@ -1138,9 +1233,10 @@ class LAManagement{
         $ConfContent = fread($this->UserConfig,filesize("la_config.md"));
         fclose($this->UserConfig);
         $Conf = $this->ParseMarkdownConfig($ConfContent);
-        $this->Title       = $this->GetLineValueByNames($Conf,"Website","Title");
-        $this->StringTitle = $this->GetLineValueByNames($Conf,"Website","DisplayTitle");
-        $this->Footnote    = $this->GetLineValueByNames($Conf,"Website","Footnote");
+        $this->Title          = $this->GetLineValueByNames($Conf,"Website","Title");
+        $this->StringTitle    = $this->GetLineValueByNames($Conf,"Website","DisplayTitle");
+        $this->Footnote       = $this->GetLineValueByNames($Conf,"Website","Footnote");
+        $this->SmallQuoteName = $this->GetLineValueByNames($Conf,"Website","SmallQuoteName");
         if(!$this->Title) $this->Title='LA<b>MDWIKI</b>';
         if(!$this->StringTitle) $this->StringTitle='LAMDWIKI';
     }
@@ -1212,6 +1308,10 @@ class LAManagement{
             .gallery_image          { max-width: unset; min-width: 100%; min-height: 100%; object-fit: cover; }
             .gallery_box_when_bkg   { width:30%; max-width:300px;}
             .no_padding             { padding: 0px; }
+            
+            .center_container       { display: table; position: absolute; top: 0; left: 0; height: 100%; width: 100%; }
+            .center_vertical        { display: table-cell; vertical-align: middle; }
+            .center_box             { margin-left: auto; margin-right: auto; }
             
             .audio_player_box       { z-index:20; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto;  width:calc(60% - 55px); min-width:845px;}
             
@@ -1285,7 +1385,7 @@ class LAManagement{
             .main_content a:active{ border:1px solid #000; color:#FFF; background-color:#000; }
             
             .preview{ margin: 10px; }
-            .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6, .preview blockqoute                                  { margin-top: 3px; margin-bottom: 3px; }
+            .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6, .preview blockquote                                  { margin-top: 3px; margin-bottom: 3px; }
             .preview a {pointer-events: none;}
             .name_preview h1, .name_preview h2, .name_preview h3 .name_preview h4, .name_preview h5, .name_preview h6, .name_preview p         { font-size:16px; display: inline; }
             .preview_large h1, .preview_large h2, .preview_large h3, .preview_large h4, .preview_large h5, .preview_large h6, .preview_large p { display: block; }
@@ -1469,12 +1569,16 @@ class LAManagement{
         <?php
     }
     function MakeTitleButton(){
+        ob_start();
         ?>
         <div id='WebsiteTitle'>
             <a class='home_button hidden_on_mobile' href="?page=index.md"><?php echo $this->Title;?></a>
             <a class='home_button hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
         </div>
         <?php
+        $content = ob_get_contents();
+        ob_end_clean();
+        return $content;
     }
     function MakeMainContentBegin(){
         $layout = $this->GetAdditionalLayout();
@@ -1903,7 +2007,9 @@ class LAManagement{
         }
         return $Content;
     }
-    
+    function GetSmallQuoteName(){
+        return $this->SmallQuoteName;
+    }
     function MakeSettings(){
         $Title='LAMDWIKI';
         $Footnote='';
@@ -1913,28 +2019,39 @@ class LAManagement{
             <h1>设置中心</h1>
             <h2>网站设置</h2>
             <div>
-                <input class='string_input no_horizon_margin' type='text' name='settings_website_title' name='settings_website_title' form='settings_form' value='<?php echo $this->Title ?>' />
+                <input class='string_input no_horizon_margin' type='text' id='settings_website_title' name='settings_website_title' form='settings_form' value='<?php echo $this->Title ?>' />
                 网站标题
                 <br />
-                <input class='string_input no_horizon_margin' type='text' name='settings_website_display_title' name='settings_website_display_title' form='settings_form' value='<?php echo $this->StringTitle ?>' />
+                <input class='string_input no_horizon_margin' type='text' id='settings_website_display_title' name='settings_website_display_title' form='settings_form' value='<?php echo $this->StringTitle ?>' />
                 标签显示标题
                 <br />
-                <input class='string_input no_horizon_margin' type='text' name='settings_footer_notes' name='settings_footer_notes' form='settings_form' value='<?php echo $this->Footnote ?>' />
+                <input class='string_input no_horizon_margin' type='text' id='settings_footer_notes' name='settings_footer_notes' form='settings_form' value='<?php echo $this->Footnote ?>' />
                 页脚附加文字
+                <br />
+                <br />
+                <input class='string_input no_horizon_margin' type='text' id='settings_small_quote_name' name='settings_small_quote_name' form='settings_form' value='<?php echo $this->SmallQuoteName ?>' />
+                “我说”名片抬头文字
             </div>
             <h2>管理员设置</h2>
             <div>
-                <input class='string_input no_horizon_margin' type='text' name='settings_admin_id' name='settings_admin_id' form='settings_form' />
-                重新设置管理账户名(INOP)
+                <input class='string_input no_horizon_margin' type='text' id='settings_admin_display' name='settings_admin_display' form='settings_form' value='<?php echo $this->UserDisplayName ?>' />
+                修改账户昵称
+                <br /><br />
+                <input class='string_input no_horizon_margin' type='text' id='settings_admin_id' name='settings_admin_id' form='settings_form' />
+                重设管理账户名
                 <br />
-                <input class='string_input no_horizon_margin' type='text' name='settings_admin_password' name='settings_admin_password' form='settings_form' />
-                重新设置管理密码
+                <input class='string_input no_horizon_margin' type='text' id='settings_admin_password' name='settings_admin_password' form='settings_form' />
+                重设管理密码
+                <br />
             </div>
-            <input class='btn form_btn' type='submit' value='确定' name="settings_button_confirm" form='settings_form' />
+            <hr />
+            <div class='inline_block_height_spacer'></div>
+            <input class='btn form_btn' type='submit' value='保存页面上的更改' name="settings_button_confirm" form='settings_form' />
         <?php
     }
     function MakeLoginDiv(){
-    ?> 
+        ob_start();
+        ?> 
     
         <div id='LoginPanel' class='top_panel' style='display:none;'>
             
@@ -1952,27 +2069,44 @@ class LAManagement{
                 ?>
                 <h3 class = "inline_components" >Language/语言</h3>
                 <div class='inline_height_spacer'></div>
-                <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
-                <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
+                <?php if (isset($_GET['static_generator'])){
+                    $StaticLangEN = $this->ChooseLanguageAppendix($this->PagePath,'en');
+                    $StaticLangZH = $this->ChooseLanguageAppendix($this->PagePath,'zh');
+                    ?>
+                    <a href='?page=<?php echo $StaticLangEN; ?>'>English</a>
+                    <a href='?page=<?php echo $StaticLangZH; ?>'>中文</a>
+                    <?php
+                }else{ ?>
+                    <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
+                    <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
+                <?php } ?>
                 <div class='inline_height_spacer'></div>
-                <hr />
-                <h3 class = "inline_components">欢迎</h3>
-                <p class = "inline_components">您尚未登录</p>
-            
-                <form method = "post" action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>" style='margin-bottom:10px;'>
-                    
-                    <div class = "inline_components">用户名:</div>
-                    
-                    <input class='string_input' type="text" id="username" name="username" style='margin-right:0px;'
-                    value="<?php if(!empty($user_username)) echo $user_username; ?>" />
-                    <br />
-                    <div class='inline_components'>密码:</div>
-                    <input class='string_input' type="password" id="password" name="password" style='margin-right:0px;margin-bottom:15px;'/>
-                    <br />
-                    <input class='btn form_btn' style="float:right" type="submit" value="登录" name="button_login"/>
-                   
-                </form>
-                <?php
+                    <?php 
+                    if(!isset($_GET['static_generator'])){
+                    ?>
+                    <hr />
+                    <h3 class = "inline_components">欢迎</h3>
+                    <p class = "inline_components">您尚未登录</p>
+                
+                    <form method = "post" action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>" style='margin-bottom:10px;'>
+                        
+                        <div class = "inline_components">用户名:</div>
+                        
+                        <input class='string_input' type="text" id="username" name="username" style='margin-right:0px;'
+                        value="<?php if(!empty($user_username)) echo $user_username; ?>" />
+                        <br />
+                        <div class='inline_components'>密码:</div>
+                        <input class='string_input' type="password" id="password" name="password" style='margin-right:0px;margin-bottom:15px;'/>
+                        <br />
+                        <input class='btn form_btn' style="float:right" type="submit" value="登录" name="button_login"/>
+                       
+                    </form>
+                    <?php
+                    }else{
+                        ?>
+                        <p>使用LaMDWiki静态生成器生成。</p>
+                        <?php 
+                    }
                 }else{
                     echo '<p class = "inline_components">'.$this->UserDisplayName.'</p>';
                     echo '<p class = "inline_components">'.'不是您本人？'.'</p>';
@@ -1984,7 +2118,9 @@ class LAManagement{
             </div> 
         </div>
         <?php
-        
+        $content = ob_get_contents();
+        ob_end_clean();
+        return $content;
     }
     function MakeHeaderQuickButtons(){
         $path = $this->InterlinkPath();
@@ -1994,17 +2130,23 @@ class LAManagement{
         <?php
 
             if(!isset($_SESSION['user_id'])){
-            ?>
-                <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">文章列表</a>
+            ?>  
+                <?php if (isset($_GET['static_generator'])){?>
+                    <a class='btn' href="_la_list.html">文章列表</a>
+                <?php }else{ ?>
+                    <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">文章列表</a>
+                <?php } ?>
                 <div id='LoginToggle' class='btn'></b>&#127760;&#xfe0e;</b></div>
             <?php
             }else{
+                if(!isset($_GET['static_generator'])){
                 ?>
                 <div id='LoginToggle' class='btn'><?php echo $this->UserDisplayName ?></div>
                 <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">文章</a>
                 <a href="?page=<?php echo $this->PagePath?>&operation=list">管理</a> 
                 <a href="?page=<?php echo $this->PagePath?>&operation=new">写文</a>
                 <?php
+                }
             }
             ?>
                    
@@ -2032,7 +2174,7 @@ class LAManagement{
             <div class='block_height_spacer'></div>
             <?php if ($is_draft){ ?>
                 <a href="?page=<?php echo $this->PagePath ?>&set_draft=0">设为公开</a>
-            <?php }else{ ?>
+            <?php }else{ ?> 
                 <a href="?page=<?php echo $this->PagePath ?>&set_draft=1">设为草稿</a>
             <?php } ?>
         </div>
@@ -2056,7 +2198,7 @@ class LAManagement{
                 <div id='EditorToggleItatic' class='btn'><i>斜</i></div>
                 <div id='EditorToggleUnderline' class='btn'><u>线</u></div>
                 <div id='EditorToggleStrike' class='btn'><s>删</s></div>
-                <div id='EditorToggleQoute' class='btn'><b>“</b></div>
+                <div id='EditorToggleQuote' class='btn'><b>“</b></div>
                 <div id='EditorToggleSuper' class='btn'>A<sup>TM</sup></div>
                 <div id='EditorToggleSub' class='btn'>B<sub>AE</sub></div>
                 &nbsp;
@@ -2124,7 +2266,7 @@ class LAManagement{
                 var btn_i = document.getElementById("EditorToggleItatic");
                 var btn_u = document.getElementById("EditorToggleUnderline");
                 var btn_s = document.getElementById("EditorToggleStrike");
-                var btn_q = document.getElementById("EditorToggleQoute");
+                var btn_q = document.getElementById("EditorToggleQuote");
                 var btn_sup = document.getElementById("EditorToggleSuper");
                 var btn_sub = document.getElementById("EditorToggleSub");
                 var btn_link = document.getElementById("EditorAddLink");
@@ -2182,7 +2324,7 @@ class LAManagement{
                     }
                     text_area.value = insertStr(text_area.value,line_begin,addstr+' ');
                 }
-                function toggleQoute(content,line_begin){
+                function toggleQuote(content,line_begin){
                     if(strBeginWith(content,'> ',line_begin)){text_area.value = deleteStr(content,line_begin,2);return;}
                     text_area.value = insertStr(text_area.value,line_begin,'> ');
                 }
@@ -2286,7 +2428,7 @@ class LAManagement{
                     var content = getContent();
                     var select = selectionStart();
                     var line_begin = getLineBegin(content,select);
-                    toggleQoute(content,line_begin);
+                    toggleQuote(content,line_begin);
                     text_area.setSelectionRange(select, select);
                 });
                 btn_sup.addEventListener("click", function() {
@@ -2380,6 +2522,13 @@ class LAManagement{
                             内容显示为节约纸张 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_layout_1'>设为小说样式</a>
                         <?php }?>
                         <div class='inline_height_spacer'></div>
+                        <?php
+                        //<a class='btn' id='StaticGeneratorButton'>文件夹生成为静态页面</a>
+                        //<div id='StaticGeneratorDialog' style='display:none'>
+                        //    <div class='inline_height_spacer'></div>
+                        //    该操作将花费一段时间。继续吗？<a href='?page=<?php echo $path&static_generation=run'>执行</a>
+                        //</div>
+                        ?>
                     </div>
                     <script>
                         var new_folder = document.getElementById("folder_new_folder");
@@ -2390,6 +2539,8 @@ class LAManagement{
                         var upload_dialog = document.getElementById("upload_dialog");
                         var permission = document.getElementById("folder_permission");
                         var permission_dialog = document.getElementById("permission_dialog");
+                        var static_gen_btn = document.getElementById("StaticGeneratorButton");
+                        var static_gen_dialog = document.getElementById("StaticGeneratorDialog");
                         new_folder.addEventListener("click", function() {
                             var disp = new_folder_dialog.style.display;
                             upload_dialog.style.cssText = 'display:none';
@@ -2408,7 +2559,11 @@ class LAManagement{
                             new_folder_dialog.style.cssText = 'display:none';
                             permission_dialog.style.cssText = disp=='none'?'display:block':'display:none';
                         });
-                    </script>
+                        static_gen_btn.addEventListener("click", function() {
+                            var disp = static_gen_dialog.style.display;
+                            static_gen_dialog.style.cssText = disp=='none'?'display:block':'display:none';
+                        });
+                    </script>   
                 <?php }else if(!$additional_mode){ ?>
                     <a class='btn' href='?page=<?php echo $moving ?>&operation=list'>取消</a>
                     <a class='btn' href='?page=<?php echo $path ?>&moving=<?php echo $moving ?>&to=<?php echo $path ?>'>到这里</a>
@@ -2699,6 +2854,7 @@ class LAManagement{
         $list = $this->FileNameList;
         $ret=Null;
         if($page<0) $page=0;
+        $prev=$page-1;
         if(!$page) $prev=Null;
         $i=0;
         $skip=$page*10;
@@ -2745,6 +2901,191 @@ class LAManagement{
         
         return $list[0];
     }
+    
+    function GetSmallQuoteFiles($path,$file_count){
+        $file_list = Null;
+        
+        $current_dir = opendir($path);
+        
+        while(($file = readdir($current_dir)) !== false) {
+            $sub_dir = $path . DIRECTORY_SEPARATOR . $file;
+            if($file == '.' || $file == '..') {
+                continue;
+            } else if(is_dir($sub_dir)) {
+                continue;
+            } else {
+                $name=pathinfo($file,PATHINFO_BASENAME);
+                if(preg_match("/([0-9]{4})-([0-9]{2})\.md$/",$name)){
+                    $file_list[] = $name;
+                }
+            }
+        }
+        if(isset($file_list[0])){
+            sort($file_list);
+            $file_list = array_reverse($file_list);
+            return array_slice($file_list, 0, $file_count);
+        }
+        return null;
+    }
+    function ReadLatestSmallQouote($folder,$random){
+        $files = $this->GetSmallQuoteFiles($folder,$random?10000:1);
+        $line=null;
+        if(!$files) return null;
+        $name=$folder.'/'.$files[$random?random_int(0,count($files)-1):0];
+        
+        if((file_exists($name) && is_readable($name))){
+            $f = file_get_contents($name);
+            if(preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}): (.*)\n\n/U", $f, $matches, PREG_SET_ORDER)){
+                $match = $random?$matches[random_int(0,count($matches)-1)]:end($matches);
+                $line['year']=$match[1]; $line['month']=$match[2]; $line['day']=$match[3];
+                $line['hour']=$match[4]; $line['minute']=$match[5]; $line['second']=$match[6];
+                $line['content']=$match[7];
+                
+                return $line;
+            }
+            return null;
+        }
+        return null;
+    }
+    function ReadSpecificSmallQuote($folder, $id){
+        if(!$id || !$folder)return null;
+        
+        if(!preg_match('/([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})/',$id,$match)) return null;
+        
+        $name=$folder.'/'.$match[1].'-'.$match[2].'.md';
+        
+        if((file_exists($name) && is_readable($name))){
+            $f = file_get_contents($name);
+            if(preg_match_all("/".$match[1].'-'.$match[2].'-'.$match[3].' '.$match[4].':'.$match[5].':'.$match[6].": (.*)\n\n/U", $f, $matches, PREG_SET_ORDER)){
+                $m =$matches[0];
+                $line['year']=$match[1]; $line['month']=$match[2]; $line['day']=$match[3];
+                $line['hour']=$match[4]; $line['minute']=$match[5]; $line['second']=$match[6];
+                $line['content']=$m[1];
+                return $line;
+            }
+            return null;
+        }
+        return null;
+    }
+    function AddSmallQuoteEntry($folder,$content){
+        $name = $folder.'/'.date('Y-m').'.md';
+        $f=null;
+        $matches=null;
+        if(file_exists($name) && is_readable($name)){
+            $f = file_get_contents($name);
+        }else{
+            $fi = fopen($name,'w');
+            fclose($fi);
+            $f='';
+        }
+        
+        $content = preg_replace('/\n/U','  ',$content);
+        
+        preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}): (.*)\n\n/U", $f, $matches, PREG_SET_ORDER);
+        
+        $fi = fopen($name,'w');
+        foreach($matches as $match){
+            fwrite($fi, $match[0]);
+        }
+        
+        fwrite($fi,date('Y-m-d H:i:s: ').$content.PHP_EOL.PHP_EOL);
+        
+        fclose($fi);
+    }
+    function MakeCenterContainerBegin(){
+    ?>
+        <div class='center_container'>
+        <div class='center_vertical'>
+        <div class='center_box'>
+    <?php
+    }
+    function MakeCenterContainerEnd(){
+    ?>
+        </div>
+        </div>
+        </div> 
+    <?php
+    }
+    function MakeSmallQuotePanel($folder,$id,$prefix){
+        if(isset($id)){
+            $quote = $this->ReadSpecificSmallQuote($folder,$id);
+        }else{
+            if(isset($_GET['random'])){
+                $quote = $this->ReadLatestSmallQouote($folder,1);
+            }else{
+                $quote = $this->ReadLatestSmallQouote($folder,0);
+            }
+        }
+        
+        if(!$quote){
+            $quote['month']=13;
+            $quote['day']=32;
+            $quote['content']='这个文件夹还没有说过什么话';
+        }
+        ?>
+        <div class='the_body'>
+        <div class='main_content'>
+            <?php if(!isset($id)){ ?>
+                <div style='float:right;'>
+                    <a href='?page=<?php echo $this->PagePath; ?>&small_quote_only=<?php echo $folder?>&random=true'><b>随机 &#11118;</b></a>
+                </div>
+            <?php } ?>
+            <?php if(isset($prefix) && $prefix!=''){?>
+                <b><?php echo $prefix ?>: </b>
+            <?php } ?>
+            <p>
+                <?php echo $quote['content']; ?>
+            </p>
+            <?php echo $quote['year'].'-'.$quote['month'].'-'.$quote['day'].' '.$quote['hour'].':'.$quote['minute'] ?>
+            <?php if(!isset($id)){ ?>
+                <div style='float:right;'>
+                    <a href='?page=<?php echo $this->PagePath; ?>'>&#10060;&#xfe0e;&nbsp;退出</a>&nbsp;
+                    <a href='?page=index.md&small_quote=<?php echo $quote['year'].$quote['month'].$quote['day'].$quote['hour'].$quote['minute'].$quote['second']; ?>&quote_folder=<?php echo $folder; ?>' target="_blank">&#128279;&#xfe0e;&nbsp;链接</a>
+                </div>
+            <?php }else{ ?>
+                <div style='float:right;'>
+                    <a href='?page=<?php echo $this->PagePath; ?>'>&#128279;&#xfe0e;&nbsp;引用自&nbsp;<b><?php echo $this->StringTitle; ?></b></a>&nbsp;
+                </div>
+            <?php } ?>
+        </div>
+        </div>
+        <?php
+    }
+    function MakeSmallQuoteAdditional($folder,$prefix,$more,$show_quick_post){
+        $quote = $this->ReadLatestSmallQouote($folder,0);
+        if(!$quote){
+            $quote['month']=13;
+            $quote['day']=32;
+            $quote['content']='这个文件夹还没有说过什么话';
+        }
+        ?>
+        <div class='main_content'>
+            <div style='float:right;'>
+                <a href='?page=<?php echo $this->PagePath; ?>&small_quote_only=<?php echo $folder?>'><?php echo $more?></a>
+            </div>
+            <?php echo $quote['month'].'<b>'.$quote['day'].'</b>'; ?>
+            <?php if(isset($prefix) && $prefix!=''){?>
+            <b><?php echo $prefix ?>: </b>
+            <?php } ?>
+            <p>
+            <?php echo $quote['content']; ?>
+            </p>
+            <?php if($show_quick_post && $this->IsLoggedIn()){?>
+                <div style='width:calc(100% - 160px);display:inline-block;'>
+                <form method = "post" style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&quote_quick='.$folder;?>" id='form_passage'></form>
+                <textarea type='text' class='quick_post_string' form='form_passage' id='data_small_quote_content' name='data_small_quote_content'
+                          onfocus="if (value =='小声哔哔…'){value =''}"onblur="if (value ==''){value='小声哔哔…';la_auto_grow(this);}" oninput="la_auto_grow(this)">小声哔哔…</textarea>
+                <div class='block_height_spacer'></div>
+                </div>
+                <div style='float:right;'>
+                    <input class='btn' type="submit" value="发出去给大家看看" name="button_new_quote" form='form_passage' />
+                </div>
+                <script> la_auto_grow(document.getElementById("data_small_quote_content"));</script>
+            <?php } ?>
+        </div>
+        <?php
+    }
+    
     function MakeAdditionalContent($folder,$position){
         if(!isset($folder)){
             $ad = $this->GetAdditionalDisplayData();
@@ -2774,6 +3115,7 @@ class LAManagement{
             $path = $a['path'];
             $current_dir = opendir($path);
             while(($file = readdir($current_dir)) !== false) {
+                if (isset($a['style']) && $a['style']==4) break;
                 $sub_dir = $path . '/' . $file;
                 if($file == '.' || $file == '..' || $file=='index.md') {
                     continue;
@@ -2825,16 +3167,19 @@ class LAManagement{
                             <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=0"?>'>列表</a>
                             <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=2"?>'>画廊</a>
                             <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=1"?>'>方块</a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=3"?>'>我说</a>
+                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=3"?>'>日记</a>
+                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=4"?>'>我说</a>
                             <div class='inline_height_spacer'></div>
-                            最近篇目数量：
-                            <form method = "post" style='display:inline;' 
-                            action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_count&for='.$this->PagePath.'&target='.$path?>"
-                            id="form_additional_count<?php echo $path?>">
-                                <input class="string_input no_horizon_margin title_string" style='width:4em;' type="text" value="<?php echo $a['count'] ?>" id="display_count_<?php echo $path?>" name="display_count" form="form_additional_count<?php echo $path?>">
-                                <input class="btn form_btn" type="submit" value="设置" name="button_additional_count_confirm" form="form_additional_count<?php echo $path?>" id='additional_count_confirm_<?php echo $path?>'>
-                            </form>
-                            <div class='inline_height_spacer'></div>
+                            <?php if($a['style']!=4){ ?>
+                                最近篇目数量：
+                                <form method = "post" style='display:inline;' 
+                                action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_count&for='.$this->PagePath.'&target='.$path?>"
+                                id="form_additional_count<?php echo $path?>">
+                                    <input class="string_input no_horizon_margin title_string" style='width:4em;' type="text" value="<?php echo $a['count'] ?>" id="display_count_<?php echo $path?>" name="display_count" form="form_additional_count<?php echo $path?>">
+                                    <input class="btn form_btn" type="submit" value="设置" name="button_additional_count_confirm" form="form_additional_count<?php echo $path?>" id='additional_count_confirm_<?php echo $path?>'>
+                                </form>
+                                <div class='inline_height_spacer'></div>
+                            <?php } ?>
                             区域标题：
                             <form method = "post" style='display:inline;' 
                             action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_title&for='.$this->PagePath.'&target='.$path?>"
@@ -2876,7 +3221,24 @@ class LAManagement{
                                 <a href='?page=<?php echo $this->PagePath."&operation=set_additional_complete&for=".$this->PagePath."&target=".$path."&complete=1"?>'>改显示为全文</a>
                             <?php }?>
                             <?php }?>
-
+                            
+                            <?php if($a['style']==4){?>
+                                <div class='inline_height_spacer'></div>
+                                时间线列表按钮：
+                                <form method = "post" style='display:inline;' 
+                                action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_more_title&for='.$this->PagePath.'&target='.$path?>"
+                                id="form_additional_more_title<?php echo $path?>">
+                                    <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['more'])?$a['more']:'') ?>" id="display_more_title_<?php echo $path?>" name="display_more_title" form="form_additional_more_title<?php echo $path?>">
+                                    <input class="btn form_btn" type="submit" value="设置" name="button_additional_more_title_confirm" form="form_additional_more_title<?php echo $path?>" id='button_additional_more_title_confirm<?php echo $path?>'>
+                                </form>
+                                <?php if(isset($a['quick_post']) && $a['quick_post']==1){ ?>
+                                    <div class='inline_height_spacer'></div>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=0"?>'>关闭快速发帖</a>
+                                <?php }else if(!isset($a['quick_post']) || $a['quick_post']==0){?>
+                                    <div class='inline_height_spacer'></div>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=1"?>'>启用快速发帖</a>
+                                <?php }?>
+                            <?php }?>
                         </div>
                     </div>
                     
@@ -2892,7 +3254,7 @@ class LAManagement{
             <?php
             }
             
-            if(isset($a['title']) && $a['title']!=''){
+            if(isset($a['title']) && $a['title']!='' && $a['style']!=4){
                 ?>
                 <div style='text-align:center;'>
                     <div class='narrow_content inline_block'>
@@ -3056,6 +3418,8 @@ class LAManagement{
                     </div>
                     <?php
                 }
+            }else if (isset($a['style']) && $a['style']==4){
+                $this->MakeSmallQuoteAdditional($a['path'],$a['title'],$a['more'],$a['quick_post']);
             }
             if(isset($folder)){
                 ?>
@@ -3269,6 +3633,7 @@ class LAManagement{
             if($file == '.' || $file == '..') {
                 continue;
             } else if(is_dir($sub_dir)) {
+                if(file_exists($sub_dir.'/__LAMDWIKI__')) continue;
                 $this->FolderNameList[] = $file;
             } else {
                 $ext=pathinfo($file,PATHINFO_EXTENSION);
@@ -3292,7 +3657,12 @@ class LAManagement{
             
             <div class = 'tile_content tile_item' style='overflow:auto;'>
             ■ ■ ■ ■ ■
-            <a href="?page=<?php echo $upper.'&operation=tile';?>" class='btn block preview_btn'><h2>上级</h2><br />...</a>
+            
+            <?php if (isset($_GET['static_generator'])){?>
+                <a href="../_la_list.html" class='btn block preview_btn'><h2>上级</h2><br />...</a>
+            <?php }else{ ?>
+                <a href="?page=<?php echo $upper.'&operation=tile';?>" class='btn block preview_btn'><h2>上级</h2><br />...</a>
+            <?php } ?>
             
             </div>
             <?php
@@ -3313,7 +3683,13 @@ class LAManagement{
                 ?>
                     <div class = 'tile_content tile_item' style='overflow:auto;'>
                     <?php echo !$fp?'▣':'■' ?>
-                    <a href="?page=<?php echo $path.'/'.$f.'&operation=tile&translation=disabled';?>" class='btn block preview_btn'><h1><?php echo $f;?></h1><br />进入文件夹</a>
+                    
+                    <?php if (isset($_GET['static_generator'])){?>
+                        <a href="<?php echo $f ?>/_la_list.html" class='btn block preview_btn'><h1><?php echo $f;?></h1><br />进入文件夹</a>
+                    <?php }else{ ?>
+                        <a href="?page=<?php echo $path.'/'.$f.'&operation=tile&translation=disabled';?>" class='btn block preview_btn'><h1><?php echo $f;?></h1><br />进入文件夹</a>
+                    <?php } ?>
+                    
                     
                     </div>
                 <?php
@@ -3331,10 +3707,14 @@ class LAManagement{
                     <?php
                 }
                 $rows = $this->FirstRows($this->ContentOfMarkdownFile($this->InterlinkPath().'/'.$f),20);
+                $use_url = '?page='.$path.'/'.$f.'&translation=disabled';
+                if(isset($_GET['static_generator'])){
+                    $use_url = preg_replace('/\.md$/','.html',$f);
+                }
                 ?>
                     <div class = 'tile_content tile_item' style='overflow:auto;'>
                          □
-                         <div onclick='location.href="?page=<?php echo $path.'/'.$f;?>&translation=disabled"' class='btn block preview_btn' style='font-size:12px; text-align:left;'><?php echo $this->HTMLFromMarkdown($rows);?></div>
+                         <div onclick='location.href="<?php echo $use_url ?>"' class='btn block preview_btn' style='font-size:12px; text-align:left;'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                     </div>
                 <?php
             }
@@ -3447,7 +3827,7 @@ class LAManagement{
                 <br />
                 <div class = 'inline_block_height_spacer'></div>
                 <p style='font-size:12px;margin:0px;'><?php echo $this->Footnote ?></p>
-                <p style='font-size:12px;margin:0px;'>使用 <a href='https://github.com/Nicksbest/lamdwiki' style='padding:1px;border:none;'>LAMDWIKI</a> 创建</p>
+                <p style='font-size:12px;margin:0px;'>使用 <a href='http://www.wellobserve.com/?page=MDWiki/index.md' style='padding:1px;border:none;'>LAMDWIKI</a> 创建</p>
             </div>
         </div>
         </div>
@@ -3668,6 +4048,16 @@ class LAManagement{
         <?php
     }
     
+    function ProcessLinksToStatic($html_content){
+    
+        if(!isset($_GET['static_generator'])) return $html_content;
+        
+        return preg_replace_callback('/<a([\s\S]*)href=[\'\"]\?page=([\s\S]*)\.md[\s\S]*[\'\"]([\s\S]*)>([\s\S]*)<\/a>/U',
+                             function (&$matches) {
+                                 return '<a'.$matches[1].'href="'.$this->GetRelativePath($this->PagePath,$matches[2]).'.html"'.$matches[3].'>'.$matches[4].'</a>';
+                             },
+                             $html_content);
+    }
 }
 
 ?>

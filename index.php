@@ -95,6 +95,24 @@ echo $LA->SwitchToTargetLanguageIfPossible();
 
 echo $LA->DoLogin();
 
+if($LA->IsLoggedIn()){
+    echo $LA->DoNewPassage();
+    echo $LA->DoNewSmallQuote();
+    echo $LA->DoNewFolder();
+    echo $LA->DoDeleteFolder();
+    echo $LA->DoRenameFolder();
+    echo $LA->DoDeleteFile();
+    echo $LA->DoRenameFile();
+    echo $LA->DoChangePermission();
+    echo $LA->DoChangeFolderDisplay();
+    echo $LA->DoChangeFolderLayout();
+    echo $LA->DoMoveFile();
+    echo $LA->DoAdditionalConfig();
+    echo $LA->DoApplySettings();
+}
+
+echo $LA->MakeHTMLHead();
+
 if(!$LA->IsLoggedIn()){
     if (isset($la_operation)
         && $la_operation!='tile'
@@ -103,39 +121,48 @@ if(!$LA->IsLoggedIn()){
     }
 }
 
+if(isset($_GET['small_quote_only'])){
+    echo $LA->MakeCenterContainerBegin();
+    echo $LA->MakeSmallQuotePanel($_GET['small_quote_only'],null,$LA->GetSmallQuoteName());
+    echo $LA->MakeCenterContainerEnd();
+    exit;
+}else if(isset($_GET['small_quote'])&&isset($_GET['quote_folder'])){
+    echo $LA->MakeCenterContainerBegin();
+    echo $LA->MakeSmallQuotePanel($_GET['quote_folder'],$_GET['small_quote'],$LA->GetSmallQuoteName());
+    echo $LA->MakeCenterContainerEnd();
+    exit;
+}
 
 
-echo $LA->DoNewPassage();
-echo $LA->DoNewFolder();
-echo $LA->DoDeleteFolder();
-echo $LA->DoRenameFolder();
-echo $LA->DoDeleteFile();
-echo $LA->DoRenameFile();
-echo $LA->DoChangePermission();
-echo $LA->DoChangeFolderDisplay();
-echo $LA->DoChangeFolderLayout();
-echo $LA->DoMoveFile();
-echo $LA->DoAdditionalConfig();
-echo $LA->DoApplySettings();
 
-echo $LA->MakeHTMLHead();
+
+
 
 //echo $LA->MakeSpecialStripe();
 
 echo $LA->PageHeaderBegin();
 
-echo $LA->MakeTitleButton();        
+echo $LA->ProcessLinksToStatic(
+     $LA->MakeTitleButton());        
+    
+    
     
 echo $LA->MakeNavigationBegin();
 $LA->SetInterlinkPath('index.md');
-echo $LA->ProcessHTMLLanguageForLinks(
-     $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md')));
+
+echo $LA->ProcessLinksToStatic(
+     $LA->ProcessHTMLLanguageForLinks(
+     $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md'))));
+     
 echo $LA->MakeNavigationEnd();
 
-$LA->SetInterlinkPath($la_page_path);
-echo $LA->MakeHeaderQuickButtons();
 
-echo $LA->MakeLoginDiv();
+
+$LA->SetInterlinkPath($la_page_path);
+
+echo $LA->MakeHeaderQuickButtons();
+echo $LA->ProcessLinksToStatic(
+     $LA->MakeLoginDiv());
 
 if($la_operation == 'new'){
     echo $LA->PageHeaderEnd();
@@ -153,8 +180,6 @@ if($la_operation == 'new'){
 }else{
     echo $LA->PageHeaderEnd();
 }
-
-
 
 
 $LA->SetInterlinkPath($la_page_path);
@@ -210,11 +235,12 @@ if($la_operation == 'new'){
     
     $LA->ConfirmMainPassage();
     
-    echo $LA->ProcessHREFForPrint(
+    echo $LA->ProcessLinksToStatic(
+         $LA->ProcessHREFForPrint(
          $LA->Insert3DContent(
          $LA->Insert2DContent(
          $LA->ProcessHTMLLanguageForLinks(
-         $LA->HTMLFromMarkdownFile($LA->ActuallPath())))));
+         $LA->HTMLFromMarkdownFile($LA->ActuallPath()))))));
     
     echo $LA->MakeHREFListForPrint();
          

@@ -1,103 +1,35 @@
-# 网站配置信息
+网站配置文件
+<!-- Users -->
 
-除了网站后台管理员，请不要手动修改这个文件的用户描述数据。
+admin
+- DisplayName = WikiAdmin
+- Password = Admin
+- Mature = 0
 
-MarkdownConf的具体内容不会最终显示在文章中，请编辑查看。
+<!-- End of Users -->
 
-## 网站全局设置
 
 <!-- Website -->
 
 Title = LA<b>MDWIKI</b>
 
-Footnote = (C)2019 YimingWu
-
 DisplayTitle = LAMDWIKI
+
+Footnote
+
+SmallQuoteName = 成都小A说
 
 <!-- End of Website -->
 
-## 用户、密码和登录信息配置
-
-<!-- Users -->
-
-admin
-- Password = Admin
-- DisplayName = WikiAdmin
-- LoginTry = 0
-- Locked = 0
-- Admin = 1
-- Mature = 1
-
-<!-- End of Users -->
-
-
-
-<!-- Groups -->
-
-<!-- End of Groups -->
-
-## MDConf示例
-
-<!-- Demo of how to modify markdown conf -->
-
-admin1 admin
-
-ad min = 123
-- password = abc
-- my data = 123123
-
-yiming admin
-
-你可以随意在配置区域写东西，只是不建议这么做
-
-配置格式会自动整理。
-
-admin = infinite
-- admin = Nico
-- 只有赋值的 = 参数才会被保留
-
-<!-- End of Demo of how to modify markdown conf -->
-
-一个汉字是四个字长：
-
-<!-- Dam -->
-
-admin admin
-
-<!-- End of Dam -->
-
-## 对单独页面的附加配置
 
 <!-- index.md -->
 
-Layout = Gallery
-
 Additional
 - Path = ./img
-- Style = 2
-- Count = 1000
-- Title = 照片墙功能
-- ColumnCount = 1
-
-Additional
-- Path = ./SubFolder
-- Style = 3
-- Title = 我在说什么
-- More = 啥
+- Style = 4
+- Title = 小A说
+- More = 小A还说…
 - QuickPost = 1
-- Complete = 1
 
 <!-- End of index.md -->
-
-
-
-<!-- FolderConf -->
-
-Display = Normal
-
-Layout = 0
-
-Wide = 1
-
-<!-- End of FolderConf -->
 
