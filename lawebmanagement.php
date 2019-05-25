@@ -592,6 +592,7 @@ class LAManagement{
             $img['hook']    = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Hook');   // some heading
             $img['padding'] = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Padding');// 0 - 1 (default 1)
             $img['click_zoom']   = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'ClickZoom');// 0 - 1 (default 0)
+            $img['max_out']      = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'MaxOut');// 0 - 1 (default 0)
             $this->BlockImageList[] = $img;
             $i++;
         }
@@ -671,7 +672,7 @@ class LAManagement{
     
     function HTMLFromMarkdownFile($FileName){
         $Content = $this->ContentOfMarkdownFile($FileName);
-        if($Content) return $this->HTMLFromMarkdown($Content);
+        if($Content) return $this->InsertAdaptiveContents($this->HTMLFromMarkdown($Content));
     }
     function FirstRow($content){
         $array = explode("\n",$content);
@@ -1313,6 +1314,8 @@ class LAManagement{
             .center_vertical        { display: table-cell; vertical-align: middle; }
             .center_box             { margin-left: auto; margin-right: auto; }
             
+            .adaptive_column_container { text-align: center; display: table-cell; }
+            
             .audio_player_box       { z-index:20; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto;  width:calc(60% - 55px); min-width:845px;}
             
             canvas                  { width:100%; height:100%; }
@@ -1325,8 +1328,8 @@ class LAManagement{
             
             .block_image_normal                { position: relative; text-align: center; }
             .block_image_expanded              { position: relative; text-align: center; }
-            .block_image_expanded img          { margin: 0px auto; max-height:100vh; max-width:100vw }
-            .block_image_normal   img          { margin: 0px auto; max-height:100vh; max-width:100vw }
+            .block_image_expanded img          { margin: 0px auto; max-height:100vh; max-width:100% }
+            .block_image_normal   img          { margin: 0px auto; max-height:100vh; max-width:100% }
             
             .box_complete_background           { position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; z-index: -1;}            
             .box_hang_right                    { float: right; width:30%;}
@@ -1435,6 +1438,8 @@ class LAManagement{
                 .box_hang_right         { float: unset; width: unset;}
                 
                 .audio_player_box       { margin:10px auto;  width:calc(100% - 60px); min-width:unset;}
+                
+                .adaptive_column_container { display: block; }
                 
                 .passage_detail         { width:60%; }
                 .login_half             { width:75%; }
@@ -1609,6 +1614,28 @@ class LAManagement{
             </div>
             </div>
         <?php
+    }
+    
+    function RemoveBlankAfterInserts($html){
+        return preg_replace('/<div.*class=[\'\"]the_body[\'\"].*>\s*<div.*class=[\'\"]main_content[\'\"].*>\s*<div>\s*<\/div>\s*<\/div>\s*<\/div>/U',
+                            "",
+                            $html);
+    }
+    
+    function InsertAdaptiveContents($markdown){
+        return preg_replace_callback('/\[adaptive\]([\s\S]*)\[\/adaptive\]/U',
+                                     function($matches){
+                                         return "<table style='table-layout: fixed;'> <tr>".
+                                                preg_replace_callback('/\[column\]([\s\S]*)\[\/column\]/U',
+                                                                      function($matches){
+                                                                          return "<td class='adaptive_column_container'>".
+                                                                                 $this->HTMLFromMarkdown($matches[1]).
+                                                                                 "</td>";
+                                                                      },
+                                                                      $matches[1]).
+                                                "</tr> </table>";
+                                     },
+                                     $markdown);
     }
     
     function Make3DContentActual($sc,$hooked,$id){
@@ -1899,8 +1926,9 @@ class LAManagement{
         $inline =          (isset($sc['mode'])&&$sc['mode']=='Inline'&&$hooked);
         $hook = $hooked;
         $is_background =   (isset($sc['mode'])&&$sc['mode']=='Background');
-        $click_zoom   =   (isset($sc['click_zoom'])&&$sc['click_zoom']!=0);
-
+        $click_zoom   =    (isset($sc['click_zoom'])&&$sc['click_zoom']!=0);
+        $max_out      =    (isset($sc['max_out'])&&$sc['max_out']!=0);
+        
         if(!$is_background){
             if(!$inline){
                 if($hooked) echo '</div></div>';
@@ -1915,14 +1943,14 @@ class LAManagement{
                 
                 <div class="<?php echo $is_background?'box_complete_background':($expanded?'block_image_expanded':'block_image_normal')?>">
                     <?php if (!isset($sc['file2'])){?>
-                        <img id='BlockImage1' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' >
+                        <img id='BlockImage1' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' style="<?php echo $max_out?'max-height:unset;width:100%;':'max-width:100%;' ?>">
                     <?php }else{ ?>
                         <table style='margin:0px;'>
                         <td style='padding:0px; text-align:right;'>
-                            <img id='BlockImage1' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' style="max-width:100%;display:inline-block;" >
+                            <img id='BlockImage1' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' style="<?php echo $max_out?'max-height:unset;width:100%;':'max-width:100%;' ?>display:inline-block;" >
                         </td>
                         <td style='padding:0px; text-align:left;'>
-                            <img id='BlockImage2' src='<?php echo $this->InterlinkPath().'/'.$sc['file2']?>' style="max-width:100%;display:inline-block;" >
+                            <img id='BlockImage2' src='<?php echo $this->InterlinkPath().'/'.$sc['file2']?>' style="<?php echo $max_out?'max-height:unset;width:100%;':'max-width:100%;' ?>display:inline-block;" >
                         </td>
                         </table>
                     <?php }?>
@@ -1930,7 +1958,7 @@ class LAManagement{
                     </div>
                 </div>
                 
-                <?php if ($click_zoom){ ?>
+                <?php if ($click_zoom && !$max_out){ ?>
                 <script>
                     image1=document.getElementById('BlockImage1');
                     image2=document.getElementById('BlockImage2');

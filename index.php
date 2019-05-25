@@ -237,10 +237,11 @@ if($la_operation == 'new'){
     
     echo $LA->ProcessLinksToStatic(
          $LA->ProcessHREFForPrint(
+         $LA->RemoveBlankAfterInserts(
          $LA->Insert3DContent(
          $LA->Insert2DContent(
          $LA->ProcessHTMLLanguageForLinks(
-         $LA->HTMLFromMarkdownFile($LA->ActuallPath()))))));
+         $LA->HTMLFromMarkdownFile($LA->ActuallPath())))))));
     
     echo $LA->MakeHREFListForPrint();
          
