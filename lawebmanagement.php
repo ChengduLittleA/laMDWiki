@@ -39,9 +39,12 @@ class LAManagement{
     
     protected $AudioList;
     protected $SceneList;
-    protected $BlockImageList;
+    protected $BlockImageList; //doubles as video
     protected $LinkList;
     
+    protected $AfterPassage2D;
+    protected $AfterPassage3D;
+        
     protected $MainFileTitle;
     protected $MainFileIsNSFW;
     protected $FileIsNSFW;
@@ -56,6 +59,8 @@ class LAManagement{
     
     protected $MainContentAlreadyBegun;
     
+    protected $unique_item_count;
+    
     function __construct() {
         $this->PDE = new ParsedownExtra();
         $this->PDE->SetInterlinkPath('/');
@@ -63,18 +68,30 @@ class LAManagement{
     
     function LimitAccess($mode){
         if($mode==0){
-            echo "<div style='text-align:center;'>";
+            echo $this->MakeCenterContainerBegin();
+            echo "<div class='the_body'>";
+            echo "<div class='main_content' style='text-align:center;'>";
             echo "<h1>404</h1>";
-            echo "页面不存在。<br />Page does not exist.";
+            echo "<p>页面不存在。<br />Page does not exist.</p><p>";
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 返回/Back</a>";
+            echo "&nbsp;<a href='?page=index.md'>⌂ 首页/Home</a></p>";
+            if($this->IsLoggedIn()) echo "<p><a href='?page=".$_GET["page"]."&operation=new&title=".pathinfo($_GET["page"],PATHINFO_FILENAME)."'>创建这个页面</a></p>";
             echo "</div>";
-            exit;
+            echo "</div>";
+            echo $this->MakeCenterContainerEnd();  
         }else if($mode==1){
-            echo "<div style='text-align:center;'>";
+            echo $this->MakeCenterContainerBegin();
+            echo "<div class='the_body'>";
+            echo "<div class='main_content' style='text-align:center;'>";
             echo "<h1>停一下</h1>";
-            echo "未登录用户不允许访问。<br />Access not allowed for non-logged-in users.";
+            echo "访客不允许访问这个页面。<br />Visitors can not access this page.<p>";
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 返回/Back</a>";
+            echo "&nbsp;<a href='?page=index.md'>⌂ 首页/Home</a></p>";
             echo "</div>";
-            exit;
+            echo "</div>";
+            echo $this->MakeCenterContainerEnd();
         }
+        exit;
     }
     
     function InstallLaMDWiki(){
@@ -135,9 +152,10 @@ class LAManagement{
             &&!isset($_GET['operation'])
             &&!isset($_GET['moving'])
             &&!isset($_POST['button_new_passage'])) {
-            $this->LimitAccess(0);
+            return false;
         }
         $this->PagePath = $path;
+        return true;
     }
     
     function SetEditMode($mode){
@@ -574,8 +592,9 @@ class LAManagement{
             $scene['mode']    = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Mode');   // Block - Inline - Background (2nd background treat as block)
             $scene['expand']  = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Expand'); // 0 - 1 (default 0)
             $scene['hook']    = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Hook');   // some heading
-            $scene['padding'] = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Padding');// 0 - 1 (default 1)
-            $scene['hang']    = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Hang');   // 0 - 1 (default 0)
+            $scene['hook_before']  = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'HookBefore');   // 0 - 1 (default 0)
+            $scene['padding']      = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Padding');// 0 - 1 (default 1)
+            $scene['hang']         = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Hang');   // 0 - 1 (default 0)
             $scene['lock_center']  = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'LockCenter');   // 0 - 1 (default 0)
             $scene['paralax']      = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'Paralax');      // 0 - 1 (default 0)
             $scene['paralax_size'] = $this->GetArgumentByNamesN($Conf,'3D','Scene',$i,'ParalaxSize');  
@@ -585,17 +604,45 @@ class LAManagement{
         
         $i=0;
         while($this->GetLineByNamesN($Conf,'2D','Image',$i)!==Null){
+            $img['TYPE'] = 'IMAGE';
             $img['file']    = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'File');
             $img['file2']   = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'File2');
+            $img['file3']   = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'File3');
+            $img['file4']   = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'File4');
+            $img['file5']   = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'File5');
             $img['mode']    = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Mode');   // Block - Background (2nd background treat as block)
             $img['expand']  = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Expand'); // 0 - 1 (default 0)
             $img['hook']    = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Hook');   // some heading
-            $img['padding'] = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Padding');// 0 - 1 (default 1)
+            $img['hook_before']  = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'HookBefore');   // 0 - 1 (default 0)
+            $img['padding']      = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Padding');// 0 - 1 (default 1)
             $img['click_zoom']   = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'ClickZoom');// 0 - 1 (default 0)
             $img['max_out']      = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'MaxOut');// 0 - 1 (default 0)
+            $img['note']         = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Note');// Corner flag
+            $img['note2']        = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Note2');
+            $img['note3']        = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Note3');
+            $img['note4']        = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Note4');
+            $img['note5']        = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'Note5');
+            $img['same_width']   = $this->GetArgumentByNamesN($Conf,'2D','Image',$i,'SameWidth');
             $this->BlockImageList[] = $img;
             $i++;
         }
+        while($this->GetLineByNamesN($Conf,'2D','Video',$i)!==Null){
+            $img['TYPE'] = 'VIDEO';
+            $img['file']    = $this->GetArgumentByNamesN($Conf,'2D','Video',$i,'File');
+            $img['mode']    = $this->GetArgumentByNamesN($Conf,'2D','Video',$i,'Mode');   // Block - Background (2nd background treat as block)
+            $img['expand']  = $this->GetArgumentByNamesN($Conf,'2D','Video',$i,'Expand'); // 0 - 1 (default 0)
+            $img['hook']    = $this->GetArgumentByNamesN($Conf,'2D','Video',$i,'Hook');   // some heading
+            $img['hook_before']  = $this->GetArgumentByNamesN($Conf,'2D','Video',$i,'HookBefore');   // 0 - 1 (default 0)
+            $img['padding']      = $this->GetArgumentByNamesN($Conf,'2D','Video',$i,'Padding');// 0 - 1 (default 1)
+            $img['click_zoom']   = $this->GetArgumentByNamesN($Conf,'2D','Video',$i,'ClickZoom');// 0 - 1 (default 0)
+            $img['max_out']      = $this->GetArgumentByNamesN($Conf,'2D','Video',$i,'MaxOut');// 0 - 1 (default 0)
+            $img['note']         = $this->GetArgumentByNamesN($Conf,'2D','Video',$i,'Note');// Corner flag
+            $this->BlockImageList[] = $img;
+            $i++;
+        }
+        
+        $this->AfterPassage2D = $this->GetLineValueByNamesN($Conf,'2D','AfterPassage',0)!=0?1:0;
+        $this->AfterPassage3D = $this->GetLineValueByNamesN($Conf,'3D','AfterPassage',0)!=0?1:0;
     }
     
     function ExtractPassageConfigFromFile($FileName){
@@ -657,8 +704,8 @@ class LAManagement{
             <h2>链接列表</h2>
             <?php
             foreach($this->LinkList as $l){
-                $url = preg_replace('/^\?page=/',$_SERVER['HTTP_HOST'].'/',$l[1]);
-                $url = preg_replace('/^index.php\?page=/',$_SERVER['HTTP_HOST'].'/',$url);
+                $url = preg_replace('/^\?page=/','http://'.$_SERVER['HTTP_HOST'].'/',$l[1]);
+                $url = preg_replace('/^index.php\?page=/','http://'.$_SERVER['HTTP_HOST'].'/',$url);
                 echo '<p>'.$url.' 链'.$l[0].'</p>';
             }
             ?>
@@ -672,7 +719,8 @@ class LAManagement{
     
     function HTMLFromMarkdownFile($FileName){
         $Content = $this->ContentOfMarkdownFile($FileName);
-        if($Content) return $this->InsertAdaptiveContents($this->HTMLFromMarkdown($Content));
+        if($Content) return $this->HTMLFromMarkdown($this->InsertAdaptiveContents($Content));
+        return "<i>空文件</i>";
     }
     function FirstRow($content){
         $array = explode("\n",$content);
@@ -1267,9 +1315,9 @@ class LAManagement{
             .btn img{ pointer-events: none; }
             .gallery_left img{ float: unset; margin: 5px auto; max-width: 100%;}
             
-            table{ width:100%; }
+            table{ width:100%; border-collapse: collapse;}
             
-            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 10;}
+            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 10; text-align: left; }
             
             blockquote{ border-top:1px solid #000; border-bottom:1px solid #000; text-align: center; }
             
@@ -1289,6 +1337,8 @@ class LAManagement{
                 display: inline;
             }
             .login_half{ float: right; right: 10px; width: 50%; text-align: right;}
+            
+            /*.left_side_extra { left:0px; top:0px; bottom:0px; right:calc(20% - )}*/
             
             .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin; }
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
@@ -1314,6 +1364,8 @@ class LAManagement{
             .center_vertical        { display: table-cell; vertical-align: middle; }
             .center_box             { margin-left: auto; margin-right: auto; }
             
+            .file_image_preview     { width:90%; max-width:300px; margin:5px; }
+            
             .adaptive_column_container { text-align: center; display: table-cell; }
             
             .audio_player_box       { z-index:20; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto;  width:calc(60% - 55px); min-width:845px;}
@@ -1333,6 +1385,8 @@ class LAManagement{
             
             .box_complete_background           { position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; z-index: -1;}            
             .box_hang_right                    { float: right; width:30%;}
+            
+            .white_bkg    { background-color:#FFF; }
             
             .btn          { border:1px solid #000; padding: 5px; color:#000; display: inline; background-color:#FFF; font-size:16px; cursor: pointer; text-align: center; }
             .btn:hover    { border:3px double #000; padding: 3px; }
@@ -1362,6 +1416,9 @@ class LAManagement{
             .inline_components { display: inline; margin: 5px; }
             .plain_block       { border: 1px solid #000; text-align: left; padding:5px; }
             .preview_block     { border-right: 1px solid #000; margin:5px; }
+            
+            .inline_p          { }
+            .inline_p p, .inline_p h1, .inline_p h2, .inline_p h3, .inline_p h4, .inline_p h5, .inline_p h6, .inline_p { display: inline; margin:0px; }
             
             .string_input      { border:3px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; margin:5px; width:150px; }
             .quick_post_string { border:3px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; margin:0px; width:100%; resize: none; overflow: hidden; height: 25px; }
@@ -1407,10 +1464,11 @@ class LAManagement{
             .only_on_print           { display: none; }
             
             @media screen and (max-width: 1000px) {
-            
-                
                 
                 .the_body{ left:10px; width:calc(100% - 20px); min-width: unset; }
+                
+                .inline_p          { }
+                .inline_p p, .inline_p h1, .inline_p h2, .inline_p h3, .inline_p h4, .inline_p h5, .inline_p h6, .inline_p { font-size: 16px; }
                 
                 h3 img{ float: unset; max-width:100%; margin: 5px auto;}
                 h4 img{ float: unset; max-width:100%; margin: 5px auto;}
@@ -1487,6 +1545,10 @@ class LAManagement{
                 .appendix h1, .appendix h2, .appendix h3, .appendix h4, .appendix h5, .appendix h6 { border: none; }
                 
                 .only_on_print           { display: unset; }
+
+                .audio_player_box        { display: none; }
+                
+                canvas                   { display: none; }
             }
             
             @media (min-resolution: 192dpi),
@@ -1577,8 +1639,8 @@ class LAManagement{
         ob_start();
         ?>
         <div id='WebsiteTitle'>
-            <a class='home_button hidden_on_mobile' href="?page=index.md"><?php echo $this->Title;?></a>
-            <a class='home_button hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
+            <a class='hidden_on_mobile' href="?page=index.md"><?php echo $this->Title;?></a>
+            <a class='hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
         </div>
         <?php
         $content = ob_get_contents();
@@ -1623,7 +1685,10 @@ class LAManagement{
     }
     
     function InsertAdaptiveContents($markdown){
-        return preg_replace_callback('/\[adaptive\]([\s\S]*)\[\/adaptive\]/U',
+        $op1 = preg_replace("/```([\s\S]*)\[adaptive\]([\s\S]*)```/U",
+                            "---$1[@adaptive]$2---",
+                            $markdown);
+        $res = preg_replace_callback('/\[adaptive\]([\s\S]*)\[\/adaptive\]/U',
                                      function($matches){
                                          return "<table style='table-layout: fixed;'> <tr>".
                                                 preg_replace_callback('/\[column\]([\s\S]*)\[\/column\]/U',
@@ -1635,7 +1700,10 @@ class LAManagement{
                                                                       $matches[1]).
                                                 "</tr> </table>";
                                      },
-                                     $markdown);
+                                     $op1);
+        return preg_replace('/---([\s\S]*)\[@adaptive\]([\s\S]*)---/U',
+                             '```$1[adaptive]$2```',
+                            $res);
     }
     
     function Make3DContentActual($sc,$hooked,$id){
@@ -1686,7 +1754,7 @@ class LAManagement{
                     
                     canvasElm<?php echo $id?>.oncontextmenu = () => false;
                     
-                    var solid_mat<?php echo $id?> = new THREE.MeshBasicMaterial({color:0xffff00, polygonOffset: true,
+                    var solid_mat<?php echo $id?> = new THREE.MeshBasicMaterial({color:0xffffff, polygonOffset: true,
                                                                     polygonOffsetFactor: 1,
                                                                     polygonOffsetUnits: 1});
 			        //var line_mat<?php echo $id?> = 
@@ -1713,8 +1781,8 @@ class LAManagement{
                                         }
                                         var edges = new THREE.EdgesGeometry(child.geometry, thresholdAngle=5);
                                         var lines = new THREE.LineSegments( edges, line_mat );
-                                        child.material.color.setRGB(1,1,1);
-
+                                        //child.material.color.setRGB(1,1,1);
+                                        child.material=solid_mat<?php echo $id?>;
                                         // color roughness emissive metalness  ---> available from blender export
                                         
                                         child.add(lines);
@@ -1850,20 +1918,22 @@ class LAManagement{
                 
         <?php
         if(!$is_background){
-        if(!$inline){
-        ?>          </div>
+            if(!$inline){
+                ?>          </div>
+                        </div>
+                    </div>
+                <?php if($hooked || !$this->AfterPassage3D) {?>
+                    <div class='the_body'>
+                    <?php 
+                    $this->MainContentAlreadyBegun=True;
+                }
+                if($hooked) echo '<div class="main_content" style="'.($this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":"").'"><div>';
+            } 
+            if($hang){
+                ?>
                 </div>
-            </div>
-        <div class='the_body'>
-        <?php 
-        $this->MainContentAlreadyBegun=True;
-        if($hooked) echo '<div class="main_content" style="'.($this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":"").'"><div>';
-        } 
-        if($hang){
-            ?>
-            </div>
-            <?php
-        }
+                <?php
+            }
         }//not background
         ?>
             
@@ -1871,8 +1941,9 @@ class LAManagement{
     }
     
     function Make3DContent(){
-        if(!isset($this->SceneList[0])) return;
+        if(!isset($this->SceneList[0])) return null;
         $i=0;
+        ob_start();
         foreach ($this->SceneList as $sc){
             if ((isset($sc['mode']) && ($sc['mode']=='Inline' && isset($sc['hook'])))||
                 (isset($sc['hook']))){
@@ -1880,20 +1951,14 @@ class LAManagement{
                 continue;
             }
             if($sc['mode']=='Background'){
-                ob_start();
-                $this->Make3DContentActual($sc,False,$i);
-                $Inserts = ob_get_contents();
-                ob_end_clean();
-                
-                echo $Inserts;
-                
                 $this->BackgroundSemi = True;
-                
-            }else{
-                $this->Make3DContentActual($sc,False,$i);
             }
+            $this->Make3DContentActual($sc,False,$i);
             $i++;
         }
+        $contents = ob_get_contents();
+        ob_end_clean();
+        return $contents;
     }
     function Insert3DContent($Content){
         if(!isset($this->SceneList[0])) return $Content;
@@ -1911,13 +1976,27 @@ class LAManagement{
                 
             $split = preg_split('/(<h[0-6]>'.$sc['hook'].'<\/h[0-6]>)/U',$Content,3,PREG_SPLIT_DELIM_CAPTURE);
             if(count($split)>2){    
-                $Content = $split[0].$split[1].$Inserts.$split[2];
+                if(isset($sc['hook_before'])&&$sc['hook_before']!=0) $Content = $split[0].$Inserts.$split[1].$split[2];
+                else $Content = $split[0].$split[1].$Inserts.$split[2];
             }else{
                 $Content.=$Inserts;
             }
             $i++;
         }
         return $Content;
+    }
+    
+    function Make2DTile($file,$note,$max,$align,$i){
+    ?>
+        <td class='adaptive_column_container' style='padding:0px; text-align:<?php echo $align; ?>; position:relative;'>
+            <img id='BlockImage<?php echo $i.'_'.$this->unique_item_count; ?>' src='<?php echo $this->InterlinkPath().'/'.$file?>' style="<?php echo $max?'max-height:unset;width:100%;':'max-width:100%;' ?>display:inline-block;" >
+            <?php if($note!=''){ ?>
+                <div style='position:absolute; left:0; right:0; top:0; bottom:0; text-align:center;'>
+                    <div class='plain_block inline_p narrow_content' style='position:absolute; bottom:10px; z-index:1;transform: translate(-50%, -10px);'><?php echo $this->HTMLFromMarkdown($note); ?></div>
+                </div>
+            <?php } ?>
+        </td>
+    <?php
     }
     
     function Make2DContentActual($sc,$hooked){
@@ -1928,6 +2007,17 @@ class LAManagement{
         $is_background =   (isset($sc['mode'])&&$sc['mode']=='Background');
         $click_zoom   =    (isset($sc['click_zoom'])&&$sc['click_zoom']!=0);
         $max_out      =    (isset($sc['max_out'])&&$sc['max_out']!=0);
+        $note         =    isset($sc['note'])?$sc['note']:'';
+        $note2        =    isset($sc['note2'])?$sc['note2']:'';
+        $note3        =    isset($sc['note3'])?$sc['note3']:'';
+        $note4        =    isset($sc['note4'])?$sc['note4']:'';
+        $note5        =    isset($sc['note5'])?$sc['note5']:'';
+        $same_width   =    (isset($sc['same_width'])&&$sc['same_width']!=0);
+        $file_count = (isset($sc['file'])?1:0)+
+                      (isset($sc['file2'])?1:0)+
+                      (isset($sc['file3'])?1:0)+
+                      (isset($sc['file4'])?1:0)+
+                      (isset($sc['file5'])?1:0);
         
         if(!$is_background){
             if(!$inline){
@@ -1942,41 +2032,56 @@ class LAManagement{
         ?>
                 
                 <div class="<?php echo $is_background?'box_complete_background':($expanded?'block_image_expanded':'block_image_normal')?>">
-                    <?php if (!isset($sc['file2'])){?>
-                        <img id='BlockImage1' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' style="<?php echo $max_out?'max-height:unset;width:100%;':'max-width:100%;' ?>">
-                    <?php }else{ ?>
-                        <table style='margin:0px;'>
-                        <td style='padding:0px; text-align:right;'>
-                            <img id='BlockImage1' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' style="<?php echo $max_out?'max-height:unset;width:100%;':'max-width:100%;' ?>display:inline-block;" >
-                        </td>
-                        <td style='padding:0px; text-align:left;'>
-                            <img id='BlockImage2' src='<?php echo $this->InterlinkPath().'/'.$sc['file2']?>' style="<?php echo $max_out?'max-height:unset;width:100%;':'max-width:100%;' ?>display:inline-block;" >
-                        </td>
+                    <?php if ($file_count>1){?>
+   
+                        <table style='margin:0px auto; <?php echo $same_width? "table-layout: fixed;":""; ?>'>
+                        <?php if (isset($sc['file']))  { $this->Make2DTile($sc['file'], $note, $max_out,(($same_width||$file_count>2)?'center':'right'),1); } ?>
+                        <?php if (isset($sc['file2'])) { $this->Make2DTile($sc['file2'],$note2,$max_out,(($same_width||$file_count>2)?'center':'left'),2); } ?>
+                        <?php if (isset($sc['file3'])) { $this->Make2DTile($sc['file3'],$note3,$max_out,(($same_width||$file_count>2)?'center':'left'),3); } ?>
+                        <?php if (isset($sc['file4'])) { $this->Make2DTile($sc['file4'],$note4,$max_out,(($same_width||$file_count>2)?'center':'left'),4); } ?>
+                        <?php if (isset($sc['file5'])) { $this->Make2DTile($sc['file5'],$note5,$max_out,(($same_width||$file_count>2)?'center':'left'),5); } ?>
                         </table>
+                        
+                    <?php }else{ ?>
+                        <?php if($sc['TYPE']=='IMAGE'){?>
+                            <img id='BlockImage1_<?php echo $this->unique_item_count; ?>' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' style="<?php echo $max_out?'max-height:unset;width:100%;':'max-width:100%;' ?>">
+                        <?php }else{ //video ?>
+                            <video <?php echo $is_background?' autoplay="autoplay" ':' controls ' ?> 
+                                    id='BlockImage1_<?php echo $this->unique_item_count; ?>' src='<?php echo $this->InterlinkPath().'/'.$sc['file']?>' style="<?php echo $max_out?'max-height:unset;width:100%;':'max-width:100%;' ?>">
+                        <?php } ?>
+                        <?php if($note!=''){ ?>
+                            <div style='position:absolute; left:0; right:0; top:0; bottom:0; text-align:center;'>
+                                <div class='plain_block inline_p narrow_content' style='position:absolute; bottom:10px; z-index:1;transform: translate(-50%, -10px);'><?php echo $this->HTMLFromMarkdown($note); ?></div>
+                            </div>
+                        <?php } ?>
                     <?php }?>
-                    <div id='BlockImageCover' style='position:absolute;top:0px;left:0px;right:0px;left:0px;height:100%;'>
+                    <div id='BlockImageCover_<?php echo $this->unique_item_count; ?>' style='position:absolute;top:0px;left:0px;right:0px;left:0px;height:100%;'>
                     </div>
                 </div>
                 
                 <?php if ($click_zoom && !$max_out){ ?>
                 <script>
-                    image1=document.getElementById('BlockImage1');
-                    image2=document.getElementById('BlockImage2');
-                    document.getElementById('BlockImageCover').addEventListener("click",function(){
+                    image1=document.getElementById('BlockImage1_<?php echo $this->unique_item_count; ?>');
+                    image2=document.getElementById('BlockImage2_<?php echo $this->unique_item_count; ?>');
+                    document.getElementById('BlockImageCover_<?php echo $this->unique_item_count; ?>').addEventListener("click",function(){
                         if(image1) image1.style.maxHeight = image1.style.maxHeight=='100vh' ? 'unset' : '100vh'; 
                         if(image2) image2.style.maxHeight = image2.style.maxHeight=='100vh' ? 'unset' : '100vh'; 
                     });
                 </script>
                 <?php } ?>
         <?php
+        $this->unique_item_count+=1;
         if(!$is_background){
             if(!$inline){
                 ?>          </div>
                         </div>
                     </div>
-                <div class='the_body'>
+                <?php if($hooked || !$this->AfterPassage2D) {?>
+                    <div class='the_body'>
+                    <?php 
+                    $this->MainContentAlreadyBegun=True;
+                } ?>
                 <?php 
-                $this->MainContentAlreadyBegun=True;
                 if($hooked) echo '<div class="main_content" style="'.($this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":"").'"><div>';
             } 
         }//not background
@@ -1986,8 +2091,9 @@ class LAManagement{
     }
     
     function Make2DContent(){
-        if(!isset($this->BlockImageList[0])) return;
+        if(!isset($this->BlockImageList[0])) return null;
         $i=0;
+        ob_start();
         foreach ($this->BlockImageList as $sc){
             if ((isset($sc['mode']) && ($sc['mode']=='Inline' && isset($sc['hook'])))||
                 (isset($sc['hook']))){
@@ -1995,20 +2101,14 @@ class LAManagement{
                 continue;
             }
             if($sc['mode']=='Background'){
-                ob_start();
-                $this->Make2DContentActual($sc,False);
-                $Inserts = ob_get_contents();
-                ob_end_clean();
-                
-                echo $Inserts;
-                
-                $this->BackgroundSemi = True;
-                
-            }else{
-                $this->Make2DContentActual($sc,False);
+                $this->BackgroundSemi = True; 
             }
+            $this->Make2DContentActual($sc,False);
             $i++;
         }
+        $contents = ob_get_contents();
+        ob_end_clean();
+        return $contents;
     }
     function Insert2DContent($Content){
         if(!isset($this->BlockImageList[0])) return $Content;
@@ -2027,7 +2127,8 @@ class LAManagement{
                 
             $split = preg_split('/(<h[0-6]>'.$sc['hook'].'<\/h[0-6]>)/U',$Content,3,PREG_SPLIT_DELIM_CAPTURE);
             if(count($split)>2){    
-                $Content = $split[0].$split[1].$Inserts.$split[2];
+                if(isset($sc['hook_before'])&&$sc['hook_before']!=0) $Content = $split[0].$Inserts.$split[1].$split[2];
+                else $Content = $split[0].$split[1].$Inserts.$split[2];
             }else{
                 $Content.=$Inserts;
             }
@@ -2035,6 +2136,23 @@ class LAManagement{
         }
         return $Content;
     }
+    function HandleInsertsBeforePassage($Content2D,$Content3D){
+        if(!$this->AfterPassage2D){
+            echo $Content2D;
+        }
+        if(!$this->AfterPassage3D){
+            echo $Content3D;
+        }
+    }
+    function HandleInsertsAfterPassage($Content2D,$Content3D){
+        if($this->AfterPassage2D){
+            echo $Content2D;
+        }
+        if($this->AfterPassage3D){
+            echo $Content3D;
+        }
+    }
+    
     function GetSmallQuoteName(){
         return $this->SmallQuoteName;
     }
@@ -2150,6 +2268,23 @@ class LAManagement{
         ob_end_clean();
         return $content;
     }
+    
+    function MakeBackButton(){
+        $path = $this->InterlinkPath();
+        
+        if(preg_match('/index.*\.md$/',$this->PagePath)){
+            if($path=='.') return;
+            $upper = $this->GetInterlinkPath('..');
+        }else{
+            $upper = $path;
+        }
+        
+        ?>
+            <div class='inline_block_height_spacer hidden_on_desktop'></div>
+            <a href='?page=<?php echo $upper; ?>'>🡴上级</a>
+        <?php
+    }
+    
     function MakeHeaderQuickButtons(){
         $path = $this->InterlinkPath();
         $disp = $this->FolderDisplayAs($path)=='Timeline'?1:0;
@@ -2185,8 +2320,11 @@ class LAManagement{
     function MakeNavigationBegin(){
         ?>
         <div class="navigation" id='Navigation'>
-            <a class='home_button hidden_on_desktop' href="?page=index.md"><b>前往首页</b></a>
+            <a class='hidden_on_desktop' href="?page=index.md"><b>&#8962;&nbsp;首页</b></a>
         <?php
+        if(!isset($_GET['operation'])){
+            echo $this->MakeBackButton();
+        }
     }
     function MakeNavigationEnd(){
         ?>
@@ -2261,14 +2399,14 @@ class LAManagement{
                         echo '放在 '.$this->InterlinkPath().'/';
                         ?>
                         </span>
-                        <input class='string_input title_string' type="text" id="EditorFileName" name="editor_file_name" value='<?php echo $this->GetUniqueName('Untitled');?>'/>
+                        <input class='string_input title_string' type="text" id="EditorFileName" name="editor_file_name" value='<?php echo $this->GetUniqueName(isset($_GET['title'])?$_GET['title']:'Untitled');?>'/>
                         .md
                         <?php
                     }
                     ?>
                     
                     &nbsp;
-                    <input class='btn form_btn' type="submit" value="完成" name="button_new_passage" form='form_passage' />
+                    <input class='btn form_btn' type="submit" value="完成" name="button_new_passage" form='form_passage' onClick='destroy_unload_dialog()' />
                 </form>
             </div>
             
@@ -2284,6 +2422,13 @@ class LAManagement{
                 <span id='data_passage_character_count'>字数</span>
             </div>
             <script>
+                 window.onbeforeunload = function() { 
+                    return "没写完就想跑？";
+                }
+                function destroy_unload_dialog(){
+                    window.onbeforeunload = null;
+                }
+
                 var text_area = document.getElementById("data_passage_content");
                 var count = document.getElementById("data_passage_character_count");
                 var btn_h1 = document.getElementById("EditorToggleH1");
@@ -3626,7 +3771,7 @@ class LAManagement{
                             <?php 
                             $ext=pathinfo($f,PATHINFO_EXTENSION);
                             if ($ext=='jpg' || $ext=='png' || $ext=='bmp' || $ext=='gif'){
-                                echo '图像';
+                                echo '<img class="file_image_preview" src="'.$path.'/'.$f.'" alt="图像"></img>';
                             }else if ($ext=='php' || $ext=='html'){
                                 echo '网页';
                             }else echo'文件';
@@ -3634,6 +3779,7 @@ class LAManagement{
                         </div>
                      </div>
                 </div>
+                <div class='the_body'>
                 <div style='clear:both;text-align:right;'>
                     <div class = 'narrow_content' style='display:none' id='other_delete_panel_<?php echo $f;?>'>
                     确认 <a class='btn' href='?page=<?php echo $this->InterlinkPath();?>&operation=delete_file&target=<?php echo $f?>'>删除 <?php echo $f?></a>
@@ -3645,6 +3791,7 @@ class LAManagement{
                         <input class="btn form_btn" type="submit" value="确定" name="button_rename_folder" form="other_rename_form_<?php echo $f?>">
                     </form>
                     </div>
+                </div>
                 </div>
             <?php
         }

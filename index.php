@@ -65,7 +65,7 @@ if (isset($_GET["operation"])) $la_operation = $_GET["operation"];
 
 
 $LA = new LAManagement();
-$LA->SetPagePath($la_page_path);
+$page_success = $LA->SetPagePath($la_page_path);
 $LA->SetInterlinkPath($la_page_path);
 
 //test---------------
@@ -89,9 +89,7 @@ $LA->SetInterlinkPath($la_page_path);
 //if($LA->CheckArgumentByNames($Config,'Users','admin','my data','123123')) echo 'OH YEAH BAE! <br />';
 //if(!$LA->CheckArgumentByNames($Config,'Users','admin','ab2c','ab2c')) echo 'FUCK YOU BITCH! <br />';
 
-
 echo $LA->DoSetTranslation();
-echo $LA->SwitchToTargetLanguageIfPossible();
 
 echo $LA->DoLogin();
 
@@ -113,6 +111,10 @@ if($LA->IsLoggedIn()){
 
 echo $LA->MakeHTMLHead();
 
+if(!$page_success){
+    $LA->LimitAccess(0);
+}
+
 if(!$LA->IsLoggedIn()){
     if (isset($la_operation)
         && $la_operation!='tile'
@@ -120,6 +122,8 @@ if(!$LA->IsLoggedIn()){
         $LA->LimitAccess(1);
     }
 }
+
+echo $LA->SwitchToTargetLanguageIfPossible();
 
 if(isset($_GET['small_quote_only'])){
     echo $LA->MakeCenterContainerBegin();
@@ -222,11 +226,13 @@ if($la_operation == 'new'){
     echo $LA->MakeMainContentEnd();
 
 }else{
-    
+ 
     $LA->ExtractPassageConfigFromFile($la_page_path);
     
-    $LA->Make3DContent();
-    $LA->Make2DContent();
+    $Content3D = $LA->Make3DContent();
+    $Content2D = $LA->Make2DContent();
+    
+    $LA->HandleInsertsBeforePassage($Content2D,$Content3D);
 
     echo $LA->MakeMainContentBegin();
     
@@ -246,6 +252,8 @@ if($la_operation == 'new'){
     echo $LA->MakeHREFListForPrint();
          
     echo $LA->MakeMainContentEnd();
+    
+    $LA->HandleInsertsAfterPassage($Content2D,$Content3D);
     
     echo $LA->MakeAdditionalContent(Null,Null);
 }
