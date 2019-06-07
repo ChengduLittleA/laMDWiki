@@ -33,3 +33,9 @@ Additional
 
 <!-- End of index.md -->
 
+<!-- FolderConf -->
+
+ShowListButton = 1
+
+<!-- End of FolderConf -->
+

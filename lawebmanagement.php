@@ -16,6 +16,8 @@ class LAManagement{
     protected $PDE;
     protected $UserConfig;
     
+    protected $List301;
+    
     protected $UserDsipName;
     protected $UserID;
     protected $userIsMature;
@@ -60,6 +62,8 @@ class LAManagement{
     protected $MainContentAlreadyBegun;
     
     protected $unique_item_count;
+    
+    protected $force_last_line;
     
     function __construct() {
         $this->PDE = new ParsedownExtra();
@@ -136,11 +140,24 @@ class LAManagement{
         return str_repeat('..'.'/', count($dir)) . implode('/', $file);
     }
     
+    function DoRedirect($path){
+        if(!isset($this->List301))
+            return;
+        foreach($this->List301 as $item){
+            if($item['from'] == $path)
+                header('Location:index.php?page='.$item['to']);
+        }
+    }
+    
     function SetPagePath($path){
         if ((!file_exists('la_config.md') || is_readable('la_config.md') == false) && 
             (!file_exists('index.md') || is_readable('index.md') == false)){
             $this->InstallLaMDWiki();
         }
+        
+        $this->GetWebsiteSettings();
+        
+        $this->DoRedirect($path);
         
         while($path[0]=='/' || $path[0]=='\\') $path = substr($path,1);
         $len = strlen($path);
@@ -303,6 +320,14 @@ class LAManagement{
         return Null;
     }
     
+    function ForceLastGeneralLine(){
+        $this->$force_last_line=1;
+    }
+    
+    function RestoreGeneralLine(){
+        $this->$force_last_line=0;
+    }
+    
     function FindGeneralLineN(&$Config,$Block,$Name,$Number){
         $i=0;
         $c=0;
@@ -314,6 +339,7 @@ class LAManagement{
             }
             $i++;
         }
+        if ($this->force_last_line) return ($i-1);
         return Null;
     }
     
@@ -646,7 +672,7 @@ class LAManagement{
     }
     
     function ExtractPassageConfigFromFile($FileName){
-        $Content = $this->ContentOfMarkdownFile($FileName);
+        $Content = $this->ContentOfMarkdownFile($this->ChooseLanguageMain($FileName));
         if($Content) $this->ExtractPassageConfig($Content);
     }
     
@@ -1080,6 +1106,16 @@ class LAManagement{
             else return False;
         }else return False;
     }
+    function FolderShowListButton($path){
+        $file = $path.'/la_config.md';
+        if(is_readable($file) && filesize($file)!=0){
+            $ConfRead = fopen($file,'r');
+            $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($file)));
+            fclose($ConfRead);
+            if($this->CheckLineByNames($Config,'FolderConf','ShowListButton','1')) return True;
+            else return False;
+        }else return False;
+    }
     function PermissionForSingleFolder($path){
         $file = $path.'/la_config.md';
         if(is_readable($file) && filesize($file)!=0){
@@ -1170,6 +1206,27 @@ class LAManagement{
             fclose($ConfWrite);
         }
     }
+    function SetFolderListButton($path,$enabled){
+        $file = $path.'/la_config.md';
+        if(is_readable($file)){
+            $ConfRead = fopen($file,'r');
+            $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($file)));
+            fclose($ConfRead);
+            $Block = $this->GetBlock($Config,'FolderConf');
+            if(!isset($Block)) $this->AddBlock($Config,'FolderConf');
+            $this->EditGeneralLineByName($Config,'FolderConf','ShowListButton',$enabled);
+            $ConfWrite = fopen($file,'w');
+            $this->WriteMarkdownConfig($Config, $ConfWrite);
+            fclose($ConfWrite);
+        }else{
+            $ConfWrite = fopen($file,'w');
+            $Config = [];
+            $this->AddBlock($Config,'FolderConf');
+            $this->EditGeneralLineByName($Config,'FolderConf','ShowListButton',$enabled);
+            $this->WriteMarkdownConfig($Config, $ConfWrite);
+            fclose($ConfWrite);
+        }
+    }
     
     function DoChangePermission(){
         if(isset($_GET['operation'])){
@@ -1189,6 +1246,12 @@ class LAManagement{
                 header('Location:?page='.$this->InterlinkPath().'&operation=list');
             }else if($_GET['operation']=='set_display_normal'){
                 $this->SetFolderDisplay($this->InterlinkPath(),'Normal');
+                header('Location:?page='.$this->InterlinkPath().'&operation=list');
+            }else if($_GET['operation']=='set_list_button_1'){
+                $this->SetFolderListButton($this->InterlinkPath(),'1');
+                header('Location:?page='.$this->InterlinkPath().'&operation=list');
+            }else if($_GET['operation']=='set_list_button_0'){
+                $this->SetFolderListButton($this->InterlinkPath(),'0');
                 header('Location:?page='.$this->InterlinkPath().'&operation=list');
             }
         }
@@ -1216,6 +1279,29 @@ class LAManagement{
             $target = $this->GetUniquePath($target);
             rename($_GET['moving'], $target);
             header('Location:?page='.$_GET['to'].'&operation=list');
+        }
+    }
+    function DoAddRedirect(){
+        if(isset($_POST['settings_button_add_redirect'])){
+            if(isset($_POST['redirect_from'])&&isset($_POST['redirect_to'])){
+                $this->UserConfig = fopen("la_config.md",'r');
+                $ConfContent = fread($this->UserConfig,filesize("la_config.md"));
+                $Conf = $this->ParseMarkdownConfig($ConfContent);
+                $this->EditBlock($Conf,'Redirect');
+            
+                $this->EditGeneralLineByName($Conf,'Redirect','Entry','');
+                $this->ForceLastGeneralLine();
+                $this->EditArgumentByNamesN($Conf,'Redirect','Entry',100000,'From',$_POST['redirect_from']);
+                $this->EditArgumentByNamesN($Conf,'Redirect','Entry',100000,'To',$_POST['redirect_to']);
+                $this->RestoreGeneralLine();
+                
+                fclose($this->UserConfig);
+                $this->UserConfig = fopen("la_config.md",'w');
+                $this->WriteMarkdownConfig($Conf,$this->UserConfig);
+                fclose($this->UserConfig);
+                
+                header('Location:?page='.$this->PagePath.'&operation=settings');
+            }
         }
     }
     function DoApplySettings(){
@@ -1288,10 +1374,16 @@ class LAManagement{
         $this->SmallQuoteName = $this->GetLineValueByNames($Conf,"Website","SmallQuoteName");
         if(!$this->Title) $this->Title='LA<b>MDWIKI</b>';
         if(!$this->StringTitle) $this->StringTitle='LAMDWIKI';
+        $i=0;$item=null;
+        while($this->GetLineByNamesN($Conf,'Redirect','Entry',$i)!==Null){
+            $item['from']    = $this->GetArgumentByNamesN($Conf,'Redirect','Entry',$i,'From');
+            $item['to']      = $this->GetArgumentByNamesN($Conf,'Redirect','Entry',$i,'To');
+            $this->List301[] = $item;
+            $i++;
+        }
     }
     
     function MakeHTMLHead(){
-        $this->GetWebsiteSettings();
         ?>
         <!doctype html>
         <head>
@@ -1422,7 +1514,7 @@ class LAManagement{
             
             .string_input      { border:3px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; margin:5px; width:150px; }
             .quick_post_string { border:3px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; margin:0px; width:100%; resize: none; overflow: hidden; height: 25px; }
-            .big_string        { width: calc(100% - 10px); height: 500px; resize: vertical; }
+            .big_string        { width: calc(100% - 10px); height: 500px; resize: vertical; border:none; }
             .title_string      { margin-top:-5px; margin-bottom:-5px; font-size:16px; text-align: right; }
             
             .no_horizon_margin { margin-left:0px; margin-right:0px; }
@@ -1582,7 +1674,7 @@ class LAManagement{
     }
     function MakeSpecialStripe(){
         ?>
-        <div style='background-color:#000; height:10px;'>
+        <div style='background-color:#000; height:10px; margin-top: -20px;margin-left: -15px;margin-right: -15px; margin-bottom:15px;'>
             <div style='width:600px; max-width:100%; height:100%; font-size:0px; overflow:hidden;'>
             <?php
                 $this->SpetialStripeSegment('3.97%','#550000');
@@ -1662,10 +1754,12 @@ class LAManagement{
         ?>
             <div class='gallery_left'>
             <div class='main_content gallery_main_height'>
+            <?php echo $this->MakeSpecialStripe(); ?>
         <?php
         }else{
         ?>
             <div class='main_content <?php echo $novel_mode?"":"print_document" ?>' style='<?php echo $this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":""?>'>
+            <?php echo $this->MakeSpecialStripe(); ?>
             <div class='<?php echo ($novel_mode && !$this->GetEditMode())?"novel_content more_vertical_margin":""?>'>
         <?php
         }
@@ -1685,8 +1779,10 @@ class LAManagement{
     }
     
     function InsertAdaptiveContents($markdown){
-        $op1 = preg_replace("/```([\s\S]*)\[adaptive\]([\s\S]*)```/U",
-                            "---$1[@adaptive]$2---",
+        $op1 = preg_replace_callback("/```([\s\S]*)```/U",
+                            function($matches){
+                                return preg_replace('/\[adaptive\]/','[@adaptive]',$matches[0]);
+                            },
                             $markdown);
         $res = preg_replace_callback('/\[adaptive\]([\s\S]*)\[\/adaptive\]/U',
                                      function($matches){
@@ -1701,7 +1797,7 @@ class LAManagement{
                                                 "</tr> </table>";
                                      },
                                      $op1);
-        return preg_replace('/---([\s\S]*)\[@adaptive\]([\s\S]*)---/U',
+        return preg_replace('/```([\s\S]*)\[@adaptive\]([\s\S]*)```/U',
                              '```$1[adaptive]$2```',
                             $res);
     }
@@ -2163,8 +2259,11 @@ class LAManagement{
             <div class='btn' onclick='location.href="?page=<?php echo $this->PagePath;?>"'>退出</div>
             <form method="post" id='settings_form' style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=settings';?>"></form>
             <h1>设置中心</h1>
-            <h2>网站设置</h2>
-            <div>
+            <a id='ButtonWebsiteSettings' style='font-weight:bold'>网站信息</a>
+            <a id='Button301Settings'>链接跳转项目</a>
+            <a id='ButtonAdminSettings'>管理员</a>
+            <div class='inline_height_spacer'></div>
+            <div id='TabWebsiteSettings'>
                 <input class='string_input no_horizon_margin' type='text' id='settings_website_title' name='settings_website_title' form='settings_form' value='<?php echo $this->Title ?>' />
                 网站标题
                 <br />
@@ -2178,8 +2277,19 @@ class LAManagement{
                 <input class='string_input no_horizon_margin' type='text' id='settings_small_quote_name' name='settings_small_quote_name' form='settings_form' value='<?php echo $this->SmallQuoteName ?>' />
                 “我说”名片抬头文字
             </div>
-            <h2>管理员设置</h2>
-            <div>
+
+            <div id='Tab301Settings' style='display:none'>
+                自动重定向的链接
+                <?php if(isset($this->List301)) foreach($this->List301 as $item){ ?>
+                    <div>
+                        <div style='float:right;width:50%'>到&nbsp;<?php echo $item['to']; ?></div>
+                        <?php echo $item['from']; ?>
+                    </div>
+                <?php } ?>
+                <a href='?page=la_config.md&operation=edit'>编辑la_config.md</a>&nbsp;以详细配置。
+            </div>
+            
+            <div id='TabAdminSettings' style='display:none'>
                 <input class='string_input no_horizon_margin' type='text' id='settings_admin_display' name='settings_admin_display' form='settings_form' value='<?php echo $this->UserDisplayName ?>' />
                 修改账户昵称
                 <br /><br />
@@ -2190,9 +2300,42 @@ class LAManagement{
                 重设管理密码
                 <br />
             </div>
+            
             <hr />
             <div class='inline_block_height_spacer'></div>
-            <input class='btn form_btn' type='submit' value='保存页面上的更改' name="settings_button_confirm" form='settings_form' />
+            <input class='btn form_btn' type='submit' value='保存所有的更改' name="settings_button_confirm" form='settings_form' />
+            <script>
+                var btn_website = document.getElementById("ButtonWebsiteSettings");
+                var btn_301 = document.getElementById("Button301Settings");
+                var btn_admin = document.getElementById("ButtonAdminSettings");
+                var div_website = document.getElementById("TabWebsiteSettings");
+                var div_301 = document.getElementById("Tab301Settings");
+                var div_admin = document.getElementById("TabAdminSettings");
+                btn_website.addEventListener("click", function() {
+                    div_website.style.cssText = 'display:block';
+                    div_301.style.cssText = 'display:none';
+                    div_admin.style.cssText = 'display:none';
+                    btn_website.style.cssText = 'font-weight:bold;';
+                    btn_301.style.cssText = '';
+                    btn_admin.style.cssText = '';
+                }); 
+                btn_301.addEventListener("click", function() {
+                    div_website.style.cssText = 'display:none';
+                    div_301.style.cssText = 'display:block';
+                    div_admin.style.cssText = 'display:none';
+                    btn_website.style.cssText = '';
+                    btn_301.style.cssText = 'font-weight:bold;';
+                    btn_admin.style.cssText = '';
+                });
+                btn_admin.addEventListener("click", function() {
+                    div_website.style.cssText = 'display:none';
+                    div_301.style.cssText = 'display:none';
+                    div_admin.style.cssText = 'display:block';
+                    btn_website.style.cssText = '';
+                    btn_301.style.cssText = '';
+                    btn_admin.style.cssText = 'font-weight:bold;';
+                });
+            </script>
         <?php
     }
     function MakeLoginDiv(){
@@ -2280,8 +2423,7 @@ class LAManagement{
         }
         
         ?>
-            <div class='inline_block_height_spacer hidden_on_desktop'></div>
-            <a href='?page=<?php echo $upper; ?>'>🡴上级</a>
+            <a href='?page=<?php echo $upper; ?>'>🡱</a>
         <?php
     }
     
@@ -2291,21 +2433,44 @@ class LAManagement{
         ?>
         <div id='HeaderQuickButtons'>
         <?php
+        
+            
 
             if(!isset($_SESSION['user_id'])){
-            ?>  
-                <?php if (isset($_GET['static_generator'])){?>
-                    <a class='btn' href="_la_list.html">文章列表</a>
-                <?php }else{ ?>
-                    <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">文章列表</a>
-                <?php } ?>
+                if($this->FolderShowListButton($path)){
+                ?>  
+                    <?php if (isset($_GET['static_generator'])){?>
+                        <a class='btn' href="_la_list.html">︙</a>
+                    <?php }else{ ?>
+                        <?php if (isset($_GET['operation']) && isset($_SERVER['HTTP_REFERER'])){ ?>
+                            <a class='btn' href="<?php echo $_SERVER['HTTP_REFERER']; ?>">🡰</a>
+                        <?php }else{ ?>
+                            <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">︙</a>
+                        <?php }?>
+                    <?php } ?>
+                    
+                <?php
+                }
+                if(!isset($_GET['operation'])){
+                    echo $this->MakeBackButton();
+                }?>
                 <div id='LoginToggle' class='btn'></b>&#127760;&#xfe0e;</b></div>
             <?php
             }else{
                 if(!isset($_GET['static_generator'])){
                 ?>
+                <?php if(!isset($_GET['operation'])){
+                    echo $this->MakeBackButton();
+                }?>
                 <div id='LoginToggle' class='btn'><?php echo $this->UserDisplayName ?></div>
-                <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">文章</a>
+                <?php if($this->FolderShowListButton($path)){ ?>
+                    <?php if (isset($_GET['operation']) && isset($_SERVER['HTTP_REFERER'])){ ?>
+                        <a class='btn' href="<?php echo $_SERVER['HTTP_REFERER']; ?>">🡰</a>
+                    <?php }else{ ?>
+                        <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">︙</a>
+                    <?php }?>
+                    
+                <?php } ?>
                 <a href="?page=<?php echo $this->PagePath?>&operation=list">管理</a> 
                 <a href="?page=<?php echo $this->PagePath?>&operation=new">写文</a>
                 <?php
@@ -2322,9 +2487,6 @@ class LAManagement{
         <div class="navigation" id='Navigation'>
             <a class='hidden_on_desktop' href="?page=index.md"><b>&#8962;&nbsp;首页</b></a>
         <?php
-        if(!isset($_GET['operation'])){
-            echo $this->MakeBackButton();
-        }
     }
     function MakeNavigationEnd(){
         ?>
@@ -2646,6 +2808,7 @@ class LAManagement{
         $permission = $this->PermissionForSingleFolder($path);
         $display_as = $this->FolderDisplayAs($path);
         $novel_mode = $this->FolderNovelMode($path);
+        $show_list  = $this->FolderShowListButton($path);
         ?>
         <div class='top_panel'>
         
@@ -2695,6 +2858,11 @@ class LAManagement{
                             内容显示为节约纸张 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_layout_1'>设为小说样式</a>
                         <?php }?>
                         <div class='inline_height_spacer'></div>
+                        <?php if($show_list){ ?>
+                            显示了文章列表按钮 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_list_button_0'>关闭</a>
+                        <?php }else{ ?>
+                            没有显示文章列表按钮 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_list_button_1'>打开</a>
+                        <?php }?>
                         <?php
                         //<a class='btn' id='StaticGeneratorButton'>文件夹生成为静态页面</a>
                         //<div id='StaticGeneratorDialog' style='display:none'>
