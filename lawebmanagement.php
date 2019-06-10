@@ -739,15 +739,23 @@ class LAManagement{
     function ProcessHREFForPrint($HTMLContent){
         $TMP='';
         $number=0;
-        if(preg_match_all("/([\S\s]*)<a(.*)href=[\'\"]([^\'\"]*)[\'\"](.*)>(.*)(<\/a>)/U", $HTMLContent, $Matches, PREG_SET_ORDER|PREG_OFFSET_CAPTURE)){
+        $trans = preg_replace_callback("/<a(.*)href=[\'\"](\?page=[^\'\"]*)_(..)\.md[\'\"](.*)>(.*)(<\/a>)/U",
+                    function (&$matches){
+                        if($matches[3]=='en'||$matches[3]=='zh'){
+                            return '<a'.$matches[1].'href="'.$matches[2].'_'.$matches[3].'.md&translation=disabled"'.$matches[4].'>'.$matches[5].'</a>';
+                        }
+                        return $matches[0];
+                    },
+                    $HTMLContent);
+        if(preg_match_all("/([\S\s]*)<a(.*)href=[\'\"]([^\'\"]*)[\'\"](.*)>(.*)(<\/a>)/U", $trans, $Matches, PREG_SET_ORDER|PREG_OFFSET_CAPTURE)){
             foreach($Matches as $m){
                 $number+=1;
                 $this->LinkList[] = [$number,$m[3][0]];
                 $TMP.= $m[1][0]."<a".$m[2][0].'href="'.$m[3][0].'"'.$m[4][0].'>'.$m[5][0].'<sup class="only_on_print">链'.$number.'</sup>'.'</a>';
             }
-            $TMP.= substr($HTMLContent,end($Matches)[6][1]);
+            $TMP.= substr($trans,end($Matches)[6][1]);
         }else{
-            $TMP = $HTMLContent;
+            $TMP = $trans;
         }
         return $TMP;
     }
