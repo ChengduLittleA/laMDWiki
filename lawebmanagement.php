@@ -65,9 +65,39 @@ class LAManagement{
     
     protected $force_last_line;
     
+    protected $DICT;
+    
+    function AddTranslationEntry($zh,$en){
+        $entry['zh'] = $zh;
+        $entry['en'] = $en;
+        $this->DICT[] = $entry;
+    }
+    
+    function FROM_ZH($zh){
+        if(!$this->LanguageAppendix) return $zh;
+        foreach($this->DICT as $entry){
+            if($entry['zh']==$zh)
+                return $entry[$this->LanguageAppendix];
+        }
+        return $zh;
+    }
+    
+    function FROM_EN($en){
+        if(!$this->LanguageAppendix) return $en;
+        foreach($this->DICT as $entry){
+            if($entry['en']==$en)
+                return $entry[$this->LanguageAppendix];
+        }
+        return $en;
+    }
+    
     function __construct() {
         $this->PDE = new ParsedownExtra();
         $this->PDE->SetInterlinkPath('/');
+        $this->AddTranslationEntry('返回','Back');
+        $this->AddTranslationEntry('上级','Up');
+        $this->AddTranslationEntry('首页','Home');
+        $this->AddTranslationEntry('列表','List');
     }
     
     function LimitAccess($mode){
@@ -2423,7 +2453,7 @@ class LAManagement{
         }
         
         ?>
-            <a href='?page=<?php echo $upper; ?>'>🡱</a>
+            <a href='?page=<?php echo $upper; ?>'><?php echo $this->FROM_ZH('上级') ?></a>
         <?php
     }
     
@@ -2440,12 +2470,12 @@ class LAManagement{
                 if($this->FolderShowListButton($path)){
                 ?>  
                     <?php if (isset($_GET['static_generator'])){?>
-                        <a class='btn' href="_la_list.html">︙</a>
+                        <a class='btn' href="_la_list.html"><?php echo $this->FROM_ZH('列表') ?></a>
                     <?php }else{ ?>
                         <?php if (isset($_GET['operation']) && isset($_SERVER['HTTP_REFERER'])){ ?>
-                            <a class='btn' href="<?php echo $_SERVER['HTTP_REFERER']; ?>">🡰</a>
+                            <a class='btn' href="<?php echo $_SERVER['HTTP_REFERER']; ?>"><?php echo $this->FROM_ZH('返回') ?></a>
                         <?php }else{ ?>
-                            <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">︙</a>
+                            <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>"><?php echo $this->FROM_ZH('列表') ?></a>
                         <?php }?>
                     <?php } ?>
                     
@@ -2454,7 +2484,7 @@ class LAManagement{
                 if(!isset($_GET['operation'])){
                     echo $this->MakeBackButton();
                 }?>
-                <div id='LoginToggle' class='btn'></b>&#127760;&#xfe0e;</b></div>
+                <div id='LoginToggle' class='btn'></b>中En</b></div>
             <?php
             }else{
                 if(!isset($_GET['static_generator'])){
@@ -2465,9 +2495,9 @@ class LAManagement{
                 <div id='LoginToggle' class='btn'><?php echo $this->UserDisplayName ?></div>
                 <?php if($this->FolderShowListButton($path)){ ?>
                     <?php if (isset($_GET['operation']) && isset($_SERVER['HTTP_REFERER'])){ ?>
-                        <a class='btn' href="<?php echo $_SERVER['HTTP_REFERER']; ?>">🡰</a>
+                        <a class='btn' href="<?php echo $_SERVER['HTTP_REFERER']; ?>"><?php echo $this->FROM_ZH('返回') ?></a>
                     <?php }else{ ?>
-                        <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>">︙</a>
+                        <a class='btn' href="?page=<?php echo $path ?><?php echo $disp?('&operation=timeline&folder='.$path):'&operation=tile' ?>"><?php echo $this->FROM_ZH('列表') ?></a>
                     <?php }?>
                     
                 <?php } ?>
@@ -2485,7 +2515,7 @@ class LAManagement{
     function MakeNavigationBegin(){
         ?>
         <div class="navigation" id='Navigation'>
-            <a class='hidden_on_desktop' href="?page=index.md"><b>&#8962;&nbsp;首页</b></a>
+            <a class='hidden_on_desktop' href="?page=index.md"><b>&#8962;&nbsp;<?php echo $this->FROM_ZH('首页') ?></b></a>
         <?php
     }
     function MakeNavigationEnd(){
