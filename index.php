@@ -243,7 +243,7 @@ if($la_operation == 'new'){
     
     echo $LA->ProcessLinksToStatic(
          $LA->ProcessHREFForPrint(
-         $LA->InsertButtonsForSideNotes(
+         $LA->InsertSideNotes(
          $LA->RemoveBlankAfterInserts(
          $LA->Insert3DContent(
          $LA->Insert2DContent(

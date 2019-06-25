@@ -1484,8 +1484,11 @@ class LAManagement{
             .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin;}
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; overflow: hidden; }
+            .inline_notes_outer     { padding:5px; border-left: 3px solid black; border-top: 3px solid black; padding-right: 8px; padding-bottom: 8px; margin-top: 5px; margin-bottom: 5px; }
+            .inline_notes_content   { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; overflow: hidden; }
             .sidenotes_content      { position: absolute; right:10px; max-width: calc(50% - 470px); width: calc(20% - 20px); }
-            .sidenotes_trigger      { position: relative; float: right; height:0px; }
+            .sidenotes_position     { position: absolute; width:calc(100% - 13px); min-width: 250px; right:0px; bottom: 15px; display: block; }
+            .sidenotes_expander     { position: absolute; left:0px; bottom: 15px; display: none;}
             .additional_content_left{ margin-right: 15px; float: left; text-align: center; position: sticky; top:82px; margin-bottom:0px;}
             .novel_content          { max-width:600px; margin:0px auto; line-height:2; }
             .more_vertical_margin   { margin-top: 100px; margin-bottom: 100px; }
@@ -1553,8 +1556,10 @@ class LAManagement{
             .halftone1w { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAMElEQVQYlWP4TyRg+P///38GBgbiFBKjGEUWn2LCdlJdIcw5eBUiuxmnQnSPEe1GAL6NfJLaO8bfAAAAAElFTkSuQmCC) repeat; }
             .halftone2  { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAD0lEQVQImWNgIAf8J10LADM2AQA1DEeOAAAAAElFTkSuQmCC) repeat; }
             .halftone2w { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAFklEQVQImWP4jwUw4BVkYGAgUiUyAADQo2Cg/XS+dwAAAABJRU5ErkJggg==) repeat; }
-            .halftone3  { color:#FFF; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHUlEQVQImWNgYGD4j4YZGLAI/GfAIgAXxKYD1VwA+JoT7dVZ0wkAAAAASUVORK5CYII=) repeat; }
-            .halftone3w { color:#FFF; background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAJElEQVQImW3IoREAAAjEsO6/dBEI/gAREwCTKk9MRnSukBNgAQ7LJ9m50jTuAAAAAElFTkSuQmCC) repeat; }
+            .halftone3  { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHUlEQVQImWNgYGD4j4YZGLAI/GfAIgAXxKYD1VwA+JoT7dVZ0wkAAAAASUVORK5CYII=) repeat; }
+            .halftone3w { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAJElEQVQImW3IoREAAAjEsO6/dBEI/gAREwCTKk9MRnSukBNgAQ7LJ9m50jTuAAAAAElFTkSuQmCC) repeat; }
+            .halftone4  { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAADklEQVQImWNgQID/uBkANfEC/tK2Q2IAAAAASUVORK5CYII=) repeat; }
+            .halftone4w { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAGElEQVQImWP4DwUMDAz/GWAMKM0Ak/wPAAg7Gub7fKZwAAAAAElFTkSuQmCC) repeat; }
             
             .inline            { display: inline; margin:0px; }
             .inline_components { display: inline; margin: 5px; }
@@ -1628,6 +1633,10 @@ class LAManagement{
                 
                 .tile_container{ display: block; table-layout: unset; width: 100%; margin: 0px; }
                 .tile_item{ display: block; }
+                
+                .sidenotes_content   { position: relative; right: unset; max-width: unset; width: unset; overflow: hidden; padding: 3px; margin-top: -25px; margin-bottom: -10px; }
+                .sidenotes_position  { position: relative; width: unset; min-width: unset; right: unset; bottom: unset; display: none; margin-top: 10px; }
+                .sidenotes_expander  { position: relative; left: unset; bottom: unset; display: block; float: right; width: 20px; }
                 
                 .gallery_left           { height: unset; position: unset; width: unset; }
                 .gallery_right          { width: unset; left: unset; z-index:10; position: unset; }
@@ -2313,10 +2322,40 @@ class LAManagement{
         <?php
     }
     
-    function InsertButtonsForSideNotes($html){
+    function InsertSideNotes($html){
         if(!$this->IsLoggedIn()) return $html;
         global $sn_i;
         $sn_i=0;
+        $new = preg_replace_callback('/<p>([\(（]注意[:：])([\s\S]*)([\)）])(\s*)<\/p>/Uu',
+                                     function($matches){
+                                        return '<div class="inline_notes_outer halftone4"> <div class="inline_notes_content">'.
+                                               $matches[2].
+                                               '</div> </div>';
+                                     },$html);
+        $new = preg_replace_callback('/<p>([\(（]旁注[:：])([\s\S]*)([\)）])(\s*)<\/p>/Uu',
+                                     function($matches){
+                                        global $sn_i;
+                                        $ret = '<div class="sidenotes_content"> <div id="sn_content_'.$sn_i.'"class="inline_notes_content sidenotes_position" onclick="sn_hide_'.$sn_i.'()">'.
+                                               $matches[2].
+                                               '</div> <div id="sn_expand_'.$sn_i.'"class="inline_notes_content sidenotes_expander" onclick="sn_show_'.$sn_i.'()">...</div></div>'.
+                                               '<script>
+                                               function sn_hide_'.$sn_i.'(){
+                                                 c = document.getElementById("sn_content_'.$sn_i.'"); 
+                                                 e = document.getElementById("sn_expand_'.$sn_i.'"); 
+                                                 c.style.display = "none";
+                                                 e.style.display = "block";
+                                               }
+                                               function sn_show_'.$sn_i.'(){
+                                                 c = document.getElementById("sn_content_'.$sn_i.'"); 
+                                                 e = document.getElementById("sn_expand_'.$sn_i.'"); 
+                                                 c.style.display = "block";
+                                                 e.style.display = "none";
+                                               }
+                                               </script>';
+                                        $sn_i++;
+                                        return $ret;
+                                     },$new);
+        return $new;
         $new = preg_replace_callback('/<p>([\s\S]*)<\/p>/U',
                                      function($matches){
                                         global $sn_i;
