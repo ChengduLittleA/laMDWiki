@@ -1044,6 +1044,17 @@ class LAManagement{
             exit;
         }
     }
+    function DoNewSideNote(){
+        if(isset($_POST['sn_confirm'])){
+            $content = $_POST['data_sidenote_content'];
+            $file_path = $_GET['page'];
+
+            $file = fopen($file_path, "w");
+
+            header('Location:?page='.(isset($_GET['quick'])?$this->PagePath:$file_path).'&translation=disabled');
+            exit;
+        }
+    }
     function DoNewSmallQuote(){
         if(isset($_POST['button_new_quote'])){
             $passage = $_POST['data_small_quote_content'];
@@ -1470,9 +1481,11 @@ class LAManagement{
             
             /*.left_side_extra { left:0px; top:0px; bottom:0px; right:calc(20% - )}*/
             
-            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin; }
+            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin;}
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; overflow: hidden; }
+            .sidenotes_content      { position: absolute; right:10px; max-width: calc(50% - 470px); width: calc(20% - 20px); }
+            .sidenotes_trigger      { position: relative; float: right; height:0px; }
             .additional_content_left{ margin-right: 15px; float: left; text-align: center; position: sticky; top:82px; margin-bottom:0px;}
             .novel_content          { max-width:600px; margin:0px auto; line-height:2; }
             .more_vertical_margin   { margin-top: 100px; margin-bottom: 100px; }
@@ -1527,6 +1540,7 @@ class LAManagement{
             .block        { display: block; }
             .inline_block { display: inline-block; }
             .form_btn     { float: right; margin-top:-6px; margin-bottom:-6px; margin-left:5px; }
+            .form_btn_left{ margin-top:-6px; margin-bottom:-6px; margin-right:5px; }
             .preview_btn  { height:250px; overflow: hidden; }
             .full_btn     { width:100%; }
             .no_float     { float: unset; }
@@ -1694,7 +1708,7 @@ class LAManagement{
         </style>
         <script>
         function la_auto_grow(element) {
-            element.style.height = "20px";
+            element.style.height = "0px";
             element.style.height = (element.scrollHeight+10)+"px";
         }
         function la_pad(num, n) {
@@ -1712,7 +1726,7 @@ class LAManagement{
     }
     function MakeSpecialStripe(){
         ?>
-        <div style='background-color:#000; height:10px; margin-top: -20px;margin-left: -15px;margin-right: -15px; margin-bottom:15px;'>
+        <div class='hidden_on_print' style='background-color:#000; height:10px; margin-top: -20px;margin-left: -15px;margin-right: -15px; margin-bottom:15px;'>
             <div style='width:600px; max-width:100%; height:100%; font-size:0px; overflow:hidden;'>
             <?php
                 $this->SpetialStripeSegment('3.97%','#550000');
@@ -2290,6 +2304,73 @@ class LAManagement{
     function GetSmallQuoteName(){
         return $this->SmallQuoteName;
     }
+    
+    function MakeSideNotes(){
+        ?>
+        <div class='additional_content sidenotes_content'>
+            <?php echo $this->PagePath ?>
+        </div>
+        <?php
+    }
+    
+    function InsertButtonsForSideNotes($html){
+        if(!$this->IsLoggedIn()) return $html;
+        global $sn_i;
+        $sn_i=0;
+        $new = preg_replace_callback('/<p>([\s\S]*)<\/p>/U',
+                                     function($matches){
+                                        global $sn_i;
+                                        $ret = '<p class="sn_selectable" id="sn_sel_'.$sn_i.'" onclick="sidenotes_activator_toggle(\'sn_activator_'.$sn_i.'\'); this.style.backgroundColor=\'#fffccc\'" >'.
+                                               $matches[1].
+                                               '</p>'.
+                                               '<div class="sidenotes_trigger" style="display:none;" id="sn_activator_'.$sn_i.'">'.
+                                                   '<div class="additional_content" style="margin-top:-10px;right:0px;"><a onclick="sidenotes_ensure_input(\'sn_sel_'.$sn_i.'\')" >添加批注</a></div>'.
+                                               '</div>';
+                                        $sn_i++;
+                                        return $ret;
+                                     },$html);
+        $new.='<div class="sidenotes_content" style="display:none;" id="sn_input_container">
+                    <div class="additional_content">
+                        <form id="form_sidenotes" style="display:none;" method = "post" action="<?php echo $_SERVER["PHP_SELF"]."?page=".$this->PagePath;?>"></form>
+                        <textarea style="min-height:50px;" class="quick_post_string" oninput="la_auto_grow(this);" onblur="la_auto_grow(this);" onfocus="la_auto_grow(this);" form="form_sidenotes" id="data_sidenote_content" name="data_sidenote_content"></textarea>
+                        <div class="inline_block_height_spacer"></div>
+                        <input class="btn form_btn_left" style="float:unset;" type="submit" value="保存在这个位置" name="sn_confirm" form="form_sidenotes" id="sn_confirm">
+                        <div style="float:right;"><div class="btn" onclick="sidenotes_close_input();">取消</div></div>
+                        &nbsp;
+                        <div class="block_height_spacer"></div>
+                    </div>
+               </div>'.
+              '<script>
+              function sidenotes_activator_toggle(id){
+               button = document.getElementById(id); disp = button.style.display;
+               var l = document.getElementsByClassName("sidenotes_trigger");
+                for(var i=0;i<l.length;i++){
+                    l[i].style.display="none";
+                }
+               var l = document.getElementsByClassName("sn_selectable");
+                for(var i=0;i<l.length;i++){
+                    l[i].style.backgroundColor="";
+                }
+               if(disp=="none") button.style.display="block"; else button.style.display="none";
+              }
+              function sidenotes_ensure_input(pid){
+                inp = document.getElementById("sn_input_container"); disp = inp.style.display;
+                inp.style.display = "block";
+                var l = document.getElementsByClassName("sidenotes_trigger");
+                for(var i=0;i<l.length;i++){
+                    l[i].style.display="none";
+                }
+                para = document.getElementById(pid);
+                para.parentNode.insertBefore(inp,para);
+              }
+              function sidenotes_close_input(){
+                inp = document.getElementById("sn_input_container"); disp = inp.style.display;
+                inp.style.display = "none";
+              }
+              </script>';
+        return $new;
+    }
+    
     function MakeSettings(){
         $Title='LAMDWIKI';
         $Footnote='';
