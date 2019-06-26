@@ -106,6 +106,7 @@ if($LA->IsLoggedIn()){
     echo $LA->DoChangeFolderLayout();
     echo $LA->DoMoveFile();
     echo $LA->DoAdditionalConfig();
+    echo $LA->DoTaskManagerConfig();
     echo $LA->DoApplySettings();
 }
 
@@ -167,6 +168,8 @@ $LA->SetInterlinkPath($la_page_path);
 echo $LA->MakeHeaderQuickButtons();
 echo $LA->ProcessLinksToStatic(
      $LA->MakeLoginDiv());
+     
+echo $LA->TryExtractTaskManager();
 
 if($la_operation == 'new'){
     echo $LA->PageHeaderEnd();
@@ -175,11 +178,14 @@ if($la_operation == 'new'){
     echo $LA->PageHeaderEnd();
     $LA->SetEditMode(True);
     echo $LA->MakeEditorHeader();
-}else if($la_operation == 'list' || ($la_operation == 'additional' && isset($_GET['action']) && $_GET['action']=='view') ){
+}else if($la_operation == 'list' || (($la_operation == 'additional' || $la_operation=='task') && isset($_GET['action']) && $_GET['action']=='view')){
     echo $LA->MakeFolderHeader();
     echo $LA->PageHeaderEnd();
 }else if($la_operation == 'additional'){
     echo $LA->MakeAdditionalHeader();
+    echo $LA->PageHeaderEnd();
+}else if($LA->IsTaskManager()){
+    echo $LA->MakeTaskManagerHeader();
     echo $LA->PageHeaderEnd();
 }else{
     echo $LA->PageHeaderEnd();
@@ -211,7 +217,7 @@ if($la_operation == 'new'){
     if(isset($_GET['position'])) $pos = $_GET['position'];
     echo $LA->MakeAdditionalContent($_GET['folder'],$pos);
 
-}else if($la_operation == 'additional' && isset($_GET['action']) && $_GET['action']=='view'){
+}else if(($la_operation == 'additional' || $la_operation == 'task') && isset($_GET['action']) && $_GET['action']=='view'){
 
     echo $LA->MakeFileList($_GET["page"],True);
 
@@ -225,6 +231,8 @@ if($la_operation == 'new'){
     echo $LA->MakeSettings();
     echo $LA->MakeMainContentEnd();
 
+}else if($LA->IsTaskManager()){
+    echo $LA->MakeTaskList();
 }else{
  
     $LA->ExtractPassageConfigFromFile($la_page_path);
