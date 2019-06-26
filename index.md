@@ -10,7 +10,7 @@
 
 登录以后，点击您的用户名可以显示账户选项，也可进入网站设置页面。你可以在设置页面修改你的帐号显示名、登录名和密码，并配置网站的全局选项。
 
-打开[那么的维基手册](http://www.wellobserve.com/?page=MDWiki/index.md)，立即学习更多网站管理窍门。
+打开[那么的维基手册](http://www.wellobserve.com/?page=MDWiki/index.md)，立即学习更多~~网站管理窍门~~。
 
 (注意：这个是[注意](index.md)的内容)
 

@@ -1454,6 +1454,8 @@ class LAManagement{
             
             .the_body{ width:60%; min-width:900px; margin: 0 auto; }
             
+            del{ color: gray;}
+            
             img{ max-width: 100%; margin: 5px auto; display: block; }
             h3 img{ float: right; margin-left: 10px; max-width:30%; clear: right;}
             h4 img{ float: left; margin-right: 10px; max-width:30%; clear: left;}
@@ -1489,7 +1491,7 @@ class LAManagement{
             .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin;}
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; overflow: hidden; }
-            .task_content           { padding:3px; border:1px solid #000; background-color:#FFF; box-shadow: 2px 2px #000; margin-bottom:5px; overflow: hidden; }
+            .task_content           { padding:3px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 2px #000; margin-bottom:5px; overflow: hidden; }
             .inline_notes_outer     { padding:5px; border-left: 3px solid black; border-top: 3px solid black; padding-right: 8px; padding-bottom: 8px; margin-top: 5px; margin-bottom: 5px; }
             .inline_notes_content   { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; overflow: hidden; }
             .sidenotes_content      { position: absolute; right:10px; max-width: calc(50% - 470px); width: calc(20% - 20px); }
