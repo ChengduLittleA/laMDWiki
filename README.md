@@ -1,3 +1,7 @@
+# 官方网站/Official Website
+
+成都小A的**那么的维基** / ChengduLittleA's **LaMDWiki**!
+
 # 那么的维基！
 
 欢迎使用LaMDWiki（也叫做“那么的维基”）！
@@ -19,19 +23,19 @@ LaMDWiki具有下面的特点:
 
 将LaMDWiki配置好，就可以立刻开始编写你的网站了。如果你是初次搭建网站，那么可以参考下一节的说明。LaMDWiki和MDWiki的文件结构与URL互相兼容，如果你正在使用MDWiki，则不需要对你现有的网站做任何改动，以MDWiki形式书写的URL仍然可以被LaMDWiki正确识别。
 
-初次使用LaMDWiki？请查看[网站配置原理](MarkdownConf.md)。
+初次使用LaMDWiki？请查看[网站配置原理](http://www.wellobserve.com/index.php?page=MDWiki/MarkdownConf.md)。
 
-已经将网站全局配置成了需要的样子？试试[文章编辑](Writing.md)。
+已经将网站全局配置成了需要的样子？试试[文章编辑](http://www.wellobserve.com/index.php?page=MDWiki/Writing.md)。
 
-如何控制网站的文件结构？请参考[网站内容管理](Management.md)。
+如何控制网站的文件结构？请参考[网站内容管理](http://www.wellobserve.com/index.php?page=MDWiki/Management.md)。
 
-想添加多媒体文件？不妨看下[LaMDWiki独特的多媒体支持](3DDemo/index.md)。
+想添加多媒体文件？不妨看下[LaMDWiki独特的多媒体支持](http://www.wellobserve.com/index.php?page=MDWiki/3DDemo/index.md)。
 
-想要添加动态的页面内容？可以使用LaMDWiki的[附加内容](DynamicContent.md)。
+想要添加动态的页面内容？可以使用LaMDWiki的[附加内容](http://www.wellobserve.com/index.php?page=MDWiki/DynamicContent.md)。
 
-使用LaMDWiki展示图像内容？尝试使用灵活的[嵌入式画框](ImageShowCase.md)。
+使用LaMDWiki展示图像内容？尝试使用灵活的[嵌入式画框](http://www.wellobserve.com/index.php?page=MDWiki/ImageShowCase.md)。
 
-想要自适应手机显示器的文字布局？LaMDWiki也提供了[这样的功能](AdaptiveLayout.md)。
+想要自适应手机显示器的文字布局？LaMDWiki也提供了[这样的功能](http://www.wellobserve.com/index.php?page=MDWiki/AdaptiveLayout.md)。
 
 ## 如何安装
 
@@ -66,5 +70,85 @@ LaMDWiki使用Javascript提供页面交互和多媒体功能。
 
 ## 笔记本
 
-LaMDWiki的基本功能已经很完备，接下来将再为它设计一些轻量的附加功能。[在这里查看LaMDWiki的功能小点子](Notes/index.md)。
+LaMDWiki的基本功能已经很完备，接下来将再为它设计一些轻量的附加功能。[在这里查看LaMDWiki的功能小点子](http://www.wellobserve.com/index.php?page=MDWiki/Notes/index.md)。
+
+-----------------
+
+# LaMDWiki!
+
+Thanks for choosing LaMDWiki!
+
+## Introduction
+
+ChengduLittleA wrote this lightweight website back-end, it is most suitable for personal wiki or blog. If you want to have a tiny personal website to post your own stuff there, you can consider using LaMDWiki.
+
+[Click Here](http://www.wellobserve.com/MDWiki/Release/lamdwiki_20190524.zip) to download the latest LaMDWiki release to your computer. 
+
+LaMDWiki has folowing features:
+
+- Fully compatible with MDWiki.
+- Ugly user interface, effectively prevent addiction.
+- Larger fonts, reduce the risk of myopia.
+- Lightweight, not safe, easy to be attacked.
+- Adaptive interface, optimal viewing and operating experience on mobile and desktop devices.
+- One-click story posting.
+- Folder permission configuration.
+- Multi-language automatic switching.
+- and many more...
+
+## Tutorial
+
+Upload LaMDWiki to your server and you are ready to go. If this is the first time you make a website, please refer to the next link for explainations. LaMDWiki is fully compatible with MDWiki, if you are using MDWiki, you don't need to modify any thing existing on your original website. Also, MDWiki-styled URL can be correctly interpreted by LaMDWiki.
+
+First time using LaMDWiki? Check out [How configuration works](http://www.wellobserve.com/index.php?page=MDWiki/MarkdownConf.md)。
+
+Already configured your website? Try out [Passage editing](http://www.wellobserve.com/index.php?page=MDWiki/Writing.md)。
+
+How to manage your website structure? Please refer to [Content management](http://www.wellobserve.com/index.php?page=MDWiki/Management.md)。
+
+Want to embed multimedia contents? Why not use [LaMDWiki multimedia support](http://www.wellobserve.com/index.php?page=MDWiki/3DDemo/index.md)。
+
+Want dynamic page contents? It's all included in [Advanced functions](http://www.wellobserve.com/index.php?page=MDWiki/DynamicContent.md)。
+
+Displaying images using LaMDWiki？Use [embedded image frames](http://www.wellobserve.com/index.php?page=MDWiki/ImageShowCase.md).
+
+Adaptive column layout on your mobile devices? LaMDWiki also provide [such function](http://www.wellobserve.com/index.php?page=MDWiki/AdaptiveLayout.md).
+
+## How to Install
+
+LaMDWiki will create a demonstration website the first time you access it. If you have http and php running on localhost, then you can check out the result immediately. Uploading LaMDWiki to your server root, then access through your URL will also do.
+
+Different files and their usages:
+
+```
+--------[ Necessary Files ]----------
+index.php            ---> lamdwiki response
+lawebmanagement.php  ---> lamdwiki kernel
+ParseDown.php        ---> Markdown grammer solver
+
+--------[ Optional Files ]----------
+ParseDownExtra.php   ---> Markdown extensions
+three.min.js        |
+Controls.js         |
+GLTFLoader.js       |---> 3D viewer components
+```
+
+## Advanced
+
+Customizing LaMDWiki's look is possible, you can find the default CSS style sheet in lawebmanagement.php. LaMDWiki will include theme choosing functions in the future. LaMDWiki has a relatively simple page structure, which makes CSS modifications easier. There are some amount of re-use of some certain classes, always check with your browse when changing the style.
+
+LaMDWiki Supports multiple administrators.
+
+LaMDWiki doesn't have a secure login system. If necessary, please register for a HTTPS certification for your site.
+
+LaMDWiki uses Cookie to store visitor settings and to provide page relocation service.
+
+LaMDWiki uses Javascript to provide page interactions.
+
+
+## Notebook
+
+LaMDWiki now has a pretty stable basic structure. Now we can design some more additional lightweight functions. [Check new ideas for LaMDWiki Here](http://www.wellobserve.com/index.php?page=MDWiki/Notes/index.md)。
+
+
 
