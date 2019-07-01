@@ -1,6 +1,6 @@
 # 官方网站/Official Website
 
-成都小A的**那么的维基** / ChengduLittleA's **LaMDWiki**!
+[成都小A的**那么的维基** / ChengduLittleA's **LaMDWiki**!](http://www.wellobserve.com/index.php?page=MDWiki/index.md)
 
 # 那么的维基！
 
