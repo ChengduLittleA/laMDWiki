@@ -3602,7 +3602,7 @@ class LAManagement{
         
         if((file_exists($name) && is_readable($name))){
             $f = file_get_contents($name);
-            if(preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}): (.*)\R\R/U", $f, $matches, PREG_SET_ORDER)){
+            if(preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}): (.*)\R\R/Uu", $f, $matches, PREG_SET_ORDER)){
                 $match = $random?$matches[random_int(0,count($matches)-1)]:end($matches);
                 $line['year']=$match[1]; $line['month']=$match[2]; $line['day']=$match[3];
                 $line['hour']=$match[4]; $line['minute']=$match[5]; $line['second']=$match[6];
