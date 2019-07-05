@@ -3648,7 +3648,7 @@ class LAManagement{
         
         $content = preg_replace('/\n/U','  ',$content);
         
-        preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}): (.*)\R\R/U", $f, $matches, PREG_SET_ORDER);
+        preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}): (.*)\R\R/Uu", $f, $matches, PREG_SET_ORDER); 
         
         $fi = fopen($name,'w');
         foreach($matches as $match){

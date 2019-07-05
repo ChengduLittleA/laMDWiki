@@ -3,10 +3,9 @@
 
 Entry
 - Target = ./snd
-- PastCount = 7
+- PastCount = 3
 
 Entry
 - Target = ./img
 
 <!-- End of TaskManager -->
-
