@@ -1406,6 +1406,30 @@ class LAManagement{
             exit;
         }
     }
+    function DoEditTask(){
+        if(isset($_GET['operation'])){
+            if($_GET['operation'] == "edit_task"){
+                if( isset($_POST['task_editor_confirm'])
+                    && isset($_POST['task_editor_content']) && isset($_POST['task_editor_tags'])
+                    && isset($_GET['target']) && isset($_GET['id'])){
+                    if($_POST['task_editor_content']=="任务描述" || $_POST['task_editor_content']=="") return;
+                    if($_POST['task_editor_tags'] == "标签") $_POST['task_editor_tags']="";
+                    if(intval($_GET['id'])<0) 
+                        $this->EditTask($_GET['target'], $_GET['id'], $_POST['task_editor_content'], $_POST['task_editor_tags'], "T", 0, 0);
+                    else
+                        $this->EditTask($_GET['target'], $_GET['id'], $_POST['task_editor_content'], $_POST['task_editor_tags'], NULL, 1, 0);
+                }
+            }else if($_GET['operation'] == "set_task"){
+                if(isset($_GET['state']) && isset($_GET['target']) && isset($_GET['id'])){
+                    $this->EditTask($_GET['target'], $_GET['id'], NULL, NULL, $_GET['state'], 1, 0);
+                }
+            }else if($_GET['operation'] == "delete_task"){
+                if(isset($_GET['state']) && isset($_GET['target']) && isset($_GET['id'])){
+                    $this->EditTask($_GET['target'], $_GET['id'], NULL, NULL, NULL, 1, 1);
+                }
+            }
+        }
+    }
     
     function rrmdir($dir) {
         foreach(glob($dir . '/*') as $file) {
@@ -1615,6 +1639,7 @@ class LAManagement{
             
             .task_ul { position: relative;	list-style: none; margin-left: 0; padding-left: 1.2em; }
             .task_ul li:before{ position: absolute; left: 0; }
+            .task_ul .active:before { content: "@"; }
             .task_ul .pending:before { content: "+"; }
             .task_ul .done:before { content: "-"; }
             .task_ul .canceled:before { content: "x"; }
@@ -3669,7 +3694,7 @@ class LAManagement{
             fwrite($fi, $match[0]);
         }
         
-        fwrite($fi,date('Y-m-d H:i:s: ').$content.PHP_EOL.PHP_EOL);
+        fwrite($fi,$this->CurrentTimeReadable().': '.$content.PHP_EOL.PHP_EOL);
         
         fclose($fi);
     }
@@ -3766,6 +3791,123 @@ class LAManagement{
         </div>
         <?php
     }
+    function InitTaskFileMeta($fi){
+        fwrite($fi, "# ".date("Y-m").PHP_EOL.PHP_EOL);
+        fwrite($fi, "00000 - 00000".PHP_EOL.PHP_EOL);
+        fwrite($fi, "Total:0 Done:0 Pending:0 Canceled:0 Active:0".PHP_EOL.PHP_EOL);
+    }
+    function RefreshTaskFileMeta($file_content){
+        $count_finished=0;
+        $count_pending=0;
+        $count_canceled=0;
+        $count_active=0;
+        $count_total=0;
+        $min_id="99999"; $max_id="00000";
+        if(preg_match("/#[\s]*[0-9]{4}-[0-9]{2}/",$file_content,$title)){
+            if(preg_match("(\*\*[TDCA][0-9]{5}[\s\S]*)",$file_content,$list)){
+                if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)\n\n/",$list[0],$ma3,PREG_SET_ORDER)){
+                    foreach ($ma3 as $m){
+                        $count_total++;
+                        if($m[1] == 'T') $count_pending++;
+                        else if($m[1] == 'D') $count_finished++;
+                        else if($m[1] == 'C') $count_canceled++;
+                        else if($m[1] == 'A') $count_active++;
+                        if($m[2]<$min_id) $min_id = $m[2];
+                        if($m[2]>$max_id) $max_id = $m[2];
+                    }
+                    return $title[0].PHP_EOL.PHP_EOL.$min_id.' - '.$max_id.PHP_EOL.PHP_EOL.
+                        "Total:$count_total Done:$count_finished Pending:$count_pending Canceled:$count_canceled Active:$count_active".PHP_EOL.PHP_EOL.
+                        $list[0];
+                }
+            }
+        }
+        return $file_content;           
+    }
+    function GetTaskFile($folder,$id,&$latest_id){
+        $file_list=[];
+        $path = $folder;
+        $current_dir = opendir($path);
+        $current_file = 'T'.date('Y-m').'.md';
+        while(($file = readdir($current_dir)) !== false) {
+            $sub_dir = $path . '/' . $file;
+            if($file == '.' || $file == '..' || $file=='index.md') {
+                continue;
+            } else if(!is_dir($sub_dir)){
+                $ext=pathinfo($file,PATHINFO_EXTENSION);
+                if($ext=='md')
+                    $file_list[] = $file;
+            }
+        }
+        if(isset($file_list[0])) sort($file_list);
+        else return Null;
+        $file_list = array_reverse($file_list);
+        
+        foreach($file_list as $f){
+            $fi = fopen($folder.'/'.$f, "r");
+            $content = fread($fi,filesize($folder.'/'.$f));
+            fclose($fi);
+            if(preg_match("/([0-9]{5})[\s]*-[\s]*([0-9]{5})/",$content,$match)){
+                $latest_id = $match[2];
+                if($latest_id < $id){
+                    if($current_file!=$f){
+                        $fi = fopen($path.'/'.$current_file, "w");
+                        $this->InitTaskFileMeta($fi);
+                        fclose($fi);
+                        return $current_file;
+                    }else{
+                        return $f;
+                    }
+                }
+                if($id < $match[1])
+                    continue;
+                if($id <= $match[2])
+                    return $f;
+            }
+        }
+        return NULL;
+    }
+    function CurrentTimeReadable(){
+        return date("Y-m-d H:i:s");
+    }
+    function EditTask($folder, $id, $new_content, $tags, $state_change, $existing, $delete){
+        $latest_id;
+        $time_begin=Null; $time_end=Null;
+        if (!isset($state_change)) $state_change = "";
+        if($existing){
+            $f = $this->GetTaskFile($folder, $id, $latest_id);
+            $fi = fopen($folder.'/'.$f, "r");
+            $content = fread($fi,filesize($folder.'/'.$f));
+            fclose($fi);
+            
+            $modified = preg_replace_callback("/\*\*([TDCA])($id)\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)\n\n/",
+                function($m) use ($state_change, $tags, $new_content, $delete) {
+                    
+                    if($delete) return "";
+                    
+                    if(preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2})[\s]*([0-9]{2}):([0-9]{2}):([0-9]{2})/U",$m[3],$ma_time,PREG_SET_ORDER)){
+                        $time_begin = $ma_time[0];
+                    }
+
+                    return "**".($state_change?$state_change:$m[1]).$m[2]."**"." [ ".$time_begin[0]." ".$this->CurrentTimeReadable()." ] [ ".(isset($tags)?trim($tags):trim($m[4]))." ] ".(isset($new_content)?trim($new_content):trim($m[5])).PHP_EOL.PHP_EOL;
+                
+                },$content);
+            $fi = fopen($folder.'/'.$f, "w");
+            $refreshed = $this->RefreshTaskFileMeta($modified);
+            fwrite($fi,$refreshed);
+            fclose($fi);
+        }else{
+            $f = $this->GetTaskFile($folder, 99999, $latest_id);
+            if(!$f) return;
+            $fi = fopen($folder.'/'.$f, "r");
+            $content = fread($fi,filesize($folder.'/'.$f));
+            $cur_time = $this->CurrentTimeReadable();
+            $content = $this->RefreshTaskFileMeta($content."**T".str_pad(($latest_id+1),5,"0",STR_PAD_LEFT)."** [ $cur_time ] [ $tags ] $new_content".PHP_EOL.PHP_EOL);
+            $fi = fopen($folder.'/'.$f, "w");
+            fwrite($fi,$content);
+            fclose($fi);
+        }
+        
+    }
     
     // returns positive when to > from
     function DayDifferences($y_from, $m_from, $d_from, $y_to, $m_to, $d_to){
@@ -3774,18 +3916,19 @@ class LAManagement{
         $interval = $to->diff($from);
         return intval($interval->format("%R%a"));
     }
-    function ReadTaskItems($folder, $file_list, $done_day_lim, $today_y, $today_m, $today_d, &$unfinished_items, &$finished_items){
+    function ReadTaskItems($folder, $file_list, $done_day_lim, $today_y, $today_m, $today_d, &$unfinished_items, &$finished_items, &$active_items){
         
         foreach($file_list as $f){
             $fi = fopen($folder.'/'.$f, "r");
             $content = fread($fi,filesize($folder.'/'.$f));
             fclose($fi);
             if(preg_match("/# ([0-9]{4})-([0-9]{2})([\s\S]*)/m",$content,$ma)){
-                if(preg_match("/Total:([0-9]*)[\s]*Done:([0-9]*)[\s]*Pending:([0-9]*)[\s]*Canceled:([0-9]*)([\s\S]*)/m",$ma[3],$ma2)){
+                // no need to process range here.
+                if(preg_match("/Total:([0-9]*)[\s]*Done:([0-9]*)[\s]*Pending:([0-9]*)[\s]*Canceled:([0-9]*)[\s]*Active:([0-9]*)([\s\S]*)/m",$ma[3],$ma2)){
                 
                     if($ma2[3] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 31) > $done_day_lim) continue;
                     
-                    if(preg_match_all("/\*\*([TDC])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)\n\n/",$ma2[5],$ma3,PREG_SET_ORDER)){
+                    if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)\n\n/",$ma2[6],$ma3,PREG_SET_ORDER)){
                         
                         if(isset($ma3)) foreach($ma3 as $m){
                             $item = Null;
@@ -3807,6 +3950,7 @@ class LAManagement{
                             $item['content'] = $m[5];
                             
                             if($m[1]=='D'||$m[1]=='C') $finished_items[] = $item;
+                            else if($m[1]=='A') $active_items[] = $item;
                             else $unfinished_items[] = $item;
                         }
                     }
@@ -3820,12 +3964,16 @@ class LAManagement{
             <li class="done">
         <?php }else if ($it['status']=='C'){ ?>
             <li class="canceled">
+        <?php }else if ($it['status']=='A'){ ?>
+            <li class="active">
         <?php }else{ ?>
             <li class="pending">
         <?php } ?>
             <div id = 'task_item_wrapper_<?php echo $i; ?>'>
                 <div id='task_item_<?php echo $i; ?>'>
-                    <div id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></div>
+                    <div id='task_item_content_<?php echo $i; ?>'>
+                        <?php echo $it['content']; ?>
+                    </div>
                 </div>
                 <div id='task_detail_<?php echo $i; ?>' style="display: none;">
                     <p class="task_p">
@@ -3846,25 +3994,39 @@ class LAManagement{
                             <?php echo $it['time_end']['Y'].'-'.$it['time_end']['M'].'-'.$it['time_end']['D'].' '.$it['time_end']['h'].':'.$it['time_end']['m'].':'.$it['time_end']['s']; ?>
                         <?php } ?>
                     </p>
-                    <?php if ($it['status']=='D'){ ?>
-                        <a>丢弃</a>
-                    <?php }else if ($it['status']=='C'){ ?>
-                        <a>完成</a>
+                    <?php if ($it['status']!='C'){ ?>
+                        <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=C">丢弃</a>
                     <?php }else{ ?>
-                        <a>丢弃</a>
+                        <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">完成</a>
                     <?php } ?>
                     <a id="task_delete_button_<?php echo $i; ?>">删除</a>
                     <div id="task_save_buttons_<?php echo $i; ?>" style="float:right;">
                         <a onclick="la_showTaskEditor('<?php echo $path; ?>','<?php echo $it['id']; ?>','<?php echo $i; ?>');">修改</a>
                         <?php if ($it['status']=='T'){ ?>
-                            <a><b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;完成&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></a>
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=A">
+                                <b>&nbsp;进行&nbsp;</b>
+                            </a>
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">
+                                &nbsp;完成&nbsp;
+                            </a>
                         <?php }else{ ?>
-                            <a><b>&nbsp;&nbsp;&nbsp;&nbsp;放回队列&nbsp;&nbsp;&nbsp;&nbsp;</b></a>
+                            <?php if($it['status']=='A'){?>
+                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=T">
+                                    &nbsp;暂缓&nbsp;
+                                </a>
+                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">
+                                    <b>&nbsp;完成&nbsp;</b>
+                                </a>
+                            <?php }else{ ?>
+                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=T">
+                                    &nbsp;放回队列&nbsp;
+                                </a>
+                            <?php } ?>
                         <?php } ?>
                     </div>
                     <div id="task_delete_prompt_<?php echo $i; ?>" style="display:none;float:right;">
                         删除#<?php echo $it['id']; ?>条目
-                        <a>确认</a>
+                        <a href="?page=<?php echo $this->PagePath; ?>&operation=delete_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>">确认</a>
                     </div>
                 </div>
             </div>
@@ -3874,7 +4036,7 @@ class LAManagement{
     function MakeTaskGroupAdditional($folder, $done_limit){
         $task_files = $this->FileNameList;
         $i=0;
-        $this->ReadTaskItems($folder, $task_files, $done_limit, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items);
+        $this->ReadTaskItems($folder, $task_files, $done_limit, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items, $active_items);
         
         ?>
         <script>
@@ -3886,13 +4048,16 @@ class LAManagement{
                 etc = document.getElementById("task_editor_content");
                 tt = document.getElementById("task_item_tags_"+i);
                 ett = document.getElementById("task_editor_tags");
+                tef = document.getElementById("form_task_editor");
                 
                 editor.style.display="block";
-                eid.innerHTML=id;
+                eid.innerHTML=id>=0?id:"新增";
                 epath.innerHTML=path;
-                etc.innerHTML=tc.innerHTML;
-                tags = tt.innerHTML.trim();
+                etc.innerHTML=tc?tc.innerHTML.trim():"任务描述";
+                tags = tt?tt.innerHTML.trim():"";
                 ett.innerHTML=tags==""?"标签":tags;
+                
+                tef.action = "?page="+"<?php echo$this->PagePath?>"+"&operation=edit_task&target="+path+"&id="+id;
                 
                 la_auto_grow(document.getElementById("task_editor_content"));
                 la_auto_grow(document.getElementById("task_editor_tags"));
@@ -3903,8 +4068,14 @@ class LAManagement{
             }
         </script>
         <div class='main_content'>
-        <?php
-            ?><ul class="task_ul"><?php
+            <a onClick="la_showTaskEditor('<?php echo $folder;?>',-1,-1);">新增事项</a>
+            <ul class="task_ul"><?php
+            if(isset($active_items)) foreach($active_items as $it){
+                $this->MakeTaskListItem($folder,$i,$it);
+                $i++;
+            }?>
+            </ul>
+            <ul class="task_ul"><?php
             if(isset($unfinished_items)) foreach($unfinished_items as $it){
                 $this->MakeTaskListItem($folder,$i,$it);
                 $i++;
@@ -3951,7 +4122,7 @@ class LAManagement{
             </p>
             <div>
             <form method = "post" style='display:inline;' 
-            action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=edit_task&target='.$path.'&id=??????????????'?>"
+            action=""
             id="form_task_editor">
                 <textarea class="quick_post_string no_border" type="text" id="task_editor_content" name="task_editor_content" form="form_task_editor"
                     onfocus="if (value =='任务描述'){value ='';}"onblur="if (value ==''){value='任务描述';la_auto_grow(this);}" oninput="la_auto_grow(this);">任务描述</textarea>
@@ -3960,7 +4131,7 @@ class LAManagement{
             </form>
             <div class="inline_block_height_spacer"></div>
             <a onClick="la_hideTaskEditor();">取消</a>
-            <input class="btn form_btn" type="submit" value="保存" name="button_additional_count_confirm" form="form_task_editor" id='task_editor_confirm'>
+            <input class="btn form_btn" type="submit" value="保存" name="task_editor_confirm" form="form_task_editor" id='task_editor_confirm'>
             <div class="block_height_spacer"></div>
             <script> la_auto_grow(document.getElementById("task_editor_content")); la_auto_grow(document.getElementById("task_editor_tags"));</script>
             </div>

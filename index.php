@@ -96,6 +96,7 @@ echo $LA->DoLogin();
 if($LA->IsLoggedIn()){
     echo $LA->DoNewPassage();
     echo $LA->DoNewSmallQuote();
+    echo $LA->DoEditTask();
     echo $LA->DoNewFolder();
     echo $LA->DoDeleteFolder();
     echo $LA->DoRenameFolder();
