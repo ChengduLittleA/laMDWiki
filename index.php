@@ -140,28 +140,29 @@ if(isset($_GET['small_quote_only'])){
 }
 
 
-
-
-
-
-//echo $LA->MakeSpecialStripe();
+echo $LA->TryExtractTaskManager();
 
 echo $LA->PageHeaderBegin();
 
+if($LA->IsTaskManager()){
+    echo $LA->WideHeaderBegin();
+}
+
 echo $LA->ProcessLinksToStatic(
      $LA->MakeTitleButton());        
-    
-    
-    
-echo $LA->MakeNavigationBegin();
-$LA->SetInterlinkPath('index.md');
 
-echo $LA->ProcessLinksToStatic(
-     $LA->ProcessHTMLLanguageForLinks(
-     $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md'))));
-     
-echo $LA->MakeNavigationEnd();
+if(!$LA->IsTaskManager()){
+    echo $LA->MakeNavigationBegin();
+    $LA->SetInterlinkPath('index.md');
 
+    echo $LA->ProcessLinksToStatic(
+         $LA->ProcessHTMLLanguageForLinks(
+         $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md'))));
+         
+    echo $LA->MakeNavigationEnd();
+}else{
+
+}
 
 
 $LA->SetInterlinkPath($la_page_path);
@@ -169,8 +170,6 @@ $LA->SetInterlinkPath($la_page_path);
 echo $LA->MakeHeaderQuickButtons();
 echo $LA->ProcessLinksToStatic(
      $LA->MakeLoginDiv());
-     
-echo $LA->TryExtractTaskManager();
 
 if($la_operation == 'new'){
     echo $LA->PageHeaderEnd();
@@ -180,13 +179,16 @@ if($la_operation == 'new'){
     $LA->SetEditMode(True);
     echo $LA->MakeEditorHeader();
 }else if($la_operation == 'list' || (($la_operation == 'additional' || $la_operation=='task') && isset($_GET['action']) && $_GET['action']=='view')){
+    if($LA->IsTaskManager()){
+        echo $LA->WideHeaderEnd();
+    }
     echo $LA->MakeFolderHeader();
     echo $LA->PageHeaderEnd();
 }else if($la_operation == 'additional'){
     echo $LA->MakeAdditionalHeader();
     echo $LA->PageHeaderEnd();
 }else if($LA->IsTaskManager()){
-    echo $LA->MakeTaskManagerHeader();
+    echo $LA->WideHeaderEnd();
     echo $LA->PageHeaderEnd();
 }else{
     echo $LA->PageHeaderEnd();
@@ -233,6 +235,7 @@ if($la_operation == 'new'){
     echo $LA->MakeMainContentEnd();
 
 }else if($LA->IsTaskManager()){
+    echo $LA->MakeTaskManagerHeader();
     echo $LA->MakeTaskList();
 }else{
  
@@ -273,5 +276,9 @@ echo $LA->MakeFooter();
 echo $LA->MakeAudioPlayer();
 
 echo $LA->MakeTaskEditor();
+
+if($LA->IsTaskManager() && !$la_operation){
+    $LA->MakeTaskManagerFooter();
+}
 
 ?>

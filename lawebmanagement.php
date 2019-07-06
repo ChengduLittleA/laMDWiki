@@ -1506,13 +1506,17 @@ class LAManagement{
             #HeaderQuickButtons{ border:1px solid #000; display: inline; right:0px; position: absolute; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-right:0px;
                 background-color:#FFF; box-shadow: 5px 5px #000;
             }
-
-            #LoginToggle {
-                display: inline;
+            
+            .wide_title{ border:1px solid #000; display: inline-block; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-left:0px; margin-right:0px; margin-bottom:15px;
+                background-color:#FFF; box-shadow: 5px 5px #000; overflow: hidden; width: calc(100% - 22px);
             }
+
+            
             .login_half{ float: right; right: 10px; width: 50%; text-align: right;}
             
             /*.left_side_extra { left:0px; top:0px; bottom:0px; right:calc(20% - )}*/
+            
+            .wide_body              { margin-left: 10px; margin-right:10px; }
             
             .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin;}
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
@@ -1550,6 +1554,8 @@ class LAManagement{
             .file_image_preview     { width:90%; max-width:300px; margin:5px; }
             
             .adaptive_column_container { text-align: center; display: table-cell; }
+            
+            .underline_when_hover:hover { text-decoration: underline; }
             
             .audio_player_box       { z-index:20; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto;  width:calc(60% - 55px); min-width:845px;}
             
@@ -1674,7 +1680,7 @@ class LAManagement{
                 .navigation p{ display: block; }
                 
                 .hidden_on_mobile        { display: none; }
-                .hidden_on_desktop       { display: inherit; }
+                .hidden_on_desktop       { display: initial; }
                 .hidden_on_desktop_inline{ display: inline; }
                 
                 #HeaderQuickButtons{ top:0px; }
@@ -1825,6 +1831,16 @@ class LAManagement{
         </div>
         <?php
     }
+    function WideHeaderBegin(){
+        ?>
+        <div class='wide_title'>
+        <?php
+    }
+    function WideHeaderEnd(){
+        ?>
+            </div>
+        <?php
+    }
     function PageHeaderBegin(){
         ?>
         <div id='Header' class='the_body'>
@@ -1833,16 +1849,19 @@ class LAManagement{
     function PageHeaderEnd(){
         ?>
             </div>
-            
         <?php
     }
     function MakeTitleButton(){
         ob_start();
         ?>
-        <div id='WebsiteTitle'>
-            <a class='hidden_on_mobile' href="?page=index.md"><?php echo $this->Title;?></a>
-            <a class='hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
-        </div>
+        <?php if(!$this->IsTaskManager){ ?>
+            <div id='WebsiteTitle'>
+                <a class='hidden_on_mobile' href="?page=index.md"><?php echo $this->Title;?></a>
+                <a class='hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
+            </div>
+        <?php }else{ ?>
+         <a href="?page=index.md"><?php echo $this->Title;?></a>
+        <?php } ?>
         <?php
         $content = ob_get_contents();
         ob_end_clean();
@@ -2389,6 +2408,7 @@ class LAManagement{
     }
     function MakeTaskManagerHeader(){
         ?>
+        <div class='the_body'>
         <div class='top_panel'>
             <?php echo $this->TaskManagerTitle ?>
             <?php if($this->IsLoggedIn()){ ?>
@@ -2424,9 +2444,9 @@ class LAManagement{
                         });
                     </script>
                 <?php } ?>
+                </div>
             <?php } ?>
-
-            </div>
+        </div>
         </div>
         <?php
     }
@@ -2610,65 +2630,78 @@ class LAManagement{
         ob_start();
         ?> 
     
-        <div id='LoginPanel' class='top_panel' style='display:none;'>
+        <?php if(!$this->IsTaskManager){?><div id='LoginPanel' class='top_panel' style='display:none;'>
+        <?php }else{ ?><div id="task_manager_login" style="display:none;"><? } ?>
             
             <?php if ($this->IsLoggedIn()) { ?>
-                <a href='?page=<?php echo $this->PagePath;?>&operation=settings'>网站设置</a>
-                查看为
-                <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
-                <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
+                <? if(!$this->IsTaskManager){ ?>
+                    <a href='?page=<?php echo $this->PagePath;?>&operation=settings'>网站设置</a>
+                    查看为
+                    <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
+                    <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
+                <?php } ?>
             <?php } ?>
+            
         
             <div class='login_half'>
         
                 <?php
                 if(!$this->IsLoggedIn()){
-                ?>
-                <h3 class = "inline_components" >Language/语言</h3>
-                <div class='inline_height_spacer'></div>
-                <?php if (isset($_GET['static_generator'])){
-                    $StaticLangEN = $this->ChooseLanguageAppendix($this->PagePath,'en');
-                    $StaticLangZH = $this->ChooseLanguageAppendix($this->PagePath,'zh');
                     ?>
-                    <a href='?page=<?php echo $StaticLangEN; ?>'>English</a>
-                    <a href='?page=<?php echo $StaticLangZH; ?>'>中文</a>
-                    <?php
-                }else{ ?>
-                    <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
-                    <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
-                <?php } ?>
-                <div class='inline_height_spacer'></div>
+                    <? if(!$this->IsTaskManager){ ?>
+                        <h3 class = "inline_components" >Language/语言</h3>
+                        <?php if (isset($_GET['static_generator'])){
+                            $StaticLangEN = $this->ChooseLanguageAppendix($this->PagePath,'en');
+                            $StaticLangZH = $this->ChooseLanguageAppendix($this->PagePath,'zh');
+                            ?>
+                            <a href='?page=<?php echo $StaticLangEN; ?>'>English</a>
+                            <a href='?page=<?php echo $StaticLangZH; ?>'>中文</a>
+                            <?php
+                        }else{ ?>
+                            <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
+                            <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
+                        <?php } ?>
+                    <?php } ?>
                     <?php 
                     if(!isset($_GET['static_generator'])){
                     ?>
-                    <hr />
-                    <h3 class = "inline_components">欢迎</h3>
-                    <p class = "inline_components">您尚未登录</p>
-                
-                    <form method = "post" action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>" style='margin-bottom:10px;'>
-                        
-                        <div class = "inline_components">用户名:</div>
-                        
-                        <input class='string_input' type="text" id="username" name="username" style='margin-right:0px;'
-                        value="<?php if(!empty($user_username)) echo $user_username; ?>" />
-                        <br />
-                        <div class='inline_components'>密码:</div>
-                        <input class='string_input' type="password" id="password" name="password" style='margin-right:0px;margin-bottom:15px;'/>
-                        <br />
-                        <input class='btn form_btn' style="float:right" type="submit" value="登录" name="button_login"/>
-                       
-                    </form>
+                    <div id="login_again_dialog" style="display:none;">
+                        <? if(!$this->IsTaskManager){ ?>
+                            <div class='inline_block_height_spacer'></div>
+                            <hr />
+                        <?php }else{ ?>
+                            <div class="inline_height_spacer"></div>
+                        <?php } ?>
+                        <form method = "post" action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>" style='margin-bottom:10px;'>
+                            <div class = "inline_components">用户名:</div>
+                            <input class='string_input' type="text" id="username" name="username" style='margin-right:0px;'
+                            value="<?php if(!empty($user_username)) echo $user_username; ?>" />
+                            <br />
+                            <div class='inline_components'>密码:</div>
+                            <input class='string_input' type="password" id="password" name="password" style='margin-right:0px;margin-bottom:15px;'/>
+                            <br />
+                            <input class='btn form_btn' style="float:right" type="submit" value="登录" name="button_login"/>
+                        </form>
+                    </div>
                     <?php
                     }else{
                         ?>
+                        <div class='inline_block_height_spacer'></div>
                         <p>使用LaMDWiki静态生成器生成。</p>
                         <?php 
                     }
                 }else{
+                    if($this->IsTaskManager){ ?>
+                        <div id="login_again_dialog" style="display:none;">
+                        <div class="inline_height_spacer"></div>
+                    <?php }
                     echo '<p class = "inline_components">'.$this->UserDisplayName.'</p>';
                     echo '<p class = "inline_components">'.'不是您本人？'.'</p>';
                     ?>
                     <input class='btn form_btn' type="button" name="logout" value="登出" onclick="location.href='<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>&logout=True'" />
+                    <?php if($this->IsTaskManager){ ?>
+                        </div>
+                    <?php } ?>
                     <?php
                 }
                 ?>
@@ -2699,12 +2732,9 @@ class LAManagement{
         $path = $this->InterlinkPath();
         $disp = $this->FolderDisplayAs($path)=='Timeline'?1:0;
         ?>
-        <div id='HeaderQuickButtons'>
+        <?php if(!$this->IsTaskManager){?><div id='HeaderQuickButtons'>
         <?php
-        
-            
-
-            if(!isset($_SESSION['user_id'])){
+            if(!$this->IsLoggedIn()){
                 if($this->FolderShowListButton($path)){
                 ?>  
                     <?php if (isset($_GET['static_generator'])){?>
@@ -2722,7 +2752,8 @@ class LAManagement{
                 if(!isset($_GET['operation'])){
                     echo $this->MakeBackButton();
                 }?>
-                <div id='LoginToggle' class='btn'></b>中En</b></div>
+                <div id="login_again_button" class='btn' style='display:none' onClick="la_toggle_login_again();">登录</div>
+                <div id='LoginToggle' class='btn' onClick="la_toggle_login_button()"><b>中En</b></div>
             <?php
             }else{
                 if(!isset($_GET['static_generator'])){
@@ -2745,10 +2776,55 @@ class LAManagement{
                 }
             }
             ?>
-                   
         </div>
+        <?php }else{ //task manager header ?>
+            <div style='float:right'>
+                <div class="inline hidden_on_mobile">
+                    <a>正常</a>
+                    <a>总表</a>
+                    <a>日历</a>
+                </div>                
+                <span class="hidden_on_desktop"><div id="login_again_button" class='btn' style='display:none' onClick="la_toggle_login_task_desktop();"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:"登录"?></div></span>
+                <span class="hidden_on_desktop"><div class='btn' onClick="la_toggle_login_task_mobile()">查看</div></span>
+                <span class="hidden_on_mobile"><div class='btn' onClick="la_toggle_login_task_desktop()"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:"登录"?></div></span>
+            </div>
+            <span class="hidden_on_desktop">
+                <div id="task_view_buttons" style="display:block;text-align:right;display:none;">
+                    <div class="inline_height_spacer"></div>
+                    <a>正常</a>
+                    <a>总表</a>
+                    <a>日历</a>
+                </div>
+            </span>
+        <?php }
+        ?>
+        <script>
+        function la_toggle_login_again(){
+            dialog = document.getElementById("login_again_dialog");
+            dialog.style.display = dialog.style.display=="none"?"block":"none";
+        }
+        function la_toggle_login_button(){
+            btn = document.getElementById("login_again_button");
+            if(btn) btn.style.display = btn.style.display=="none"?"unset":"none";
+        }
+        function la_toggle_login_task_desktop(){
+            again = document.getElementById("login_again_dialog");
+            dialog = document.getElementById("task_manager_login");
+            disp = (again?again:dialog).style.display=="none"?"block":"none";
+            dialog.style.display = disp;
+            if(again)again.style.display = disp;
+        }
+        function la_toggle_login_task_mobile(){
+            vb = document.getElementById("task_view_buttons");
+            disp = vb.style.display=="none"?"block":"none";
+            dialog = document.getElementById("task_manager_login");
+            dialog.style.display = disp;
+            vb.style.display = disp;
+            btn = document.getElementById("login_again_button");
+            if(btn) btn.style.display = disp=="block"?"unset":"none";
+        }
+        </script>
         <?php
-        
     }
     function MakeNavigationBegin(){
         ?>
@@ -3177,7 +3253,7 @@ class LAManagement{
                     <a class='btn' href='?page=<?php echo $moving ?>&operation=list'>取消</a>
                     <a class='btn' href='?page=<?php echo $path ?>&moving=<?php echo $moving ?>&to=<?php echo $path ?>'>到这里</a>
                 <?php }else{ ?>
-                    <a class='btn' href='?page=<?php echo $_GET["for"] ?>&operation=<?php echo $_GET['operation']?>'>取消</a>
+                    <a class='btn' href='?page=<?php echo $_GET["for"] ?><?php echo $_GET['operation']!='task'?'&operation='.$_GET['operation']:""?>'>取消</a>
                     <a class='btn' href='?page=<?php echo $path ?>&operation=<?php echo $_GET['operation']?>&action=add&for=<?php echo $_GET["for"] ?>&target=<?php echo $path ?>'>选这个</a>
                 <?php } ?>
             </div>
@@ -3975,8 +4051,15 @@ class LAManagement{
         <?php } ?>
             <div id = 'task_item_wrapper_<?php echo $i; ?>'>
                 <div id='task_item_<?php echo $i; ?>'>
-                    <div id='task_item_content_<?php echo $i; ?>'>
-                        <?php echo $it['content']; ?>
+                    <div class='underline_when_hover'>
+                    <?php if ($it['status']=='D'){ ?>
+                        <del><span id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></span></del>
+                    <?php }else if ($it['status']=='C'){ ?>
+                        <i><del><span id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></span></del></i>
+                    <?php }else{ ?>
+                        <span id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></span>
+                    <?php } ?>
+                        
                     </div>
                 </div>
                 <div id='task_detail_<?php echo $i; ?>' style="display: none;">
@@ -4053,6 +4136,7 @@ class LAManagement{
                 tt = document.getElementById("task_item_tags_"+i);
                 ett = document.getElementById("task_editor_tags");
                 tef = document.getElementById("form_task_editor");
+                footer = document.getElementById("task_manager_footer");
                 
                 editor.style.display="block";
                 eid.innerHTML=id>=0?id:"新增";
@@ -4065,10 +4149,14 @@ class LAManagement{
                 
                 la_auto_grow(document.getElementById("task_editor_content"));
                 la_auto_grow(document.getElementById("task_editor_tags"));
+                
+                if(footer) footer.style.display="none";
             }
             function la_hideTaskEditor(){
                 editor = document.getElementById("task_editor_box");
                 editor.style.display="none";
+                footer = document.getElementById("task_manager_footer");
+                if(footer) footer.style.display="block";
             }
         </script>
         <div class='main_content'>
@@ -4896,6 +4984,39 @@ class LAManagement{
         </script>
         <?php
     }
+    function MakeTaskManagerFooter(){
+    ?>
+        <div id="task_manager_footer" class="audio_player_box">
+            <div id="task_manager_group_switcher" style="max-height:calc(100vh - 167px); overflow:auto; display:none;">
+                aaaa
+            </div>
+            <div id="task_manager_group_adder" style="max-height:calc(100vh - 167px); overflow:auto; display:none;">
+                bbbb
+            </div>
+            <div class="block_height_spacer"></div>
+            <table style="text-align:center;table-layout:fixed;"><tr>
+                <td><a style="display:block;" onClick="la_task_group_switcher_toogle()">按任务组查看</a></td>
+                <?php if($this->IsLoggedIn()){ ?><td><a style="display:block;" onClick="la_task_adder_toogle()">新增事项+</a></td><?php } ?>
+            </tr><table>
+        </div>
+        <script>
+            function la_task_group_switcher_toogle(){
+                sw = document.getElementById("task_manager_group_switcher");
+                ad = document.getElementById("task_manager_group_adder");
+                disp = sw.style.display=="none"?"block":"none";
+                sw.style.display = disp;
+                ad.style.display = "none";
+            }
+            function la_task_adder_toogle(){
+                sw = document.getElementById("task_manager_group_switcher");
+                ad = document.getElementById("task_manager_group_adder");
+                disp = ad.style.display=="none"?"block":"none";
+                ad.style.display = disp;
+                sw.style.display = "none";
+            }
+        </script>
+    <?php
+    }
     function MakeFooter(){
         $this->GetPrevNextPassage($this->PagePath);
         
@@ -4916,7 +5037,7 @@ class LAManagement{
             var lg_toggle  = document.getElementById("LoginToggle");
             var lg_panel = document.getElementById("LoginPanel");
 
-            lg_toggle.addEventListener("click", function() {
+            if(lg_toggle && lg_panel) lg_toggle.addEventListener("click", function() {
                 var shown = lg_panel.style.display == 'block';
                 lg_panel.style.display = shown ? "none" : "block";
                 //lg_toggle.innerHTML = shown? "收起":"登录";

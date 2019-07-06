@@ -44,7 +44,7 @@ Layout = Gallery
 
 <!-- FolderConf -->
 
-ShowListButton = 1
+ShowListButton = 0
 
 <!-- End of FolderConf -->
 
