@@ -1613,7 +1613,16 @@ class LAManagement{
             .passage_detail{ float: right; text-align: right; margin-left:5px; width:20%; min-width:210px; }
             .small_shadow p{ display: inline; }
             
+            .task_ul { position: relative;	list-style: none; margin-left: 0; padding-left: 1.2em; }
+            .task_ul li:before{ position: absolute; left: 0; }
+            .task_ul .pending:before { content: "+"; }
+            .task_ul .done:before { content: "-"; }
+            .task_ul .canceled:before { content: "x"; }
+            .task_p { font-size: 12px; margin:1px; }
+            
             .novel_content hr { height: 5em; border: none; }
+            
+            .no_border { border: none; }
             
             .appendix { text-align: right; font-size: 12px; line-height: 1.2;}
             
@@ -1726,8 +1735,8 @@ class LAManagement{
         </style>
         <script>
         function la_auto_grow(element) {
-            element.style.height = "0px";
-            element.style.height = (element.scrollHeight+10)+"px";
+            element.style.height = "30px";
+            element.style.height = (element.scrollHeight)+"px";
         }
         function la_pad(num, n) {
             return (Array(n).join(0) + num).slice(-n);
@@ -3178,7 +3187,7 @@ class LAManagement{
                 $arr[$i]['title']      = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Title');
                 $arr[$i]['complete']   = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'Complete');
                 $arr[$i]['more']       = $this->GetArgumentByNamesN($Config,$file_name,'Additional',$i,'More');
-                if($arr[$i]['count']===Null) $arr[$i]['count'] = 4;
+                if($arr[$i]['count']===Null) $arr[$i]['count'] = $arr[$i]['style']==5?7:4;
                 $i++;
             }       
         }
@@ -3324,6 +3333,11 @@ class LAManagement{
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_count'){
             if(isset($_GET['target']) && isset($_GET['for']) && isset($_POST['display_count']) && $_POST['display_count']!=''){
                 $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,$_POST['display_count'],Null,Null,Null,Null,Null);
+            }
+            header('Location:?page='.$_GET['for'].'&operation=additional');
+        }else if (isset($_GET['operation']) && $_GET['operation']=='set_item_count'){
+            if(isset($_GET['target']) && isset($_GET['for']) && isset($_GET['count']) && $_GET['count']!=''){
+                $this->SetAdditionalDisplay($_GET['for'],$_GET['target'],Null,$_GET['count'],Null,Null,Null,Null,Null);
             }
             header('Location:?page='.$_GET['for'].'&operation=additional');
         }else if (isset($_GET['operation']) && $_GET['operation']=='set_additional_column_count'){
@@ -3753,6 +3767,207 @@ class LAManagement{
         <?php
     }
     
+    // returns positive when to > from
+    function DayDifferences($y_from, $m_from, $d_from, $y_to, $m_to, $d_to){
+        $from = new DateTime($y_from.'-'.$m_from.'-'.$d_from);
+        $to = new DateTime($y_to.'-'.$m_to.'-'.$d_to);
+        $interval = $to->diff($from);
+        return intval($interval->format("%R%a"));
+    }
+    function ReadTaskItems($folder, $file_list, $done_day_lim, $today_y, $today_m, $today_d, &$unfinished_items, &$finished_items){
+        
+        foreach($file_list as $f){
+            $fi = fopen($folder.'/'.$f, "r");
+            $content = fread($fi,filesize($folder.'/'.$f));
+            fclose($fi);
+            if(preg_match("/# ([0-9]{4})-([0-9]{2})([\s\S]*)/m",$content,$ma)){
+                if(preg_match("/Total:([0-9]*)[\s]*Done:([0-9]*)[\s]*Pending:([0-9]*)[\s]*Canceled:([0-9]*)([\s\S]*)/m",$ma[3],$ma2)){
+                
+                    if($ma2[3] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 31) > $done_day_lim) continue;
+                    
+                    if(preg_match_all("/\*\*([TDC])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)\n\n/",$ma2[5],$ma3,PREG_SET_ORDER)){
+                        
+                        if(isset($ma3)) foreach($ma3 as $m){
+                            $item = Null;
+                            if(preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2})[\s]*([0-9]{2}):([0-9]{2}):([0-9]{2})/U",$m[3],$ma_time,PREG_SET_ORDER)){
+                                
+                                if(($m[1]=='D'||$m[1]=='C') && $this->DayDifferences($today_y, $today_m, $today_d, $ma_time[0][1], $ma_time[0][2], $ma_time[0][3])>$done_day_lim) continue;
+                                
+                                $item['time_begin']['Y'] = $ma_time[0][1]; $item['time_begin']['M'] = $ma_time[0][2]; $item['time_begin']['D'] = $ma_time[0][3];
+                                $item['time_begin']['h'] = $ma_time[0][4]; $item['time_begin']['m'] = $ma_time[0][5]; $item['time_begin']['s'] = $ma_time[0][6];
+                                if(isset($ma_time[1])){
+                                    $item['time_end']['Y'] = $ma_time[1][1]; $item['time_end']['M'] = $ma_time[1][2]; $item['time_end']['D'] = $ma_time[1][3];
+                                    $item['time_end']['h'] = $ma_time[1][4]; $item['time_end']['m'] = $ma_time[1][5]; $item['time_end']['s'] = $ma_time[1][6];
+                                }
+                            }
+                            
+                            $item['status'] = $m[1];
+                            $item['id'] = $m[2];
+                            preg_match_all("/[\S]+/",$m[4],$item['tags'],PREG_SET_ORDER);
+                            $item['content'] = $m[5];
+                            
+                            if($m[1]=='D'||$m[1]=='C') $finished_items[] = $item;
+                            else $unfinished_items[] = $item;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    function MakeTaskListItem($path, $i, $it){
+        ?>
+        <?php if ($it['status']=='D'){ ?>
+            <li class="done">
+        <?php }else if ($it['status']=='C'){ ?>
+            <li class="canceled">
+        <?php }else{ ?>
+            <li class="pending">
+        <?php } ?>
+            <div id = 'task_item_wrapper_<?php echo $i; ?>'>
+                <div id='task_item_<?php echo $i; ?>'>
+                    <div id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></div>
+                </div>
+                <div id='task_detail_<?php echo $i; ?>' style="display: none;">
+                    <p class="task_p">
+                        <?php if ($it['status']=='D'){ ?>
+                            <?php echo $it['id']; ?>&nbsp;
+                        <?php }else if ($it['status']=='C'){ ?>
+                            <del><?php echo $it['id']; ?></del>&nbsp;
+                        <?php }else{ ?>
+                            <b><?php echo $it['id']; ?></b>&nbsp;
+                        <?php } ?>
+                        <span id='task_item_tags_<?php echo $i; ?>'><?php if(isset($it['tags'])) foreach($it['tags'] as $tag){
+                                echo $tag[0]." ";
+                            } ?></span>
+                        <br />
+                        <?php echo $it['time_begin']['Y'].'-'.$it['time_begin']['M'].'-'.$it['time_begin']['D'].' '.$it['time_begin']['h'].':'.$it['time_begin']['m'].':'.$it['time_begin']['s']; ?>
+                        <?php if(isset($it['time_end'])){ ?>
+                            &nbsp;~&nbsp;
+                            <?php echo $it['time_end']['Y'].'-'.$it['time_end']['M'].'-'.$it['time_end']['D'].' '.$it['time_end']['h'].':'.$it['time_end']['m'].':'.$it['time_end']['s']; ?>
+                        <?php } ?>
+                    </p>
+                    <?php if ($it['status']=='D'){ ?>
+                        <a>丢弃</a>
+                    <?php }else if ($it['status']=='C'){ ?>
+                        <a>完成</a>
+                    <?php }else{ ?>
+                        <a>丢弃</a>
+                    <?php } ?>
+                    <a id="task_delete_button_<?php echo $i; ?>">删除</a>
+                    <div id="task_save_buttons_<?php echo $i; ?>" style="float:right;">
+                        <a onclick="la_showTaskEditor('<?php echo $path; ?>','<?php echo $it['id']; ?>','<?php echo $i; ?>');">修改</a>
+                        <?php if ($it['status']=='T'){ ?>
+                            <a><b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;完成&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></a>
+                        <?php }else{ ?>
+                            <a><b>&nbsp;&nbsp;&nbsp;&nbsp;放回队列&nbsp;&nbsp;&nbsp;&nbsp;</b></a>
+                        <?php } ?>
+                    </div>
+                    <div id="task_delete_prompt_<?php echo $i; ?>" style="display:none;float:right;">
+                        删除#<?php echo $it['id']; ?>条目
+                        <a>确认</a>
+                    </div>
+                </div>
+            </div>
+        </li>
+        <?php
+    }
+    function MakeTaskGroupAdditional($folder, $done_limit){
+        $task_files = $this->FileNameList;
+        $i=0;
+        $this->ReadTaskItems($folder, $task_files, $done_limit, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items);
+        
+        ?>
+        <script>
+            function la_showTaskEditor(path,id,i){
+                editor = document.getElementById("task_editor_box");
+                eid = document.getElementById("task_editing_id");
+                epath = document.getElementById("task_editing_path");
+                tc = document.getElementById("task_item_content_"+i);
+                etc = document.getElementById("task_editor_content");
+                tt = document.getElementById("task_item_tags_"+i);
+                ett = document.getElementById("task_editor_tags");
+                
+                editor.style.display="block";
+                eid.innerHTML=id;
+                epath.innerHTML=path;
+                etc.innerHTML=tc.innerHTML;
+                tags = tt.innerHTML.trim();
+                ett.innerHTML=tags==""?"标签":tags;
+                
+                la_auto_grow(document.getElementById("task_editor_content"));
+                la_auto_grow(document.getElementById("task_editor_tags"));
+            }
+            function la_hideTaskEditor(){
+                editor = document.getElementById("task_editor_box");
+                editor.style.display="none";
+            }
+        </script>
+        <div class='main_content'>
+        <?php
+            ?><ul class="task_ul"><?php
+            if(isset($unfinished_items)) foreach($unfinished_items as $it){
+                $this->MakeTaskListItem($folder,$i,$it);
+                $i++;
+            }?>
+            </ul>
+            <ul class="task_ul">
+            <?php
+            if(isset($finished_items)) foreach($finished_items as $it){
+                $this->MakeTaskListItem($folder,$i,$it);
+                $i++;
+            }?>
+            </ul>
+            
+            <script>
+            <?php for($j=0;$j<$i;$j++){?>
+                b = document.getElementById("task_item_<?php echo $j; ?>");
+                b.addEventListener("click", function() {
+                    d = document.getElementById("task_detail_<?php echo $j; ?>");
+                    w = document.getElementById("task_item_wrapper_<?php echo $j; ?>");
+                    disp = d.style.display;
+                    cn = w.className;
+                    d.style.display = disp=="none"?"block":"none";
+                    w.className = cn==""?"plain_block":"";
+                });
+                del = document.getElementById("task_delete_button_<?php echo $j; ?>");
+                del.addEventListener("click", function() {
+                    p = document.getElementById("task_delete_prompt_<?php echo $j; ?>");
+                    b = document.getElementById("task_save_buttons_<?php echo $j; ?>");
+                    disp = b.style.display;
+                    b.style.display = disp=="none"?"block":"none";
+                    disp = p.style.display;
+                    p.style.display = disp=="none"?"block":"none";
+                });
+            <?php } ?>
+            </script>
+        </div>
+        <?php
+    }
+    function MakeTaskEditor(){
+        ?>
+        <div class='audio_player_box' style='display:none;' id='task_editor_box'>
+            <p class='task_p'>
+                <b><span id="task_editing_id"></span></b>&nbsp;在任务组&nbsp;<span id="task_editing_path"></span>
+            </p>
+            <div>
+            <form method = "post" style='display:inline;' 
+            action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=edit_task&target='.$path.'&id=??????????????'?>"
+            id="form_task_editor">
+                <textarea class="quick_post_string no_border" type="text" id="task_editor_content" name="task_editor_content" form="form_task_editor"
+                    onfocus="if (value =='任务描述'){value ='';}"onblur="if (value ==''){value='任务描述';la_auto_grow(this);}" oninput="la_auto_grow(this);">任务描述</textarea>
+                <textarea class="quick_post_string no_border" style="font-size:12px;" type="text" id="task_editor_tags" name="task_editor_tags" form="form_task_editor"
+                    onfocus="if (value =='标签'){value ='';}"onblur="if (value ==''){value='标签';la_auto_grow(this);}" oninput="la_auto_grow(this);">标签</textarea>
+            </form>
+            <div class="inline_block_height_spacer"></div>
+            <a onClick="la_hideTaskEditor();">取消</a>
+            <input class="btn form_btn" type="submit" value="保存" name="button_additional_count_confirm" form="form_task_editor" id='task_editor_confirm'>
+            <div class="block_height_spacer"></div>
+            <script> la_auto_grow(document.getElementById("task_editor_content")); la_auto_grow(document.getElementById("task_editor_tags"));</script>
+            </div>
+        </div>
+        <?php
+    }
+    
     function MakeAdditionalContent($folder,$position){
         if(!isset($folder)){
             $ad = $this->GetAdditionalDisplayData();
@@ -3831,13 +4046,14 @@ class LAManagement{
                         <div style='display:none' id='additional_options_dialog_<?php echo $path?>'>
                             <div class='inline_height_spacer'></div>
                             显示为：
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=0"?>'>列表</a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=2"?>'>画廊</a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=1"?>'>方块</a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=3"?>'>日记</a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=4"?>'>我说</a>
+                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=0"?>'><?php echo $a['style']==0?"<b>项</b>":"项"?></a>
+                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=2"?>'><?php echo $a['style']==2?"<b>图</b>":"图"?></a>
+                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=1"?>'><?php echo $a['style']==1?"<b>块</b>":"块"?></a>
+                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=3"?>'><?php echo $a['style']==3?"<b>写</b>":"写"?></a>
+                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=4"?>'><?php echo $a['style']==4?"<b>说</b>":"说"?></a>
+                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=5"?>'><?php echo $a['style']==5?"<b>做</b>":"做"?></a>
                             <div class='inline_height_spacer'></div>
-                            <?php if($a['style']!=4){ ?>
+                            <?php if($a['style']==0 || $a['style']==1 || $a['style']==2 || $a['style']==3){ ?>
                                 最近篇目数量：
                                 <form method = "post" style='display:inline;' 
                                 action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_count&for='.$this->PagePath.'&target='.$path?>"
@@ -3845,6 +4061,17 @@ class LAManagement{
                                     <input class="string_input no_horizon_margin title_string" style='width:4em;' type="text" value="<?php echo $a['count'] ?>" id="display_count_<?php echo $path?>" name="display_count" form="form_additional_count<?php echo $path?>">
                                     <input class="btn form_btn" type="submit" value="设置" name="button_additional_count_confirm" form="form_additional_count<?php echo $path?>" id='additional_count_confirm_<?php echo $path?>'>
                                 </form>
+                                <div class='inline_height_spacer'></div>
+                            <?php }else if($a['style']==5){ 
+                                $cc = $a['count'];?>
+                                显示
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=1"?>'><?php echo $cc==1?'<b>1</b>':'1'?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=2"?>'><?php echo $cc==2?'<b>2</b>':'2'?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=3"?>'><?php echo $cc==3?'<b>3</b>':'3'?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=7"?>'><?php echo $cc==7?'<b>7</b>':'7'?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=14"?>'><?php echo $cc==14?'<b>14</b>':'14'?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=30"?>'><?php echo $cc==30?'<b>30</b>':'30'?></a>
+                                天内完成的
                                 <div class='inline_height_spacer'></div>
                             <?php } ?>
                             区域标题：
@@ -3889,7 +4116,7 @@ class LAManagement{
                             <?php }?>
                             <?php }?>
                             
-                            <?php if($a['style']==4){?>
+                            <?php if($a['style']==4 || $a['style']==5){?>
                                 <div class='inline_height_spacer'></div>
                                 时间线列表按钮：
                                 <form method = "post" style='display:inline;' 
@@ -4087,6 +4314,8 @@ class LAManagement{
                 }
             }else if (isset($a['style']) && $a['style']==4){
                 $this->MakeSmallQuoteAdditional($a['path'],$a['title'],$a['more'],$a['quick_post']);
+            }else if (isset($a['style']) && $a['style']==5){
+                $this->MakeTaskGroupAdditional($path, $a['count']);
             }
             if(isset($folder)){
                 ?>

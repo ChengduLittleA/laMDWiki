@@ -31,6 +31,14 @@ Additional
 - More = 小A还说…
 - QuickPost = 1
 
+Additional
+- Path = ./snd
+- Style = 5
+- Count = 30
+- More = 过去的任务
+
+Layout = Normal
+
 <!-- End of index.md -->
 
 

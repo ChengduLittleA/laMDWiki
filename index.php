@@ -271,4 +271,6 @@ echo $LA->MakeFooter();
 
 echo $LA->MakeAudioPlayer();
 
+echo $LA->MakeTaskEditor();
+
 ?>
