@@ -46,14 +46,5 @@
 
 [/adaptive]
 
-<!-- 2D -->
-
-AfterPassage=1
-
-Video
-- File = week1.ogg
-
-<!-- end of 2D -->
-
 
 

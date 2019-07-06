@@ -1426,7 +1426,7 @@ class LAManagement{
                     $this->EditTask($_GET['target'], $_GET['id'], NULL, NULL, $_GET['state'], 1, 0);
                 }
             }else if($_GET['operation'] == "delete_task"){
-                if(isset($_GET['state']) && isset($_GET['target']) && isset($_GET['id'])){
+                if(isset($_GET['target']) && isset($_GET['id'])){
                     $this->EditTask($_GET['target'], $_GET['id'], NULL, NULL, NULL, 1, 1);
                 }
             }
@@ -1523,6 +1523,9 @@ class LAManagement{
             .sidenotes_content      { position: absolute; right:10px; max-width: calc(50% - 470px); width: calc(20% - 20px); }
             .sidenotes_position     { position: absolute; width:calc(100% - 13px); min-width: 250px; right:0px; bottom: 15px; display: block; }
             .sidenotes_expander     { position: absolute; left:0px; bottom: 15px; display: none;}
+            .gallery_left .sidenotes_content   { position: relative; right: unset; max-width: unset; width: unset; overflow: hidden; padding: 3px; margin-top: -25px; margin-bottom: -10px; }
+            .gallery_left .sidenotes_position  { position: relative; width: unset; min-width: unset; right: unset; bottom: unset; display: none; margin-top: 10px; }
+            .gallery_left .sidenotes_expander  { position: relative; left: unset; bottom: unset; display: block; float: right; width: 20px; }
             .additional_content_left{ margin-right: 15px; float: left; text-align: center; position: sticky; top:82px; margin-bottom:0px;}
             .novel_content          { max-width:600px; margin:0px auto; line-height:2; }
             .more_vertical_margin   { margin-top: 100px; margin-bottom: 100px; }
@@ -1856,7 +1859,7 @@ class LAManagement{
             <?php
         }
         
-        if($layout == 'Gallery' && (!isset($_GET['operation'])||$_GET['operation']=='additional')){
+        if($layout == 'Gallery' && (!isset($_GET['operation'])||($_GET['operation']!='edit'&&$_GET['operation']!='new'))){
         ?>
             <div class='gallery_left'>
             <div class='main_content gallery_main_height'>
@@ -2388,37 +2391,39 @@ class LAManagement{
         ?>
         <div class='top_panel'>
             <?php echo $this->TaskManagerTitle ?>
-            <div style='float:right;text-align:right;'>
-            
-            <?php if(isset($_GET['operation'])){?>
-                <div class='btn' id='task_page_button'>页面选项</div>
-                <a class='btn' href='?page=<?php echo $this->PagePath?>'>退出调节</a>
-            <?php }else{ ?>
-                <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=adjust'>调节</a>
-                <div class='btn' id='task_item_content_button'>分组</div>
-                <div id='task_item_content_dialog' style='display:none'>
-                    <div class='inline_height_spacer'></div>
-                    管理了下面位置的工作内容：
-                    <div class='inline_height_spacer'></div>
-                    <?php if($this->TaskManagerEntries!=Null) foreach ($this->TaskManagerEntries as $item){?>
-                        <div>
-                            位于 <?php echo $item['target']?> 的项目&nbsp;
-                            <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=delete&for=<?php echo $this->PagePath?>&target=<?php echo $item['target']?>'>删</a>
-                        </div>
-                        
+            <?php if($this->IsLoggedIn()){ ?>
+                <div style='float:right;text-align:right;'>
+                
+                <?php if(isset($_GET['operation'])){?>
+                    <div class='btn' id='task_page_button'>页面选项</div>
+                    <a class='btn' href='?page=<?php echo $this->PagePath?>'>退出调节</a>
+                <?php }else{ ?>
+                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=adjust'>调节</a>
+                    <div class='btn' id='task_item_content_button'>分组</div>
+                    <div id='task_item_content_dialog' style='display:none'>
                         <div class='inline_height_spacer'></div>
-                    <?php }?>
-                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=edit'>编辑文字</a>
-                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>'>新增任务组</a>
-                </div>
-                <script>
-                    var content = document.getElementById("task_item_content_button");
-                    var content_dialog = document.getElementById("task_item_content_dialog");
-                    content.addEventListener("click", function() {
-                        var disp = content_dialog.style.display;
-                        content_dialog.style.cssText = disp=='none'?'display:block':'display:none';
-                    });
-                </script>
+                        管理了下面位置的工作内容：
+                        <div class='inline_height_spacer'></div>
+                        <?php if($this->TaskManagerEntries!=Null) foreach ($this->TaskManagerEntries as $item){?>
+                            <div>
+                                位于 <?php echo $item['target']?> 的项目&nbsp;
+                                <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=delete&for=<?php echo $this->PagePath?>&target=<?php echo $item['target']?>'>删</a>
+                            </div>
+                            
+                            <div class='inline_height_spacer'></div>
+                        <?php }?>
+                        <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=edit'>编辑文字</a>
+                        <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>'>新增任务组</a>
+                    </div>
+                    <script>
+                        var content = document.getElementById("task_item_content_button");
+                        var content_dialog = document.getElementById("task_item_content_dialog");
+                        content.addEventListener("click", function() {
+                            var disp = content_dialog.style.display;
+                            content_dialog.style.cssText = disp=='none'?'display:block':'display:none';
+                        });
+                    </script>
+                <?php } ?>
             <?php } ?>
 
             </div>
@@ -2472,8 +2477,6 @@ class LAManagement{
                     }
                 }
                 if($this->FileNameList)     sort($this->FileNameList);
-                $this->FileNameList = array_reverse($this->FileNameList);
-                
                 echo $this->MakeTaskGroupAdditional($target,$pc);
             ?>
         </div>
@@ -3990,45 +3993,47 @@ class LAManagement{
                             } ?></span>
                         <br />
                         <?php echo $it['time_begin']['Y'].'-'.$it['time_begin']['M'].'-'.$it['time_begin']['D'].' '.$it['time_begin']['h'].':'.$it['time_begin']['m'].':'.$it['time_begin']['s']; ?>
-                        <?php if(isset($it['time_end'])){ ?>
+                        <?php if(($it['status']=='C' || $it['status']=='D') && isset($it['time_end'])){ ?>
                             &nbsp;~&nbsp;
                             <?php echo $it['time_end']['Y'].'-'.$it['time_end']['M'].'-'.$it['time_end']['D'].' '.$it['time_end']['h'].':'.$it['time_end']['m'].':'.$it['time_end']['s']; ?>
                         <?php } ?>
                     </p>
-                    <?php if ($it['status']!='C'){ ?>
-                        <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=C">丢弃</a>
-                    <?php }else{ ?>
-                        <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">完成</a>
-                    <?php } ?>
-                    <a id="task_delete_button_<?php echo $i; ?>">删除</a>
-                    <div id="task_save_buttons_<?php echo $i; ?>" style="float:right;">
-                        <a onclick="la_showTaskEditor('<?php echo $path; ?>','<?php echo $it['id']; ?>','<?php echo $i; ?>');">修改</a>
-                        <?php if ($it['status']=='T'){ ?>
-                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=A">
-                                <b>&nbsp;进行&nbsp;</b>
-                            </a>
-                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">
-                                &nbsp;完成&nbsp;
-                            </a>
+                    <?php if ($this->IsLoggedIn()){ ?>
+                        <?php if ($it['status']!='C'){ ?>
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=C">丢弃</a>
                         <?php }else{ ?>
-                            <?php if($it['status']=='A'){?>
-                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=T">
-                                    &nbsp;暂缓&nbsp;
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">完成</a>
+                        <?php } ?>
+                        <a id="task_delete_button_<?php echo $i; ?>">删除</a>
+                        <div id="task_save_buttons_<?php echo $i; ?>" style="float:right;">
+                            <a onclick="la_showTaskEditor('<?php echo $path; ?>','<?php echo $it['id']; ?>','<?php echo $i; ?>');">修改</a>
+                            <?php if ($it['status']=='T'){ ?>
+                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=A">
+                                    <b>&nbsp;进行&nbsp;</b>
                                 </a>
                                 <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">
-                                    <b>&nbsp;完成&nbsp;</b>
+                                    &nbsp;完成&nbsp;
                                 </a>
                             <?php }else{ ?>
-                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=T">
-                                    &nbsp;放回队列&nbsp;
-                                </a>
+                                <?php if($it['status']=='A'){?>
+                                    <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=T">
+                                        &nbsp;暂缓&nbsp;
+                                    </a>
+                                    <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">
+                                        <b>&nbsp;完成&nbsp;</b>
+                                    </a>
+                                <?php }else{ ?>
+                                    <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=T">
+                                        &nbsp;放回队列&nbsp;
+                                    </a>
+                                <?php } ?>
                             <?php } ?>
-                        <?php } ?>
-                    </div>
-                    <div id="task_delete_prompt_<?php echo $i; ?>" style="display:none;float:right;">
-                        删除#<?php echo $it['id']; ?>条目
-                        <a href="?page=<?php echo $this->PagePath; ?>&operation=delete_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>">确认</a>
-                    </div>
+                        </div>
+                        <div id="task_delete_prompt_<?php echo $i; ?>" style="display:none;float:right;">
+                            删除#<?php echo $it['id']; ?>条目
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=delete_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>">确认</a>
+                        </div>
+                    <?php }?>
                 </div>
             </div>
         </li>
@@ -4067,7 +4072,9 @@ class LAManagement{
             }
         </script>
         <div class='main_content'>
-            <a onClick="la_showTaskEditor('<?php echo $folder;?>',-1,-1);">新增事项</a>
+            <?php if($this->IsLoggedIn()){ ?>
+                <a onClick="la_showTaskEditor('<?php echo $folder;?>',-1,-1);">新增事项</a>
+            <?php } ?>
             <ul class="task_ul"><?php
             if(isset($active_items)) foreach($active_items as $it){
                 $this->MakeTaskListItem($folder,$this->GLOBAL_TASK_I,$it);
@@ -4092,26 +4099,28 @@ class LAManagement{
     }
     function MakeTaskEditor(){
         ?>
-        <div class='audio_player_box' style='display:none;' id='task_editor_box'>
-            <p class='task_p'>
-                <b><span id="task_editing_id"></span></b>&nbsp;在任务组&nbsp;<span id="task_editing_path"></span>
-            </p>
-            <div>
-            <form method = "post" style='display:inline;' 
-            action=""
-            id="form_task_editor">
-                <textarea class="quick_post_string no_border" type="text" id="task_editor_content" name="task_editor_content" form="form_task_editor"
-                    onfocus="if (value =='任务描述'){value ='';}"onblur="if (value ==''){value='任务描述';la_auto_grow(this);}" oninput="la_auto_grow(this);">任务描述</textarea>
-                <textarea class="quick_post_string no_border" style="font-size:12px;" type="text" id="task_editor_tags" name="task_editor_tags" form="form_task_editor"
-                    onfocus="if (value =='标签'){value ='';}"onblur="if (value ==''){value='标签';la_auto_grow(this);}" oninput="la_auto_grow(this);">标签</textarea>
-            </form>
-            <div class="inline_block_height_spacer"></div>
-            <a onClick="la_hideTaskEditor();">取消</a>
-            <input class="btn form_btn" type="submit" value="保存" name="task_editor_confirm" form="form_task_editor" id='task_editor_confirm'>
-            <div class="block_height_spacer"></div>
-            <script> la_auto_grow(document.getElementById("task_editor_content")); la_auto_grow(document.getElementById("task_editor_tags"));</script>
+        <?php if($this->IsLoggedIn()){ ?>
+            <div class='audio_player_box' style='display:none;' id='task_editor_box'>
+                <p class='task_p'>
+                    <b><span id="task_editing_id"></span></b>&nbsp;在任务组&nbsp;<span id="task_editing_path"></span>
+                </p>
+                <div>
+                <form method = "post" style='display:inline;' 
+                action=""
+                id="form_task_editor">
+                    <textarea class="quick_post_string no_border" type="text" id="task_editor_content" name="task_editor_content" form="form_task_editor"
+                        onfocus="if (value =='任务描述'){value ='';}"onblur="if (value ==''){value='任务描述';la_auto_grow(this);}" oninput="la_auto_grow(this);">任务描述</textarea>
+                    <textarea class="quick_post_string no_border" style="font-size:12px;" type="text" id="task_editor_tags" name="task_editor_tags" form="form_task_editor"
+                        onfocus="if (value =='标签'){value ='';}"onblur="if (value ==''){value='标签';la_auto_grow(this);}" oninput="la_auto_grow(this);">标签</textarea>
+                </form>
+                <div class="inline_block_height_spacer"></div>
+                <a onClick="la_hideTaskEditor();">取消</a>
+                <input class="btn form_btn" type="submit" value="保存" name="task_editor_confirm" form="form_task_editor" id='task_editor_confirm'>
+                <div class="block_height_spacer"></div>
+                <script> la_auto_grow(document.getElementById("task_editor_content")); la_auto_grow(document.getElementById("task_editor_tags"));</script>
+                </div>
             </div>
-        </div>
+        <?php } ?>
         <script>
         <?php for($j=0;$j<$this->GLOBAL_TASK_I;$j++){?>
             b = document.getElementById("task_item_<?php echo $j; ?>");
@@ -4123,6 +4132,7 @@ class LAManagement{
                 d.style.display = disp=="none"?"block":"none";
                 w.className = cn==""?"plain_block":"";
             });
+            <?php if($this->IsLoggedIn()){ ?>
             del = document.getElementById("task_delete_button_<?php echo $j; ?>");
             del.addEventListener("click", function() {
                 p = document.getElementById("task_delete_prompt_<?php echo $j; ?>");
@@ -4132,6 +4142,7 @@ class LAManagement{
                 disp = p.style.display;
                 p.style.display = disp=="none"?"block":"none";
             });
+            <?php } ?>
         <?php } ?>
         </script>
         <?php
@@ -4484,6 +4495,7 @@ class LAManagement{
             }else if (isset($a['style']) && $a['style']==4){
                 $this->MakeSmallQuoteAdditional($a['path'],$a['title'],$a['more'],$a['quick_post']);
             }else if (isset($a['style']) && $a['style']==5){
+                $this->FileNameList = array_reverse($this->FileNameList);//old first
                 $this->MakeTaskGroupAdditional($path, $a['count']);
             }
             if(isset($folder)){

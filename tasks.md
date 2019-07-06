@@ -5,8 +5,5 @@ Entry
 - Target = ./snd
 - PastCount = 30
 
-Entry
-- Target = ./snd
-
 <!-- End of TaskManager -->
 

@@ -37,7 +37,7 @@ Additional
 - Count = 30
 - More = 过去的任务
 
-Layout = Normal
+Layout = Gallery
 
 <!-- End of index.md -->
 
