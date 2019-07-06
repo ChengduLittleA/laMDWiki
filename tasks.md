@@ -3,9 +3,10 @@
 
 Entry
 - Target = ./snd
-- PastCount = 3
+- PastCount = 30
 
 Entry
-- Target = ./img
+- Target = ./snd
 
 <!-- End of TaskManager -->
+

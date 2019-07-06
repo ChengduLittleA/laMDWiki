@@ -34,6 +34,7 @@ class LAManagement{
     protected $IsTaskManager;
     protected $TaskManagerEntries;
     protected $TaskManagerTitle;
+    protected $GLOBAL_TASK_I;
     
     protected $PrevFile;
     protected $NextFile;
@@ -102,6 +103,7 @@ class LAManagement{
         $this->AddTranslationEntry('上级','Up');
         $this->AddTranslationEntry('首页','Home');
         $this->AddTranslationEntry('列表','List');
+        $this->GLOBAL_TASK_I=0;
     }
     
     function LimitAccess($mode){
@@ -2455,26 +2457,25 @@ class LAManagement{
                     </div>
                 </div>
             <?php } ?>
-            <div class='task_content'>
-            <div class='halftone1 border_only' style='float:left;'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-            &nbsp;这是一个任务
-            </div>
-            <div class='task_content'>
-            <div class='halftone2 border_only' style='float:left;'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-            &nbsp;这是另一个任务
-            </div>
-            <div class='task_content'>
-            <div class='halftone3 border_only' style='float:left;'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-            &nbsp;居然还有个任务
-            </div>
-            <div class='task_content'>
-            <div class='halftone4 border_only' style='float:left;'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-            &nbsp;不同种类的任务
-            </div>
-            <div class='task_content'>
-            <div class='border_only' style='float:left;'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-            &nbsp;还有空白的任务
-            </div>
+            <?php
+                $this->FileNameList=[];
+                $path = $target;
+                $current_dir = opendir($path);
+                while(($file = readdir($current_dir)) !== false) {
+                    $sub_dir = $path . '/' . $file;
+                    if($file == '.' || $file == '..' || $file=='index.md') {
+                        continue;
+                    } else if(!is_dir($sub_dir)){
+                        $ext=pathinfo($file,PATHINFO_EXTENSION);
+                        if($ext=='md')
+                            $this->FileNameList[] = $file;
+                    }
+                }
+                if($this->FileNameList)     sort($this->FileNameList);
+                $this->FileNameList = array_reverse($this->FileNameList);
+                
+                echo $this->MakeTaskGroupAdditional($target,$pc);
+            ?>
         </div>
         <?php
         $i++;
@@ -4035,9 +4036,7 @@ class LAManagement{
     }
     function MakeTaskGroupAdditional($folder, $done_limit){
         $task_files = $this->FileNameList;
-        $i=0;
         $this->ReadTaskItems($folder, $task_files, $done_limit, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items, $active_items);
-        
         ?>
         <script>
             function la_showTaskEditor(path,id,i){
@@ -4071,46 +4070,23 @@ class LAManagement{
             <a onClick="la_showTaskEditor('<?php echo $folder;?>',-1,-1);">新增事项</a>
             <ul class="task_ul"><?php
             if(isset($active_items)) foreach($active_items as $it){
-                $this->MakeTaskListItem($folder,$i,$it);
-                $i++;
+                $this->MakeTaskListItem($folder,$this->GLOBAL_TASK_I,$it);
+                $this->GLOBAL_TASK_I++;
             }?>
             </ul>
             <ul class="task_ul"><?php
             if(isset($unfinished_items)) foreach($unfinished_items as $it){
-                $this->MakeTaskListItem($folder,$i,$it);
-                $i++;
+                $this->MakeTaskListItem($folder,$this->GLOBAL_TASK_I,$it);
+                $this->GLOBAL_TASK_I++;
             }?>
             </ul>
             <ul class="task_ul">
             <?php
             if(isset($finished_items)) foreach($finished_items as $it){
-                $this->MakeTaskListItem($folder,$i,$it);
-                $i++;
+                $this->MakeTaskListItem($folder,$this->GLOBAL_TASK_I,$it);
+                $this->GLOBAL_TASK_I++;
             }?>
-            </ul>
-            
-            <script>
-            <?php for($j=0;$j<$i;$j++){?>
-                b = document.getElementById("task_item_<?php echo $j; ?>");
-                b.addEventListener("click", function() {
-                    d = document.getElementById("task_detail_<?php echo $j; ?>");
-                    w = document.getElementById("task_item_wrapper_<?php echo $j; ?>");
-                    disp = d.style.display;
-                    cn = w.className;
-                    d.style.display = disp=="none"?"block":"none";
-                    w.className = cn==""?"plain_block":"";
-                });
-                del = document.getElementById("task_delete_button_<?php echo $j; ?>");
-                del.addEventListener("click", function() {
-                    p = document.getElementById("task_delete_prompt_<?php echo $j; ?>");
-                    b = document.getElementById("task_save_buttons_<?php echo $j; ?>");
-                    disp = b.style.display;
-                    b.style.display = disp=="none"?"block":"none";
-                    disp = p.style.display;
-                    p.style.display = disp=="none"?"block":"none";
-                });
-            <?php } ?>
-            </script>
+            </ul>            
         </div>
         <?php
     }
@@ -4136,6 +4112,28 @@ class LAManagement{
             <script> la_auto_grow(document.getElementById("task_editor_content")); la_auto_grow(document.getElementById("task_editor_tags"));</script>
             </div>
         </div>
+        <script>
+        <?php for($j=0;$j<$this->GLOBAL_TASK_I;$j++){?>
+            b = document.getElementById("task_item_<?php echo $j; ?>");
+            b.addEventListener("click", function() {
+                d = document.getElementById("task_detail_<?php echo $j; ?>");
+                w = document.getElementById("task_item_wrapper_<?php echo $j; ?>");
+                disp = d.style.display;
+                cn = w.className;
+                d.style.display = disp=="none"?"block":"none";
+                w.className = cn==""?"plain_block":"";
+            });
+            del = document.getElementById("task_delete_button_<?php echo $j; ?>");
+            del.addEventListener("click", function() {
+                p = document.getElementById("task_delete_prompt_<?php echo $j; ?>");
+                b = document.getElementById("task_save_buttons_<?php echo $j; ?>");
+                disp = b.style.display;
+                b.style.display = disp=="none"?"block":"none";
+                disp = p.style.display;
+                p.style.display = disp=="none"?"block":"none";
+            });
+        <?php } ?>
+        </script>
         <?php
     }
     
