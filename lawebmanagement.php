@@ -1720,7 +1720,7 @@ class LAManagement{
                 .navigation_task   { display: block; }
                 
                 .hidden_on_mobile        { display: none; }
-                .hidden_on_desktop       { display: initial; }
+                .hidden_on_desktop       { display: block; }
                 .hidden_on_desktop_inline{ display: inline; }
                 
                 #HeaderQuickButtons{ top:0px; }
@@ -2849,11 +2849,11 @@ class LAManagement{
                     <a>总表</a>
                     <a>日历</a>
                 </div>                
-                <span class="hidden_on_desktop"><div id="login_again_button" class='btn' style='display:none' onClick="la_toggle_login_task_desktop();"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:"登录"?></div></span>
-                <span class="hidden_on_desktop"><div class='btn' onClick="la_toggle_login_task_mobile()">查看</div></span>
+                <span class="hidden_on_desktop_inline"><div id="login_again_button" class='btn' style='display:none' onClick="la_toggle_login_task_desktop();"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:"登录"?></div></span>
+                <span class="hidden_on_desktop_inline"><div class='btn' onClick="la_toggle_login_task_mobile()">查看</div></span>
                 <span class="hidden_on_mobile"><div class='btn' onClick="la_toggle_login_task_desktop()"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:"登录"?></div></span>
             </div>
-            <span class="hidden_on_desktop">
+            <span class="hidden_on_desktop_inline">
                 <div id="task_view_buttons" style="display:block;text-align:right;display:none;">
                     <div class="inline_height_spacer"></div>
                     <a>正常</a>
@@ -5517,7 +5517,7 @@ class LAManagement{
     }
     function MakeTaskMasterHeader(){
     ?>
-        <span class="hidden_on_desktop" ><span id="task_master_header"> <?php echo $this->TaskManagerTitle; ?> </span></span>
+        <span class="hidden_on_desktop_inline" ><span id="task_master_header"> <?php echo $this->TaskManagerTitle; ?> </span></span>
         <span class="hidden_on_mobile"><span id="task_master_header_desktop"> 正在跟踪 <?php echo $this->TaskManagerTitle; ?> </span></span>
     <?php
     }
