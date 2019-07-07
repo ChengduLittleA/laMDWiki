@@ -5120,6 +5120,7 @@ class LAManagement{
         <?php
     }
     function MakeTaskManagerFooter(){
+        if($this->TaskManagerSelf && !$this->IsLoggedIn()) return;
     ?>
         <?php if(!$this->TaskManagerSelf) {?>
             <div class="bottom_sticky_menu_container modal_dialog">
@@ -5146,7 +5147,7 @@ class LAManagement{
                                         </td>
                                     </tr>
                                     <tr id='task_item_option_<?php echo $tic ?>' style='display:none'>
-                                        <td>
+                                        <td colspan="2">
                                         <div>
                                             <div class='inline_block_height_spacer'></div>
                                             显示
@@ -5162,7 +5163,7 @@ class LAManagement{
                                         <script>
                                             function task_option_toggle_<?php echo $tic ?>(){
                                                 ta = document.getElementById("task_item_option_<?php echo $tic ?>");
-                                                ta.style.display = ta.style.display=='none'?'block':'none';
+                                                ta.style.display = ta.style.display=='none'?'table-row':'none';
                                             }
                                         </script>
                                         </td>
@@ -5224,11 +5225,13 @@ class LAManagement{
             <table style="text-align:center;"><tr>
                 <?php if(!$this->TaskManagerSelf){ ?>
                     <td style="width:50%;"><a style="display:block;" onClick="la_task_group_switcher_toogle()">共 <?php echo count($this->TaskManagerGroups); ?> 个事件组</a></td>
+                    <?php if($this->IsLoggedIn()){ ?><td style="width:50%;"><a style="display:block;" onClick="la_task_adder_toogle()">新增事件 +</a></td><?php } ?>
                 <?php }else{ ?>
                     <td style="width:25%;"><a style="display:block;" href="?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>">选组</a></td>
                     <td style="width:25%;"><a style="display:block;" href="?page=<?php echo $this->PagePath?>&operation=edit">编辑</a></td>
+                    <td style="width:50%;"><a style="display:block;" onClick="la_showTaskEditor('<?php echo $this->InterlinkPath(); ?>',-1,-1);">新增事件 +</a></td>
                 <?php } ?>
-                <?php if($this->IsLoggedIn()){ ?><td style="width:50%;"><a style="display:block;" onClick="la_task_adder_toogle()">新增事件 +</a></td><?php } ?>
+                
             </tr></table>
         </div>
         <script>

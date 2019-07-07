@@ -7,8 +7,5 @@ GroupName = 全局事件列表
 Entry
 - Target = ./snd
 
-Entry
-- Target = ./.git
-
 <!-- End of TaskManager -->
 
