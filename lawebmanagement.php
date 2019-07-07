@@ -244,7 +244,8 @@ class LAManagement{
             $Returns[$i]["BlockName"] = $BlockName;
             
             $j = -1; $k = 0; $new=False;
-            foreach(explode("\n",trim($Matches[3][0])) as $Line){
+            $lines=explode("\n",trim($Matches[3][0]));
+            foreach($lines as $Line){
                 if (isset($Line[0]) && $Line[0] == "-"){
                     if ($j<0) continue;
                     else{
@@ -255,14 +256,14 @@ class LAManagement{
                         $k++;
                     }
                 }else{
-                    if($Line=='') $new=True; else $new=False;
+                    if(!preg_match("/[\S]+/",$Line)) $new=True; else $new=False;
                     if($new==True) continue;
                     $j++;
                     $k=0;
                     $Analyze = explode("=", $Line,2);
                     if(count($Analyze)<2){
                         $Returns[$i]["Items"][$j]["Name"] = trim($Line);
-                        $Returns[$i]["Items"][$j]["Value"] = "";
+                        $Returns[$i]["Items"][$j]["Value"] = NULL;
                     }else{
                         $Returns[$i]["Items"][$j]["Name"] = trim($Analyze[0]);
                         $Returns[$i]["Items"][$j]["Value"] = trim($Analyze[1]);
