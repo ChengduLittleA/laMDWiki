@@ -34,6 +34,8 @@ class LAManagement{
     protected $IsTaskManager;
     protected $TaskManagerEntries;
     protected $TaskManagerTitle;
+    protected $TaskManagerGroups;
+    protected $TaskManagerSelf;
     protected $GLOBAL_TASK_I;
     
     protected $PrevFile;
@@ -280,22 +282,22 @@ class LAManagement{
             if(!isset($Block["IsConfig"])) continue;
             if($Block["IsConfig"]==False){
                 fwrite($File,$Block["Content"]);
-                fwrite($File,"\n");
+                fwrite($File,PHP_EOL.PHP_EOL);
             }else{
-                fwrite($File,"<!-- ".$Block["BlockName"]." -->\n\n");
+                fwrite($File,"<!-- ".$Block["BlockName"]." -->".PHP_EOL.PHP_EOL);
                 if(isset($Block["Items"])){
                    foreach($Block["Items"] as $Name){
                         fwrite($File,$Name["Name"]);
                         if(isset($Name["Value"])&&$Name["Value"]!='') fwrite($File," = ".$Name["Value"]);
-                        fwrite($File,"\n");
+                        fwrite($File,PHP_EOL);
                         if(isset($Name["Items"]))
                             foreach($Name["Items"] as $Argument){
-                                fwrite($File,"- ".$Argument["Argument"]." = ".$Argument["Value"]."\n");
+                                fwrite($File,"- ".$Argument["Argument"]." = ".$Argument["Value"].PHP_EOL);
                             }
-                        fwrite($File,"\n");
+                        fwrite($File,PHP_EOL);
                     }
                 }
-                fwrite($File,"<!-- End of ".$Block["BlockName"]." -->\n\n");
+                fwrite($File,"<!-- End of ".$Block["BlockName"]." -->".PHP_EOL.PHP_EOL);
             }
         }
     }
@@ -1414,20 +1416,26 @@ class LAManagement{
                 if( isset($_POST['task_editor_confirm'])
                     && isset($_POST['task_editor_content']) && isset($_POST['task_editor_tags'])
                     && isset($_GET['target']) && isset($_GET['id'])){
-                    if($_POST['task_editor_content']=="任务描述" || $_POST['task_editor_content']=="") return;
+                    if($_POST['task_editor_content']=="事件描述" || $_POST['task_editor_content']=="") return;
                     if($_POST['task_editor_tags'] == "标签") $_POST['task_editor_tags']="";
                     if(intval($_GET['id'])<0) 
                         $this->EditTask($_GET['target'], $_GET['id'], $_POST['task_editor_content'], $_POST['task_editor_tags'], "T", 0, 0);
                     else
                         $this->EditTask($_GET['target'], $_GET['id'], $_POST['task_editor_content'], $_POST['task_editor_tags'], NULL, 1, 0);
+                    header('Location:?page='.$this->PagePath);
+                    exit;
                 }
             }else if($_GET['operation'] == "set_task"){
                 if(isset($_GET['state']) && isset($_GET['target']) && isset($_GET['id'])){
                     $this->EditTask($_GET['target'], $_GET['id'], NULL, NULL, $_GET['state'], 1, 0);
+                    header('Location:?page='.$this->PagePath);
+                    exit;
                 }
             }else if($_GET['operation'] == "delete_task"){
                 if(isset($_GET['target']) && isset($_GET['id'])){
                     $this->EditTask($_GET['target'], $_GET['id'], NULL, NULL, NULL, 1, 1);
+                    header('Location:?page='.$this->PagePath);
+                    exit;
                 }
             }
         }
@@ -1499,7 +1507,7 @@ class LAManagement{
             ::selection{ background:#000; color:#FFF; }
             ::-webkit-selection{ background:#000; color:#FFF; }
             
-            #Header{ position: sticky; top:0px; left:15%; display: block; z-index:100; }
+            #Header{ position: sticky; top:0px; left:15%; display: block; z-index:10; }
             #WebsiteTitle{ border:1px solid #000; display: inline-block; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-left:0px; margin-right:0px; margin-bottom:15px;
                 background-color:#FFF; box-shadow: 5px 5px #000;
             }	
@@ -1557,7 +1565,10 @@ class LAManagement{
             
             .underline_when_hover:hover { text-decoration: underline; }
             
-            .audio_player_box       { z-index:20; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto;  width:calc(60% - 55px); min-width:845px;}
+            .audio_player_box       { z-index:20; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto; margin-top:0px; width:calc(60% - 55px); min-width:845px;}
+            .bottom_sticky_menu_container { z-index:20; padding:10px; overflow: visible; position: sticky; bottom:80px; margin:15px auto; margin-bottom:0px; width:calc(60% - 33px); min-width:867px; }
+            .bottom_sticky_menu_left      { z-index:20; position: absolute; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; left:10px; bottom:10px; overflow: hidden; margin:0px;  width:50%; }
+            .bottom_sticky_menu_right     { z-index:20; position: absolute; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; right:10px; bottom:10px; overflow: hidden; margin:0px;  width:50%; }
             
             canvas                  { width:100%; height:100%; }
             .canvas_box_warpper_wide           { position: relative;}
@@ -1572,10 +1583,13 @@ class LAManagement{
             .block_image_expanded img          { margin: 0px auto; max-height:100vh; max-width:100% }
             .block_image_normal   img          { margin: 0px auto; max-height:100vh; max-width:100% }
             
-            .box_complete_background           { position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; z-index: -1;}            
+            .box_complete_background           { position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; z-index: -1;}
             .box_hang_right                    { float: right; width:30%;}
             
             .white_bkg    { background-color:#FFF; }
+            
+            .modal_block  { background-color:rgba(0,0,0,0.2); position: fixed; z-index:30; top: 0px; left: 0px; bottom: 0px; right: 0px; }
+            .modal_dialog { z-index:50; }
             
             .btn          { border:1px solid #000; padding: 5px; color:#000; display: inline; background-color:#FFF; font-size:16px; cursor: pointer; text-align: center; }
             .btn:hover    { border:3px double #000; padding: 3px; }
@@ -1623,6 +1637,9 @@ class LAManagement{
             .navigation        { border:1px solid #000; display: inline; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; right:0px; background-color:#FFF; box-shadow: 5px 5px #000; white-space: nowrap; text-align: center;}
             .navigation p      { display: inline; }
             
+            .navigation_task p { display: inline; }
+            .navigation_task   { display: inline; }
+            
             .tile_container    { display: table; table-layout: fixed; width: calc(100% + 30px); border-spacing:15px 7px; margin-left: -15px; margin-top: -7px; margin-bottom: 8px; }
             .tile_item         { display: table-cell; }
             
@@ -1636,6 +1653,8 @@ class LAManagement{
             .main_content a       { padding: 0px; padding-left:3px; padding-right:3px; display: inline-block;}            
             .main_content a:hover { border:1px solid #000; text-decoration: underline; }
             .main_content a:active{ border:1px solid #000; color:#FFF; background-color:#000; }
+            .main_content .no_border:hover { border: none; }
+            .main_content .no_border:active { border: none; }
             
             .preview{ margin: 10px; }
             .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6, .preview blockquote                                  { margin-top: 3px; margin-bottom: 3px; }
@@ -1679,6 +1698,9 @@ class LAManagement{
                 .navigation { display: none; margin: 0px; margin-bottom: 15px; }
                 .navigation p{ display: block; }
                 
+                .navigation_task p { display: block; }
+                .navigation_task   { display: block; }
+                
                 .hidden_on_mobile        { display: none; }
                 .hidden_on_desktop       { display: initial; }
                 .hidden_on_desktop_inline{ display: inline; }
@@ -1703,6 +1725,9 @@ class LAManagement{
                 .box_hang_right         { float: unset; width: unset;}
                 
                 .audio_player_box       { margin:10px auto;  width:calc(100% - 60px); min-width:unset;}
+                .bottom_sticky_menu_container { margin:10px auto;  width:calc(100% - 38px); min-width:unset;}
+                .bottom_sticky_menu_left      { width: 300px; max-width:calc(100% - 42px); }
+                .bottom_sticky_menu_right     { width: 300px; max-width:calc(100% - 42px); }
                 
                 .adaptive_column_container { display: block; }
                 
@@ -1838,17 +1863,29 @@ class LAManagement{
     }
     function WideHeaderEnd(){
         ?>
-            </div>
+        </div>
         <?php
     }
     function PageHeaderBegin(){
         ?>
-        <div id='Header' class='the_body'>
+        <div id='Header' class='the_body '>
         <?php
     }
     function PageHeaderEnd(){
         ?>
-            </div>
+        </div>
+        <?php
+    }
+    function TaskNavigationBegin(){
+        ?>
+        <div class="navigation_task" id="task_navigation_container" style="display:none;text-align:center">
+            &nbsp;&nbsp;
+            <p><a href="?page=index.md"><b>&#8962;&nbsp;<?php echo $this->FROM_ZH('首页') ?></b></a></p>
+        <?php
+    }
+    function TaskNavigationEnd(){
+        ?>
+        </div>
         <?php
     }
     function MakeTitleButton(){
@@ -1860,7 +1897,17 @@ class LAManagement{
                 <a class='hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
             </div>
         <?php }else{ ?>
-         <a href="?page=index.md"><?php echo $this->Title;?></a>
+            <a id="task_home_button" onClick="la_ToggleNavigationInTaskMode(); if(document.getElementById('task_view_buttons').style.display=='block'){la_toggle_login_task_mobile();}hide_login_uis();"><?php echo $this->Title;?></a>
+            <script>
+            function la_ToggleNavigationInTaskMode(){
+                c = document.getElementById("task_navigation_container");
+                disp = c.style.display=='none'?'inline':'none';
+                c.style.display=disp;
+                
+                h = document.getElementById("task_master_header_desktop");
+                h.style.display=disp=='none'?'inline':'none';
+            }
+            </script>
         <?php } ?>
         <?php
         $content = ob_get_contents();
@@ -2385,8 +2432,10 @@ class LAManagement{
         if(!is_file($this->PagePath) || !is_readable($this->PagePath)) return;
         
         $f = fopen($this->PagePath,'r');
-        $ConfContent = fread($f,filesize($this->PagePath));
+        if(($size=filesize($this->PagePath))==0) return;
+        $ConfContent = fread($f,$size);
         $Conf = $this->ParseMarkdownConfig($ConfContent);
+        fclose($f);
         $b = $this->GetBlock($Conf,'TaskManager');
         $list=[];
         if($b){
@@ -2399,110 +2448,109 @@ class LAManagement{
                 $i++;
             }
             $this->TaskManagerEntries = $list;
+            $this->ReadTaskFolderDescription(NULL,$this->PagePath,$this->TaskManagerTitle);
         }
-        if(preg_match("/#(.*)/",$ConfContent,$matches)) $this->TaskManagerTitle = $matches[1];
-        else $this->TaskManagerTitle = "任务列表";
     }
     function IsTaskManager(){
         return $this->IsTaskManager;
     }
-    function MakeTaskManagerHeader(){
-        ?>
-        <div class='the_body'>
-        <div class='top_panel'>
-            <?php echo $this->TaskManagerTitle ?>
-            <?php if($this->IsLoggedIn()){ ?>
-                <div style='float:right;text-align:right;'>
-                
-                <?php if(isset($_GET['operation'])){?>
-                    <div class='btn' id='task_page_button'>页面选项</div>
-                    <a class='btn' href='?page=<?php echo $this->PagePath?>'>退出调节</a>
-                <?php }else{ ?>
-                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=adjust'>调节</a>
-                    <div class='btn' id='task_item_content_button'>分组</div>
-                    <div id='task_item_content_dialog' style='display:none'>
-                        <div class='inline_height_spacer'></div>
-                        管理了下面位置的工作内容：
-                        <div class='inline_height_spacer'></div>
-                        <?php if($this->TaskManagerEntries!=Null) foreach ($this->TaskManagerEntries as $item){?>
-                            <div>
-                                位于 <?php echo $item['target']?> 的项目&nbsp;
-                                <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=delete&for=<?php echo $this->PagePath?>&target=<?php echo $item['target']?>'>删</a>
-                            </div>
-                            
-                            <div class='inline_height_spacer'></div>
-                        <?php }?>
-                        <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=edit'>编辑文字</a>
-                        <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>'>新增任务组</a>
-                    </div>
-                    <script>
-                        var content = document.getElementById("task_item_content_button");
-                        var content_dialog = document.getElementById("task_item_content_dialog");
-                        content.addEventListener("click", function() {
-                            var disp = content_dialog.style.display;
-                            content_dialog.style.cssText = disp=='none'?'display:block':'display:none';
-                        });
-                    </script>
-                <?php } ?>
-                </div>
-            <?php } ?>
-        </div>
-        </div>
-        <?php
+
+    function SortTaskList(&$unfinished_items, &$finished_items, &$active_items, $return_new_combined, $newest_first, $use_end_time){
+        $time_entry = $use_end_time?"time_end":"time_begin";
+        $callback = function ($a,$b) use($time_entry) {
+            return intval($this->TaskTimeDifferences($a[$time_entry], $b[$time_entry]))<=0?-1:1;
+        };
+        if(isset($unfinished_items)) { usort($unfinished_items,$callback); if($newest_first) $unfinished_items=array_reverse($unfinished_items); }
+        if(isset($finished_items)) { usort($finished_items,$callback); if($newest_first) $finished_items=array_reverse($finished_items); }
+        if(isset($active_items)) { usort($active_items,$callback); if($newest_first) $active_items=array_reverse($active_items); }
+    }
+    function ReadTaskFolderDescription($folder, $override_file, &$group_name){
+        $f = $override_file?$override_file:$folder.'/index.md';
+        if(is_readable($f))
+            $fi = fopen($f,"r");
+        if(isset($fi)){
+            $content = fread($fi,filesize($f));
+            fclose($fi);
+            $Conf = $this->ParseMarkdownConfig($content);
+            $b = $this->GetBlock($Conf,'TaskManager');
+            $list=[];
+            if($b){
+                $name = $this->GetLineValueByNames($Conf,"TaskManager","GroupName");
+                if(isset($name)) $group_name = $name;
+                return;
+            }
+        }
+        $group_name = pathinfo($folder,PATHINFO_BASENAME);
     }
     function MakeTaskList(){
         $i=0;
-        if($this->TaskManagerEntries!=Null) foreach ($this->TaskManagerEntries as $item){
-        $target = $item['target'];
-        $pc = $item['past_count'];
-        ?>
-        <div class='the_body'>
-            <?php if(isset($_GET['operation'])) {?>
-                <div style='text-align:right;'>
-                    <div class='additional_options'>
-                        位于<?php echo $item['target']?>的任务组
-                        <div class='btn' onclick='task_toggle_<?php echo $i ?>()'>选项</div>  
-                        <div id='task_item_<?php echo $i ?>' style='display:none'>
-                            <div class='inline_height_spacer'></div>
-                            显示
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$target."&count=1"?>'><?php echo $pc==1?'<b>1</b>':'1'?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$target."&count=2"?>'><?php echo $pc==2?'<b>2</b>':'2'?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$target."&count=3"?>'><?php echo $pc==3?'<b>3</b>':'3'?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$target."&count=7"?>'><?php echo $pc==7?'<b>7</b>':'7'?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$target."&count=14"?>'><?php echo $pc==14?'<b>14</b>':'14'?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$target."&count=30"?>'><?php echo $pc==30?'<b>30</b>':'30'?></a>
-                            天内完成的
-                        </div>
-                        <script>
-                            function task_toggle_<?php echo $i ?>(){
-                                ta = document.getElementById("task_item_<?php echo $i ?>");
-                                ta.style.display = ta.style.display=='none'?'block':'none';
-                            }
-                        </script>
-                    </div>
-                </div>
-            <?php } ?>
-            <?php
-                $this->FileNameList=[];
-                $path = $target;
-                $current_dir = opendir($path);
-                while(($file = readdir($current_dir)) !== false) {
-                    $sub_dir = $path . '/' . $file;
-                    if($file == '.' || $file == '..' || $file=='index.md') {
-                        continue;
-                    } else if(!is_dir($sub_dir)){
-                        $ext=pathinfo($file,PATHINFO_EXTENSION);
-                        if($ext=='md')
-                            $this->FileNameList[] = $file;
-                    }
-                }
-                if($this->FileNameList)     sort($this->FileNameList);
-                echo $this->MakeTaskGroupAdditional($target,$pc);
+        $unfinished_items=[];
+        $finished_items=[];
+        $active_items=  [];
+        $groups=[];
+        
+        if(!$this->IsTaskManager) return;
+        
+        if($this->TaskManagerEntries==Null){
+            $item['target'] = $this->InterlinkPath();
+            $item['past_count'] = 30;
+            $this->TaskManagerEntries[] = $item;
+            $this->TaskManagerSelf = 1;
+        }
+        foreach ($this->TaskManagerEntries as $item){
+            $target = $item['target'];
+            $pc = $item['past_count'];
+            $folder_title = NULL;
             ?>
+            <div class='the_body'>
+
+                    <div style='text-align:right;'>
+                        
+                    </div>
+
+                <?php
+                    $this->FileNameList=[];
+                    $path = $target;
+                    if(is_readable($path) && is_dir($path)){
+                        $current_dir = opendir($path);
+                        while(($file = readdir($current_dir)) !== false) {
+                            $sub_dir = $path . '/' . $file;
+                            if($file == '.' || $file == '..' || $file=='index.md') {
+                                continue;
+                            } else if(!is_dir($sub_dir)){
+                                $ext=pathinfo($file,PATHINFO_EXTENSION);
+                                if($ext=='md')
+                                    $this->FileNameList[] = $file;
+                            }
+                        }
+                        if($this->FileNameList)     sort($this->FileNameList);
+                        
+                        $this->ReadTaskItems($path, $this->FileNameList, $pc, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items, $active_items);
+                        
+                        $this->ReadTaskFolderDescription($path, NULL,$folder_title);
+                        $folder_item['title'] = $folder_title;
+                        $folder_item['path'] = $path;
+                        $folder_item['past_count']=$pc;
+                        $groups[] = $folder_item;
+                    }else{
+                        $folder_item['title'] = '无法读取';
+                        $folder_item['path'] = $path;
+                        $folder_item['past_count']=1;
+                        $groups[] = $folder_item;
+                    }
+                ?>
+            </div>
+            <?php
+            $i++;
+        }?>
+        <div class='the_body'>
+        <?php
+            $this->SortTaskList($unfinished_items, $finished_items, $active_items, 0, 1, 0);
+            $this->MakeTaskGroupAdditional(NULL, 30,$unfinished_items, $finished_items, $active_items);
+            $this->TaskManagerGroups = $groups;
+        ?>
         </div>
         <?php
-        $i++;
-        }
     }
     
     function InsertSideNotes($html){
@@ -2631,10 +2679,10 @@ class LAManagement{
         ?> 
     
         <?php if(!$this->IsTaskManager){?><div id='LoginPanel' class='top_panel' style='display:none;'>
-        <?php }else{ ?><div id="task_manager_login" style="display:none;"><? } ?>
+        <?php }else{ ?><div id="task_manager_login" style="display:none;"><?php } ?>
             
             <?php if ($this->IsLoggedIn()) { ?>
-                <? if(!$this->IsTaskManager){ ?>
+                <?php if(!$this->IsTaskManager){ ?>
                     <a href='?page=<?php echo $this->PagePath;?>&operation=settings'>网站设置</a>
                     查看为
                     <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
@@ -2648,7 +2696,7 @@ class LAManagement{
                 <?php
                 if(!$this->IsLoggedIn()){
                     ?>
-                    <? if(!$this->IsTaskManager){ ?>
+                    <?php if(!$this->IsTaskManager){ ?>
                         <h3 class = "inline_components" >Language/语言</h3>
                         <?php if (isset($_GET['static_generator'])){
                             $StaticLangEN = $this->ChooseLanguageAppendix($this->PagePath,'en');
@@ -2666,7 +2714,7 @@ class LAManagement{
                     if(!isset($_GET['static_generator'])){
                     ?>
                     <div id="login_again_dialog" style="display:none;">
-                        <? if(!$this->IsTaskManager){ ?>
+                        <?php if(!$this->IsTaskManager){ ?>
                             <div class='inline_block_height_spacer'></div>
                             <hr />
                         <?php }else{ ?>
@@ -2675,7 +2723,7 @@ class LAManagement{
                         <form method = "post" action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>" style='margin-bottom:10px;'>
                             <div class = "inline_components">用户名:</div>
                             <input class='string_input' type="text" id="username" name="username" style='margin-right:0px;'
-                            value="<?php if(!empty($user_username)) echo $user_username; ?>" />
+                            value="<?php if(!empty($user_username)) {echo $user_username;} ?>" />
                             <br />
                             <div class='inline_components'>密码:</div>
                             <input class='string_input' type="password" id="password" name="password" style='margin-right:0px;margin-bottom:15px;'/>
@@ -2807,12 +2855,20 @@ class LAManagement{
             btn = document.getElementById("login_again_button");
             if(btn) btn.style.display = btn.style.display=="none"?"unset":"none";
         }
+        function hide_login_uis(){
+            again = document.getElementById("login_again_dialog");
+            dialog = document.getElementById("task_manager_login");
+            if(again)again.style.display = "none";
+            dialog.style.display = "none";
+        }
         function la_toggle_login_task_desktop(){
             again = document.getElementById("login_again_dialog");
             dialog = document.getElementById("task_manager_login");
             disp = (again?again:dialog).style.display=="none"?"block":"none";
             dialog.style.display = disp;
             if(again)again.style.display = disp;
+            c = document.getElementById("task_navigation_container");
+            c.style.display='none';
         }
         function la_toggle_login_task_mobile(){
             vb = document.getElementById("task_view_buttons");
@@ -2820,8 +2876,15 @@ class LAManagement{
             dialog = document.getElementById("task_manager_login");
             dialog.style.display = disp;
             vb.style.display = disp;
+            
             btn = document.getElementById("login_again_button");
             if(btn) btn.style.display = disp=="block"?"unset":"none";
+            
+            mh = document.getElementById("task_master_header");
+            mh.style.display = disp=="block"?"none":"unset";
+            
+            c = document.getElementById("task_navigation_container");
+            c.style.display='none';
         }
         </script>
         <?php
@@ -3570,7 +3633,7 @@ class LAManagement{
                     $this->SetTaskDisplay($_GET['for'],$_GET['target'],$_GET['count']);
                 }
             }
-            header('Location:?page='.$_GET['for'].'&operation=adjust');
+            header('Location:?page='.$_GET['for']);
         }
     }
     
@@ -3885,7 +3948,7 @@ class LAManagement{
         $min_id="99999"; $max_id="00000";
         if(preg_match("/#[\s]*[0-9]{4}-[0-9]{2}/",$file_content,$title)){
             if(preg_match("(\*\*[TDCA][0-9]{5}[\s\S]*)",$file_content,$list)){
-                if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)\n\n/",$list[0],$ma3,PREG_SET_ORDER)){
+                if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)$$/m",$list[0],$ma3,PREG_SET_ORDER)){
                     foreach ($ma3 as $m){
                         $count_total++;
                         if($m[1] == 'T') $count_pending++;
@@ -3895,11 +3958,13 @@ class LAManagement{
                         if($m[2]<$min_id) $min_id = $m[2];
                         if($m[2]>$max_id) $max_id = $m[2];
                     }
-                    return $title[0].PHP_EOL.PHP_EOL.$min_id.' - '.$max_id.PHP_EOL.PHP_EOL.
-                        "Total:$count_total Done:$count_finished Pending:$count_pending Canceled:$count_canceled Active:$count_active".PHP_EOL.PHP_EOL.
-                        $list[0];
                 }
+                return $title[0].PHP_EOL.PHP_EOL.$min_id.' - '.$max_id.PHP_EOL.PHP_EOL.
+                    "Total:$count_total Done:$count_finished Pending:$count_pending Canceled:$count_canceled Active:$count_active".PHP_EOL.PHP_EOL.
+                    $list[0];
             }
+            return $title[0].PHP_EOL.PHP_EOL.'00000 - 00000'.PHP_EOL.PHP_EOL.
+                "Total:$count_total Done:$count_finished Pending:$count_pending Canceled:$count_canceled Active:$count_active".PHP_EOL.PHP_EOL;
         }
         return $file_content;           
     }
@@ -3919,20 +3984,30 @@ class LAManagement{
             }
         }
         if(isset($file_list[0])) sort($file_list);
-        else return Null;
+        else{
+            $fi = fopen($path.'/'.$current_file, "w");
+            $this->InitTaskFileMeta($fi);
+            fflush($fi);
+            fclose($fi);
+            return $current_file;
+        }
         $file_list = array_reverse($file_list);
         
         foreach($file_list as $f){
             $fi = fopen($folder.'/'.$f, "r");
-            $content = fread($fi,filesize($folder.'/'.$f));
+            if(($size=filesize($folder.'/'.$f))==0)
+                continue;
+
+            $content = fread($fi,$size);
             fclose($fi);
             if(preg_match("/([0-9]{5})[\s]*-[\s]*([0-9]{5})/",$content,$match)){
                 $latest_id = $match[2];
                 if($latest_id < $id){
                     if($current_file!=$f){
-                        $fi = fopen($path.'/'.$current_file, "w");
-                        $this->InitTaskFileMeta($fi);
-                        fclose($fi);
+                        $fii = fopen($path.'/'.$current_file, "w");
+                        $this->InitTaskFileMeta($fii);
+                        fflush($fii);
+                        fclose($fii);
                         return $current_file;
                     }else{
                         return $f;
@@ -3955,11 +4030,13 @@ class LAManagement{
         if (!isset($state_change)) $state_change = "";
         if($existing){
             $f = $this->GetTaskFile($folder, $id, $latest_id);
+            if(!$f) return;
             $fi = fopen($folder.'/'.$f, "r");
-            $content = fread($fi,filesize($folder.'/'.$f));
+            if(($size=filesize($folder.'/'.$f))==0) return;
+            $content = fread($fi,$size);
             fclose($fi);
             
-            $modified = preg_replace_callback("/\*\*([TDCA])($id)\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)\n\n/",
+            $modified = preg_replace_callback("/\*\*([TDCA])(".$id.")\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)$$/m",
                 function($m) use ($state_change, $tags, $new_content, $delete) {
                     
                     if($delete) return "";
@@ -3978,8 +4055,9 @@ class LAManagement{
         }else{
             $f = $this->GetTaskFile($folder, 99999, $latest_id);
             if(!$f) return;
+            if(($size=filesize($folder.'/'.$f))==0) return;
             $fi = fopen($folder.'/'.$f, "r");
-            $content = fread($fi,filesize($folder.'/'.$f));
+            $content = fread($fi,$size);
             $cur_time = $this->CurrentTimeReadable();
             $content = $this->RefreshTaskFileMeta($content."**T".str_pad(($latest_id+1),5,"0",STR_PAD_LEFT)."** [ $cur_time ] [ $tags ] $new_content".PHP_EOL.PHP_EOL);
             $fi = fopen($folder.'/'.$f, "w");
@@ -3996,10 +4074,20 @@ class LAManagement{
         $interval = $to->diff($from);
         return intval($interval->format("%R%a"));
     }
+    function TaskTimeDifferences($time_from,$time_to){
+        $from = new DateTime($time_from['Y'].'-'.$time_from['M'].'-'.$time_from['D'].' '.$time_from['h'].':'.$time_from['m'].':'.$time_from['s']);
+        $to = new DateTime($time_to['Y'].'-'.$time_to['M'].'-'.$time_to['D'].' '.$time_to['h'].':'.$time_to['m'].':'.$time_to['s']);
+        $interval = $to->diff($from);
+        return intval($interval->format("%R%s"));
+    }
     function ReadTaskItems($folder, $file_list, $done_day_lim, $today_y, $today_m, $today_d, &$unfinished_items, &$finished_items, &$active_items){
+        $group_name=Null;
+        $this->ReadTaskFolderDescription($folder, NULL ,$group_name);
         
         foreach($file_list as $f){
+            if(!$f) continue;
             $fi = fopen($folder.'/'.$f, "r");
+            if(($size=filesize($folder.'/'.$f))==0) continue;
             $content = fread($fi,filesize($folder.'/'.$f));
             fclose($fi);
             if(preg_match("/# ([0-9]{4})-([0-9]{2})([\s\S]*)/m",$content,$ma)){
@@ -4008,13 +4096,13 @@ class LAManagement{
                 
                     if($ma2[3] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 31) > $done_day_lim) continue;
                     
-                    if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)\n\n/",$ma2[6],$ma3,PREG_SET_ORDER)){
+                    if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)$$/m",$ma2[6],$ma3,PREG_SET_ORDER)){
                         
                         if(isset($ma3)) foreach($ma3 as $m){
                             $item = Null;
                             if(preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2})[\s]*([0-9]{2}):([0-9]{2}):([0-9]{2})/U",$m[3],$ma_time,PREG_SET_ORDER)){
                                 
-                                if(($m[1]=='D'||$m[1]=='C') && $this->DayDifferences($today_y, $today_m, $today_d, $ma_time[0][1], $ma_time[0][2], $ma_time[0][3])>$done_day_lim) continue;
+                                if(($m[1]=='D'||$m[1]=='C') && $this->DayDifferences($today_y, $today_m, $today_d, $ma_time[1][1], $ma_time[1][2], $ma_time[1][3])>$done_day_lim) continue;
                                 
                                 $item['time_begin']['Y'] = $ma_time[0][1]; $item['time_begin']['M'] = $ma_time[0][2]; $item['time_begin']['D'] = $ma_time[0][3];
                                 $item['time_begin']['h'] = $ma_time[0][4]; $item['time_begin']['m'] = $ma_time[0][5]; $item['time_begin']['s'] = $ma_time[0][6];
@@ -4024,6 +4112,8 @@ class LAManagement{
                                 }
                             }
                             
+                            $item['group_name'] = $group_name;
+                            $item['folder'] = $folder;
                             $item['status'] = $m[1];
                             $item['id'] = $m[2];
                             preg_match_all("/[\S]+/",$m[4],$item['tags'],PREG_SET_ORDER);
@@ -4038,7 +4128,7 @@ class LAManagement{
             }
         }
     }
-    function MakeTaskListItem($path, $i, $it){
+    function MakeTaskListItem($i, $it, $show_group_name){
         ?>
         <?php if ($it['status']=='D'){ ?>
             <li class="done">
@@ -4050,16 +4140,17 @@ class LAManagement{
             <li class="pending">
         <?php } ?>
             <div id = 'task_item_wrapper_<?php echo $i; ?>'>
+                
                 <div id='task_item_<?php echo $i; ?>'>
                     <div class='underline_when_hover'>
-                    <?php if ($it['status']=='D'){ ?>
-                        <del><span id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></span></del>
-                    <?php }else if ($it['status']=='C'){ ?>
-                        <i><del><span id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></span></del></i>
-                    <?php }else{ ?>
-                        <span id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></span>
-                    <?php } ?>
-                        
+                        <?php echo $show_group_name?"<b>".$it['group_name']."</b> ":""; ?>
+                        <?php if ($it['status']=='D'){ ?>
+                            <del><span id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></span></del>
+                        <?php }else if ($it['status']=='C'){ ?>
+                            <i><del><span id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></span></del></i>
+                        <?php }else{ ?>
+                            <span id='task_item_content_<?php echo $i; ?>'><?php echo $it['content']; ?></span>
+                        <?php } ?>
                     </div>
                 </div>
                 <div id='task_detail_<?php echo $i; ?>' style="display: none;">
@@ -4083,30 +4174,30 @@ class LAManagement{
                     </p>
                     <?php if ($this->IsLoggedIn()){ ?>
                         <?php if ($it['status']!='C'){ ?>
-                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=C">丢弃</a>
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=C">丢弃</a>
                         <?php }else{ ?>
-                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">完成</a>
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=D">完成</a>
                         <?php } ?>
                         <a id="task_delete_button_<?php echo $i; ?>">删除</a>
                         <div id="task_save_buttons_<?php echo $i; ?>" style="float:right;">
-                            <a onclick="la_showTaskEditor('<?php echo $path; ?>','<?php echo $it['id']; ?>','<?php echo $i; ?>');">修改</a>
+                            <a onclick="la_showTaskEditor('<?php echo $it['folder']; ?>','<?php echo $it['id']; ?>','<?php echo $i; ?>');">修改</a>
                             <?php if ($it['status']=='T'){ ?>
-                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=A">
+                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=A">
                                     <b>&nbsp;进行&nbsp;</b>
                                 </a>
-                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">
+                                <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=D">
                                     &nbsp;完成&nbsp;
                                 </a>
                             <?php }else{ ?>
                                 <?php if($it['status']=='A'){?>
-                                    <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=T">
+                                    <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=T">
                                         &nbsp;暂缓&nbsp;
                                     </a>
-                                    <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=D">
+                                    <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=D">
                                         <b>&nbsp;完成&nbsp;</b>
                                     </a>
                                 <?php }else{ ?>
-                                    <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>&state=T">
+                                    <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=T">
                                         &nbsp;放回队列&nbsp;
                                     </a>
                                 <?php } ?>
@@ -4114,7 +4205,7 @@ class LAManagement{
                         </div>
                         <div id="task_delete_prompt_<?php echo $i; ?>" style="display:none;float:right;">
                             删除#<?php echo $it['id']; ?>条目
-                            <a href="?page=<?php echo $this->PagePath; ?>&operation=delete_task&target=<?php echo $path?>&id=<?php echo $it['id']; ?>">确认</a>
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=delete_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>">确认</a>
                         </div>
                     <?php }?>
                 </div>
@@ -4122,88 +4213,77 @@ class LAManagement{
         </li>
         <?php
     }
-    function MakeTaskGroupAdditional($folder, $done_limit){
-        $task_files = $this->FileNameList;
-        $this->ReadTaskItems($folder, $task_files, $done_limit, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items, $active_items);
+    function MakeTaskGroupAdditional($folder, $done_limit, $override_unfinished_items, $override_finished_items, $override_active_items){
+        $override = (isset($override_unfinished_items)||isset($override_finished_items)||isset($override_active_items));
+        if(!$override){
+            $task_files = $this->FileNameList;
+            $this->ReadTaskItems($folder, $task_files, $done_limit, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items, $active_items);
+            $this->ReadTaskFolderDescription($folder, NULL,$folder_title);
+        }else{
+            $unfinished_items = $override_unfinished_items;
+            $finished_items = $override_finished_items;
+            $active_items = $override_active_items;
+        }
+        if($this->TaskManagerSelf){
+            $folder_title = $this->TaskManagerTitle;
+            $folder = $this->InterlinkPath();
+        }
         ?>
-        <script>
-            function la_showTaskEditor(path,id,i){
-                editor = document.getElementById("task_editor_box");
-                eid = document.getElementById("task_editing_id");
-                epath = document.getElementById("task_editing_path");
-                tc = document.getElementById("task_item_content_"+i);
-                etc = document.getElementById("task_editor_content");
-                tt = document.getElementById("task_item_tags_"+i);
-                ett = document.getElementById("task_editor_tags");
-                tef = document.getElementById("form_task_editor");
-                footer = document.getElementById("task_manager_footer");
-                
-                editor.style.display="block";
-                eid.innerHTML=id>=0?id:"新增";
-                epath.innerHTML=path;
-                etc.innerHTML=tc?tc.innerHTML.trim():"任务描述";
-                tags = tt?tt.innerHTML.trim():"";
-                ett.innerHTML=tags==""?"标签":tags;
-                
-                tef.action = "?page="+"<?php echo$this->PagePath?>"+"&operation=edit_task&target="+path+"&id="+id;
-                
-                la_auto_grow(document.getElementById("task_editor_content"));
-                la_auto_grow(document.getElementById("task_editor_tags"));
-                
-                if(footer) footer.style.display="none";
-            }
-            function la_hideTaskEditor(){
-                editor = document.getElementById("task_editor_box");
-                editor.style.display="none";
-                footer = document.getElementById("task_manager_footer");
-                if(footer) footer.style.display="block";
-            }
-        </script>
-        <div class='main_content'>
-            <?php if($this->IsLoggedIn()){ ?>
-                <a onClick="la_showTaskEditor('<?php echo $folder;?>',-1,-1);">新增事项</a>
+        <div class='main_content' style='overflow:unset;'>
+            <?php if(!$override){ ?>
+            <div>
+                <b>跟踪：<?php echo $folder_title;?></b>
+            </div>
             <?php } ?>
             <ul class="task_ul"><?php
+            $show_group_name = $override && (!$this->TaskManagerSelf);
             if(isset($active_items)) foreach($active_items as $it){
-                $this->MakeTaskListItem($folder,$this->GLOBAL_TASK_I,$it);
+                $this->MakeTaskListItem($this->GLOBAL_TASK_I,$it,$show_group_name);
                 $this->GLOBAL_TASK_I++;
             }?>
             </ul>
             <ul class="task_ul"><?php
             if(isset($unfinished_items)) foreach($unfinished_items as $it){
-                $this->MakeTaskListItem($folder,$this->GLOBAL_TASK_I,$it);
+                $this->MakeTaskListItem($this->GLOBAL_TASK_I,$it,$show_group_name);
                 $this->GLOBAL_TASK_I++;
             }?>
             </ul>
             <ul class="task_ul">
             <?php
             if(isset($finished_items)) foreach($finished_items as $it){
-                $this->MakeTaskListItem($folder,$this->GLOBAL_TASK_I,$it);
+                $this->MakeTaskListItem($this->GLOBAL_TASK_I,$it,$show_group_name);
                 $this->GLOBAL_TASK_I++;
             }?>
-            </ul>            
+            </ul>
+            <?php if($this->IsLoggedIn() && !$show_group_name){ ?>
+                <div class='additional_content' style="position:sticky; bottom:15px; margin-bottom:0px;">
+                    <a class="no_border" style="display:block;text-align:center;"onClick="la_showTaskEditor('<?php echo $folder;?>',-1,-1);">在 <?php echo $folder_title;?> 中新增事件 +</a>
+                </div>
+            <?php } ?>
         </div>
         <?php
     }
     function MakeTaskEditor(){
         ?>
         <?php if($this->IsLoggedIn()){ ?>
-            <div class='audio_player_box' style='display:none;' id='task_editor_box'>
+            <div class='audio_player_box modal_dialog' style='display:none;' id='task_editor_box'>
                 <p class='task_p'>
-                    <b><span id="task_editing_id"></span></b>&nbsp;在任务组&nbsp;<span id="task_editing_path"></span>
+                    <b><span id="task_editing_id"></span></b>&nbsp;在事件组&nbsp;<span id="task_editing_path"></span>
                 </p>
                 <div>
                 <form method = "post" style='display:inline;' 
                 action=""
                 id="form_task_editor">
                     <textarea class="quick_post_string no_border" type="text" id="task_editor_content" name="task_editor_content" form="form_task_editor"
-                        onfocus="if (value =='任务描述'){value ='';}"onblur="if (value ==''){value='任务描述';la_auto_grow(this);}" oninput="la_auto_grow(this);">任务描述</textarea>
+                        onfocus="if (value =='事件描述'){value ='';}"onblur="if (value ==''){value='事件描述';la_auto_grow(this);}" oninput="la_auto_grow(this);">事件描述</textarea>
                     <textarea class="quick_post_string no_border" style="font-size:12px;" type="text" id="task_editor_tags" name="task_editor_tags" form="form_task_editor"
                         onfocus="if (value =='标签'){value ='';}"onblur="if (value ==''){value='标签';la_auto_grow(this);}" oninput="la_auto_grow(this);">标签</textarea>
                 </form>
                 <div class="inline_block_height_spacer"></div>
-                <a onClick="la_hideTaskEditor();">取消</a>
-                <input class="btn form_btn" type="submit" value="保存" name="task_editor_confirm" form="form_task_editor" id='task_editor_confirm'>
+                    <table style="table-style:fixed;"><tr>
+                        <td style="text-align:left;"><a onClick="la_hideTaskEditor();">取消</a></td>
+                        <td><input style="width:100%;"class="btn form_btn" type="submit" value="保存" name="task_editor_confirm" form="form_task_editor" id='task_editor_confirm'></td>
+                    </table>
                 <div class="block_height_spacer"></div>
                 <script> la_auto_grow(document.getElementById("task_editor_content")); la_auto_grow(document.getElementById("task_editor_tags"));</script>
                 </div>
@@ -4221,16 +4301,53 @@ class LAManagement{
                 w.className = cn==""?"plain_block":"";
             });
             <?php if($this->IsLoggedIn()){ ?>
-            del = document.getElementById("task_delete_button_<?php echo $j; ?>");
-            del.addEventListener("click", function() {
-                p = document.getElementById("task_delete_prompt_<?php echo $j; ?>");
-                b = document.getElementById("task_save_buttons_<?php echo $j; ?>");
-                disp = b.style.display;
-                b.style.display = disp=="none"?"block":"none";
-                disp = p.style.display;
-                p.style.display = disp=="none"?"block":"none";
-            });
+                del = document.getElementById("task_delete_button_<?php echo $j; ?>");
+                del.addEventListener("click", function() {
+                    p = document.getElementById("task_delete_prompt_<?php echo $j; ?>");
+                    b = document.getElementById("task_save_buttons_<?php echo $j; ?>");
+                    disp = b.style.display;
+                    b.style.display = disp=="none"?"block":"none";
+                    disp = p.style.display;
+                    p.style.display = disp=="none"?"block":"none";
+                });
             <?php } ?>
+        <?php } ?>
+        <?php if($this->IsLoggedIn()){ ?>
+            function la_showTaskEditor(path,id,i){
+                editor = document.getElementById("task_editor_box");
+                eid = document.getElementById("task_editing_id");
+                epath = document.getElementById("task_editing_path");
+                tc = document.getElementById("task_item_content_"+i);
+                etc = document.getElementById("task_editor_content");
+                tt = document.getElementById("task_item_tags_"+i);
+                ett = document.getElementById("task_editor_tags");
+                tef = document.getElementById("form_task_editor");
+                footer = document.getElementById("task_manager_footer");
+                
+                editor.style.display="block";
+                eid.innerHTML=id>=0?id:"新增";
+                epath.innerHTML=path;
+                etc.innerHTML=tc?tc.innerHTML.trim():"事件描述";
+                tags = tt?tt.innerHTML.trim():"";
+                ett.innerHTML=tags==""?"标签":tags;
+                
+                tef.action = "?page="+"<?php echo$this->PagePath?>"+"&operation=edit_task&target="+path+"&id="+id;
+                
+                la_auto_grow(document.getElementById("task_editor_content"));
+                la_auto_grow(document.getElementById("task_editor_tags"));
+                
+                la_show_modal_blocker();
+                
+                if(footer) footer.style.display="none";
+            }
+            function la_hideTaskEditor(){
+                editor = document.getElementById("task_editor_box");
+                editor.style.display="none";
+                footer = document.getElementById("task_manager_footer");
+                if(footer) footer.style.display="block";
+                
+                la_hide_modal_blocker();
+            }
         <?php } ?>
         </script>
         <?php
@@ -4584,7 +4701,7 @@ class LAManagement{
                 $this->MakeSmallQuoteAdditional($a['path'],$a['title'],$a['more'],$a['quick_post']);
             }else if (isset($a['style']) && $a['style']==5){
                 $this->FileNameList = array_reverse($this->FileNameList);//old first
-                $this->MakeTaskGroupAdditional($path, $a['count']);
+                $this->MakeTaskGroupAdditional($path, $a['count'],NULL,NULL,NULL);
             }
             if(isset($folder)){
                 ?>
@@ -4985,19 +5102,109 @@ class LAManagement{
         <?php
     }
     function MakeTaskManagerFooter(){
+        if($this->TaskManagerSelf) return;
     ?>
-        <div id="task_manager_footer" class="audio_player_box">
-            <div id="task_manager_group_switcher" style="max-height:calc(100vh - 167px); overflow:auto; display:none;">
-                aaaa
+        <div class="bottom_sticky_menu_container modal_dialog">
+            <div id="task_manager_group_switcher" class="bottom_sticky_menu_left" style="display:none;">
+                <?php if($this->IsLoggedIn()){ ?>
+                    <div class="inline_block_height_spacer"></div>
+                    <div>
+                        <div class='btn' id='task_item_content_button'>设置分组</div>
+                        <div style="float:right; display:none;" id='task_item_content_button_extra'>
+                            <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=edit'>编辑文字</a>
+                            <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>'>添加组</a>
+                        </div>
+                        <div class='inline_block_height_spacer'></div>
+                        <div id='task_item_content_dialog' style='display:none'>
+                            <table>
+                            <?php $tic=0;   ?>
+                            <?php if($this->TaskManagerEntries!=Null) foreach ($this->TaskManagerGroups as $item){
+                                $pc=$item['past_count'];
+                                ?>
+                                <tr>
+                                    <td><a class='btn' style="display:block" onclick='task_option_toggle_<?php echo $tic ?>()'><?php echo $item['title']?> 位于 <?php echo $item['path']?></a></td>
+                                    <td style="width:30px;">
+                                        <a class='btn' style="display:block" href='?page=<?php echo $this->PagePath?>&operation=task&action=delete&for=<?php echo $this->PagePath?>&target=<?php echo $item['path']?>'>删</a>
+                                    </td>
+                                </tr>
+                                <tr id='task_item_option_<?php echo $tic ?>' style='display:none'>
+                                    <td>
+                                    <div>
+                                        <div class='inline_block_height_spacer'></div>
+                                        显示
+                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=1"?>'><?php echo $pc==1?'<b>1</b>':'1'?></a>
+                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=2"?>'><?php echo $pc==2?'<b>2</b>':'2'?></a>
+                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=3"?>'><?php echo $pc==3?'<b>3</b>':'3'?></a>
+                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=7"?>'><?php echo $pc==7?'<b>7</b>':'7'?></a>
+                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=14"?>'><?php echo $pc==14?'<b>14</b>':'14'?></a>
+                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=30"?>'><?php echo $pc==30?'<b>30</b>':'30'?></a>
+                                        天内完成的
+                                        <div class='inline_block_height_spacer'></div>
+                                    </div>
+                                    <script>
+                                        function task_option_toggle_<?php echo $tic ?>(){
+                                            ta = document.getElementById("task_item_option_<?php echo $tic ?>");
+                                            ta.style.display = ta.style.display=='none'?'block':'none';
+                                        }
+                                    </script>
+                                    </td>
+                                </tr>
+                            <?php $tic++; }?>
+                            </table>
+                        </div>
+                        <script>
+                            var content = document.getElementById("task_item_content_button");
+                            content.addEventListener("click", function() {
+                                content_dialog = document.getElementById("task_item_content_dialog");
+                                extra_buttons = document.getElementById("task_item_content_button_extra");
+                                default_list = document.getElementById("task_default_list");
+                                disp = content_dialog.style.display;
+                                content_dialog.style.cssText = disp=='none'?'display:block':'display:none';
+                                extra_buttons.style.display = disp=='none'?'block':'none';
+                                default_list.style.display = disp=='none'?'none':'block';
+                            });
+                        </script>
+                    </div>
+                <?php } ?>
+                <div style="max-height:calc(100vh - 167px); overflow:auto;" id="task_default_list">
+                    <?php if(isset($this->TaskManagerGroups)) foreach ($this->TaskManagerGroups as $folder_item){?>
+                        <div>
+                            <table style="text-align:center;table-style:fixed;"><tr>
+                                <td><a style="display:block;"><?php echo $folder_item['title']?></a></td>
+                                <td style='width:80px;'><a style="display:block;" href="?page=<?php echo $folder_item['path']; ?>">
+                                <?php if(is_readable($folder_item['path'].'/index.md')){ ?>
+                                    进入分组
+                                <?php }else{?>
+                                    创建索引
+                                <?php }?></a></td>
+                            </tr></table>
+                        </div>
+                    <?php } ?>
+                </div>
             </div>
-            <div id="task_manager_group_adder" style="max-height:calc(100vh - 167px); overflow:auto; display:none;">
-                bbbb
+            <div id="task_manager_group_adder" class="bottom_sticky_menu_right" style="display:none;">
+                <div style="max-height:calc(100vh - 167px); overflow:auto;">
+                    <?php if(isset($this->TaskManagerGroups)) foreach ($this->TaskManagerGroups as $folder_item){?>
+                        <div>
+                            <table style="text-align:center;"><tr>
+                                <td width="70%;" ><a style="display:block;" onClick="la_task_adder_toogle();la_showTaskEditor('<?php echo $folder_item['path']; ?>',-1,-1);">到 <?php echo $folder_item['title']?></a></td>
+                            </tr></table>
+                        </div>
+                    <?php } ?>
+                </div>
             </div>
+        </div>
+        <div id="task_manager_footer" class="audio_player_box modal_dialog">
+            
             <div class="block_height_spacer"></div>
             <table style="text-align:center;table-layout:fixed;"><tr>
-                <td><a style="display:block;" onClick="la_task_group_switcher_toogle()">按任务组查看</a></td>
-                <?php if($this->IsLoggedIn()){ ?><td><a style="display:block;" onClick="la_task_adder_toogle()">新增事项+</a></td><?php } ?>
-            </tr><table>
+                <td><?php if(isset($this->TaskManagerGroups)){ ?>
+                    <a style="display:block;" onClick="la_task_group_switcher_toogle()">共 <?php echo count($this->TaskManagerGroups); ?> 个事件组</a>
+                <?php }else{ ?>
+                    <a style="display:block;" onClick="la_task_group_switcher_toogle()">请添加分组</a>
+                <?php } ?></td>
+                <?php if($this->IsLoggedIn()){ ?><td><a style="display:block;" onClick="la_task_adder_toogle()">新增事件 +</a></td><?php } ?>
+            </tr></table>
         </div>
         <script>
             function la_task_group_switcher_toogle(){
@@ -5006,6 +5213,8 @@ class LAManagement{
                 disp = sw.style.display=="none"?"block":"none";
                 sw.style.display = disp;
                 ad.style.display = "none";
+                if(disp=="block") la_show_modal_blocker();
+                else la_hide_modal_blocker();
             }
             function la_task_adder_toogle(){
                 sw = document.getElementById("task_manager_group_switcher");
@@ -5013,6 +5222,8 @@ class LAManagement{
                 disp = ad.style.display=="none"?"block":"none";
                 ad.style.display = disp;
                 sw.style.display = "none";
+                if(disp=="block") la_show_modal_blocker();
+                else la_hide_modal_blocker();
             }
         </script>
     <?php
@@ -5042,13 +5253,14 @@ class LAManagement{
                 lg_panel.style.display = shown ? "none" : "block";
                 //lg_toggle.innerHTML = shown? "收起":"登录";
             });
-            
+            <?php if(!$this->IsTaskManager){ ?>
             var hb = document.getElementById("HomeButton");
             var nav = document.getElementById("Navigation");
             hb.addEventListener("click", function() {
                 var disp = nav.style.display;
                 nav.style.cssText = disp==''?'display:block':'';
             });
+            <?php } ?>
             
             var img = [];
             
@@ -5258,6 +5470,27 @@ class LAManagement{
                                  return '<a'.$matches[1].'href="'.$this->GetRelativePath($this->PagePath,$matches[2]).'.html"'.$matches[3].'>'.$matches[4].'</a>';
                              },
                              $html_content);
+    }
+    function MakeModalBlocker(){
+        ?>
+        <div id="MODAL_BLOCKER" class="modal_block" style="display:none;"></div>
+        <script>
+        function la_show_modal_blocker(){
+            mb = document.getElementById("MODAL_BLOCKER");
+            mb.style.display="block";
+        }
+        function la_hide_modal_blocker(){
+            mb = document.getElementById("MODAL_BLOCKER");
+            mb.style.display="none";
+        }
+        </script>
+        <?php
+    }
+    function MakeTaskMasterHeader(){
+    ?>
+        <span class="hidden_on_desktop" ><span id="task_master_header"> <?php echo $this->TaskManagerTitle; ?> </span></span>
+        <span class="hidden_on_mobile"><span id="task_master_header_desktop"> 正在跟踪 <?php echo $this->TaskManagerTitle; ?> </span></span>
+    <?php
     }
 }
 

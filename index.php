@@ -161,15 +161,29 @@ if(!$LA->IsTaskManager()){
          
     echo $LA->MakeNavigationEnd();
 }else{
-
+    echo $LA->MakeTaskMasterHeader();
 }
-
 
 $LA->SetInterlinkPath($la_page_path);
 
 echo $LA->MakeHeaderQuickButtons();
 echo $LA->ProcessLinksToStatic(
      $LA->MakeLoginDiv());
+     
+if($LA->IsTaskManager()){
+    echo $LA->TaskNavigationBegin();
+    
+    $LA->SetInterlinkPath('index.md');
+
+    echo $LA->ProcessLinksToStatic(
+         $LA->ProcessHTMLLanguageForLinks(
+         $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md'))));
+         
+    echo $LA->TaskNavigationEnd();
+    
+    echo $LA->WideHeaderEnd();
+}
+
 
 if($la_operation == 'new'){
     echo $LA->PageHeaderEnd();
@@ -180,7 +194,7 @@ if($la_operation == 'new'){
     echo $LA->MakeEditorHeader();
 }else if($la_operation == 'list' || (($la_operation == 'additional' || $la_operation=='task') && isset($_GET['action']) && $_GET['action']=='view')){
     if($LA->IsTaskManager()){
-        echo $LA->WideHeaderEnd();
+        
     }
     echo $LA->MakeFolderHeader();
     echo $LA->PageHeaderEnd();
@@ -188,7 +202,7 @@ if($la_operation == 'new'){
     echo $LA->MakeAdditionalHeader();
     echo $LA->PageHeaderEnd();
 }else if($LA->IsTaskManager()){
-    echo $LA->WideHeaderEnd();
+    //echo $LA->WideHeaderEnd();
     echo $LA->PageHeaderEnd();
 }else{
     echo $LA->PageHeaderEnd();
@@ -235,7 +249,6 @@ if($la_operation == 'new'){
     echo $LA->MakeMainContentEnd();
 
 }else if($LA->IsTaskManager()){
-    echo $LA->MakeTaskManagerHeader();
     echo $LA->MakeTaskList();
 }else{
  
@@ -280,5 +293,7 @@ echo $LA->MakeTaskEditor();
 if($LA->IsTaskManager() && !$la_operation){
     $LA->MakeTaskManagerFooter();
 }
+
+echo $LA->MakeModalBlocker();
 
 ?>
