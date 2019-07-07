@@ -1437,6 +1437,23 @@ class LAManagement{
                     header('Location:?page='.$this->PagePath);
                     exit;
                 }
+            }else if($_GET['operation'] == "task_new_index"){
+                if(isset($_GET['for'])){
+                    $path = $_GET['for'];
+                    $f = $path.'/index.md';
+                    if(is_readable($f)) return;
+                    if(is_dir($path) && is_writeable($path)){
+                        $fi = fopen($f,"w");
+                        fwrite($fi, "本目录事件索引".PHP_EOL.PHP_EOL);
+                        fwrite($fi, "<!-- TaskManager -->".PHP_EOL.PHP_EOL);
+                        fwrite($fi, "GroupName = 新的事件组".PHP_EOL.PHP_EOL);
+                        fwrite($fi, "<!-- end of TaskManager -->".PHP_EOL.PHP_EOL);
+                        fflush($fi);
+                        fclose($fi);
+                        header('Location:?page='.$f);
+                        exit;
+                    }
+                }
             }
         }
     }
@@ -1520,7 +1537,7 @@ class LAManagement{
             }
 
             
-            .login_half{ float: right; right: 10px; width: 50%; text-align: right;}
+            .login_half{ float: right; right: 10px; width: 95%; text-align: right;}
             
             /*.left_side_extra { left:0px; top:0px; bottom:0px; right:calc(20% - )}*/
             
@@ -1732,7 +1749,6 @@ class LAManagement{
                 .adaptive_column_container { display: block; }
                 
                 .passage_detail         { width:60%; }
-                .login_half             { width:75%; }
                 .big_string             { height:100px; }
                 
                 .novel_content          { max-width: unset;}
@@ -2869,6 +2885,8 @@ class LAManagement{
             if(again)again.style.display = disp;
             c = document.getElementById("task_navigation_container");
             c.style.display='none';
+            h = document.getElementById("task_master_header_desktop");
+            h.style.display='inline';
         }
         function la_toggle_login_task_mobile(){
             vb = document.getElementById("task_view_buttons");
@@ -4255,7 +4273,7 @@ class LAManagement{
                 $this->GLOBAL_TASK_I++;
             }?>
             </ul>
-            <?php if($this->IsLoggedIn() && !$show_group_name){ ?>
+            <?php if($this->IsLoggedIn() && !$override){ ?>
                 <div class='additional_content' style="position:sticky; bottom:15px; margin-bottom:0px;">
                     <a class="no_border" style="display:block;text-align:center;"onClick="la_showTaskEditor('<?php echo $folder;?>',-1,-1);">在 <?php echo $folder_title;?> 中新增事件 +</a>
                 </div>
@@ -5102,108 +5120,115 @@ class LAManagement{
         <?php
     }
     function MakeTaskManagerFooter(){
-        if($this->TaskManagerSelf) return;
     ?>
-        <div class="bottom_sticky_menu_container modal_dialog">
-            <div id="task_manager_group_switcher" class="bottom_sticky_menu_left" style="display:none;">
-                <?php if($this->IsLoggedIn()){ ?>
-                    <div class="inline_block_height_spacer"></div>
-                    <div>
-                        <div class='btn' id='task_item_content_button'>设置分组</div>
-                        <div style="float:right; display:none;" id='task_item_content_button_extra'>
-                            <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=edit'>编辑文字</a>
-                            <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>'>添加组</a>
+        <?php if(!$this->TaskManagerSelf) {?>
+            <div class="bottom_sticky_menu_container modal_dialog">
+                <div id="task_manager_group_switcher" class="bottom_sticky_menu_left" style="display:none;">
+                    <?php if($this->IsLoggedIn()){ ?>
+                        <div class="inline_block_height_spacer"></div>
+                        <div>
+                            <div class='btn' id='task_item_content_button'>设置分组</div>
+                            <div style="float:right; display:none;" id='task_item_content_button_extra'>
+                                <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=edit'>编辑文字</a>
+                                <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>'>添加组</a>
+                            </div>
+                            <div class='inline_block_height_spacer'></div>
+                            <div id='task_item_content_dialog' style='display:none'>
+                                <table>
+                                <?php $tic=0;   ?>
+                                <?php foreach ($this->TaskManagerGroups as $item){
+                                    $pc=$item['past_count'];
+                                    ?>
+                                    <tr>
+                                        <td><a class='btn' style="display:block" onclick='task_option_toggle_<?php echo $tic ?>()'><?php echo $item['title']?> 位于 <?php echo $item['path']?></a></td>
+                                        <td style="width:30px;">
+                                            <a class='btn' style="display:block" href='?page=<?php echo $this->PagePath?>&operation=task&action=delete&for=<?php echo $this->PagePath?>&target=<?php echo $item['path']?>'>删</a>
+                                        </td>
+                                    </tr>
+                                    <tr id='task_item_option_<?php echo $tic ?>' style='display:none'>
+                                        <td>
+                                        <div>
+                                            <div class='inline_block_height_spacer'></div>
+                                            显示
+                                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=1"?>'><?php echo $pc==1?'<b>1</b>':'1'?></a>
+                                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=2"?>'><?php echo $pc==2?'<b>2</b>':'2'?></a>
+                                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=3"?>'><?php echo $pc==3?'<b>3</b>':'3'?></a>
+                                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=7"?>'><?php echo $pc==7?'<b>7</b>':'7'?></a>
+                                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=14"?>'><?php echo $pc==14?'<b>14</b>':'14'?></a>
+                                            <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=30"?>'><?php echo $pc==30?'<b>30</b>':'30'?></a>
+                                            天内完成的
+                                            <div class='inline_block_height_spacer'></div>
+                                        </div>
+                                        <script>
+                                            function task_option_toggle_<?php echo $tic ?>(){
+                                                ta = document.getElementById("task_item_option_<?php echo $tic ?>");
+                                                ta.style.display = ta.style.display=='none'?'block':'none';
+                                            }
+                                        </script>
+                                        </td>
+                                    </tr>
+                                <?php $tic++; }?>
+                                </table>
+                            </div>
+                            <script>
+                                var content = document.getElementById("task_item_content_button");
+                                content.addEventListener("click", function() {
+                                    content_dialog = document.getElementById("task_item_content_dialog");
+                                    extra_buttons = document.getElementById("task_item_content_button_extra");
+                                    default_list = document.getElementById("task_default_list");
+                                    disp = content_dialog.style.display;
+                                    content_dialog.style.cssText = disp=='none'?'display:block':'display:none';
+                                    extra_buttons.style.display = disp=='none'?'block':'none';
+                                    default_list.style.display = disp=='none'?'none':'block';
+                                });
+                            </script>
                         </div>
-                        <div class='inline_block_height_spacer'></div>
-                        <div id='task_item_content_dialog' style='display:none'>
-                            <table>
-                            <?php $tic=0;   ?>
-                            <?php if($this->TaskManagerEntries!=Null) foreach ($this->TaskManagerGroups as $item){
-                                $pc=$item['past_count'];
-                                ?>
-                                <tr>
-                                    <td><a class='btn' style="display:block" onclick='task_option_toggle_<?php echo $tic ?>()'><?php echo $item['title']?> 位于 <?php echo $item['path']?></a></td>
-                                    <td style="width:30px;">
-                                        <a class='btn' style="display:block" href='?page=<?php echo $this->PagePath?>&operation=task&action=delete&for=<?php echo $this->PagePath?>&target=<?php echo $item['path']?>'>删</a>
-                                    </td>
-                                </tr>
-                                <tr id='task_item_option_<?php echo $tic ?>' style='display:none'>
-                                    <td>
-                                    <div>
-                                        <div class='inline_block_height_spacer'></div>
-                                        显示
-                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=1"?>'><?php echo $pc==1?'<b>1</b>':'1'?></a>
-                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=2"?>'><?php echo $pc==2?'<b>2</b>':'2'?></a>
-                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=3"?>'><?php echo $pc==3?'<b>3</b>':'3'?></a>
-                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=7"?>'><?php echo $pc==7?'<b>7</b>':'7'?></a>
-                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=14"?>'><?php echo $pc==14?'<b>14</b>':'14'?></a>
-                                        <a href='?page=<?php echo $this->PagePath."&operation=set_task_past_count&for=".$this->PagePath."&target=".$item['path']."&count=30"?>'><?php echo $pc==30?'<b>30</b>':'30'?></a>
-                                        天内完成的
-                                        <div class='inline_block_height_spacer'></div>
-                                    </div>
-                                    <script>
-                                        function task_option_toggle_<?php echo $tic ?>(){
-                                            ta = document.getElementById("task_item_option_<?php echo $tic ?>");
-                                            ta.style.display = ta.style.display=='none'?'block':'none';
-                                        }
-                                    </script>
-                                    </td>
-                                </tr>
-                            <?php $tic++; }?>
-                            </table>
-                        </div>
-                        <script>
-                            var content = document.getElementById("task_item_content_button");
-                            content.addEventListener("click", function() {
-                                content_dialog = document.getElementById("task_item_content_dialog");
-                                extra_buttons = document.getElementById("task_item_content_button_extra");
-                                default_list = document.getElementById("task_default_list");
-                                disp = content_dialog.style.display;
-                                content_dialog.style.cssText = disp=='none'?'display:block':'display:none';
-                                extra_buttons.style.display = disp=='none'?'block':'none';
-                                default_list.style.display = disp=='none'?'none':'block';
-                            });
-                        </script>
+                    <?php } ?>
+                    <div style="max-height:calc(100vh - 167px); overflow:auto;" id="task_default_list">
+                        <?php foreach ($this->TaskManagerGroups as $folder_item){?>
+                            <div>
+                                <table style="text-align:center;table-style:fixed;"><tr>
+                                    <td><a style="display:block;"><?php echo $folder_item['title']?></a></td>
+                                    <td style='width:80px;'>
+                                    <?php if(is_readable($folder_item['path'].'/index.md')){ ?>
+                                        <a style="display:block;" href="?page=<?php echo $folder_item['path']; ?>">进入分组</a>
+                                    <?php }else{?>
+                                        <?php if($this->IsLoggedIn()){ ?>
+                                            <a style="display:block;" href="?page=<?php echo $this->PagePath; ?>&operation=task_new_index&for=<?php echo $folder_item['path']; ?>">创建索引</a>
+                                        <?php }else{?>
+                                            &nbsp;
+                                        <?php }?></td>
+                                    <?php }?></td>
+                                </tr></table>
+                            </div>
+                        <?php } ?>
                     </div>
-                <?php } ?>
-                <div style="max-height:calc(100vh - 167px); overflow:auto;" id="task_default_list">
-                    <?php if(isset($this->TaskManagerGroups)) foreach ($this->TaskManagerGroups as $folder_item){?>
-                        <div>
-                            <table style="text-align:center;table-style:fixed;"><tr>
-                                <td><a style="display:block;"><?php echo $folder_item['title']?></a></td>
-                                <td style='width:80px;'><a style="display:block;" href="?page=<?php echo $folder_item['path']; ?>">
-                                <?php if(is_readable($folder_item['path'].'/index.md')){ ?>
-                                    进入分组
-                                <?php }else{?>
-                                    创建索引
-                                <?php }?></a></td>
-                            </tr></table>
-                        </div>
-                    <?php } ?>
+                </div>
+            
+                <div id="task_manager_group_adder" class="bottom_sticky_menu_right" style="display:none;">
+                    <div style="max-height:calc(100vh - 167px); overflow:auto;">
+                        <?php foreach ($this->TaskManagerGroups as $folder_item){?>
+                            <div>
+                                <table style="text-align:center;"><tr>
+                                    <td width="70%;" ><a style="display:block;" onClick="la_task_adder_toogle();la_showTaskEditor('<?php echo $folder_item['path']; ?>',-1,-1);">到 <?php echo $folder_item['title']?></a></td>
+                                </tr></table>
+                            </div>
+                        <?php } ?>
+                    </div>
                 </div>
             </div>
-            <div id="task_manager_group_adder" class="bottom_sticky_menu_right" style="display:none;">
-                <div style="max-height:calc(100vh - 167px); overflow:auto;">
-                    <?php if(isset($this->TaskManagerGroups)) foreach ($this->TaskManagerGroups as $folder_item){?>
-                        <div>
-                            <table style="text-align:center;"><tr>
-                                <td width="70%;" ><a style="display:block;" onClick="la_task_adder_toogle();la_showTaskEditor('<?php echo $folder_item['path']; ?>',-1,-1);">到 <?php echo $folder_item['title']?></a></td>
-                            </tr></table>
-                        </div>
-                    <?php } ?>
-                </div>
-            </div>
-        </div>
+        <?php } ?>
         <div id="task_manager_footer" class="audio_player_box modal_dialog">
             
             <div class="block_height_spacer"></div>
-            <table style="text-align:center;table-layout:fixed;"><tr>
-                <td><?php if(isset($this->TaskManagerGroups)){ ?>
-                    <a style="display:block;" onClick="la_task_group_switcher_toogle()">共 <?php echo count($this->TaskManagerGroups); ?> 个事件组</a>
+            <table style="text-align:center;"><tr>
+                <?php if(!$this->TaskManagerSelf){ ?>
+                    <td style="width:50%;"><a style="display:block;" onClick="la_task_group_switcher_toogle()">共 <?php echo count($this->TaskManagerGroups); ?> 个事件组</a></td>
                 <?php }else{ ?>
-                    <a style="display:block;" onClick="la_task_group_switcher_toogle()">请添加分组</a>
-                <?php } ?></td>
-                <?php if($this->IsLoggedIn()){ ?><td><a style="display:block;" onClick="la_task_adder_toogle()">新增事件 +</a></td><?php } ?>
+                    <td style="width:25%;"><a style="display:block;" href="?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>">选组</a></td>
+                    <td style="width:25%;"><a style="display:block;" href="?page=<?php echo $this->PagePath?>&operation=edit">编辑</a></td>
+                <?php } ?>
+                <?php if($this->IsLoggedIn()){ ?><td style="width:50%;"><a style="display:block;" onClick="la_task_adder_toogle()">新增事件 +</a></td><?php } ?>
             </tr></table>
         </div>
         <script>

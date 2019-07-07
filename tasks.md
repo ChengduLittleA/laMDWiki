@@ -4,11 +4,8 @@
 
 GroupName = 全局事件列表
 
-
-
 Entry
 - Target = ./snd
-- PastCount = 7
 
 Entry
 - Target = ./.git
