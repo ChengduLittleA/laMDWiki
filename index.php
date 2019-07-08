@@ -140,7 +140,9 @@ if(isset($_GET['small_quote_only'])){
 }
 
 
-echo $LA->TryExtractTaskManager();
+if(!$la_operation){
+    $LA->TryExtractTaskManager(NULL,0);
+}
 
 echo $LA->PageHeaderBegin();
 
@@ -184,6 +186,7 @@ if($LA->IsTaskManager()){
     echo $LA->WideHeaderEnd();
 }
 
+$LA->SetInterlinkPath($la_page_path);
 
 if($la_operation == 'new'){
     echo $LA->PageHeaderEnd();
@@ -193,9 +196,6 @@ if($la_operation == 'new'){
     $LA->SetEditMode(True);
     echo $LA->MakeEditorHeader();
 }else if($la_operation == 'list' || (($la_operation == 'additional' || $la_operation=='task') && isset($_GET['action']) && $_GET['action']=='view')){
-    if($LA->IsTaskManager()){
-        
-    }
     echo $LA->MakeFolderHeader();
     echo $LA->PageHeaderEnd();
 }else if($la_operation == 'additional'){

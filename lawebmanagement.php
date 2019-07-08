@@ -36,6 +36,8 @@ class LAManagement{
     protected $TaskManagerTitle;
     protected $TaskManagerGroups;
     protected $TaskManagerSelf;
+    protected $TrackerFile;
+    protected $Trackable;
     protected $GLOBAL_TASK_I;
     
     protected $PrevFile;
@@ -196,6 +198,8 @@ class LAManagement{
         $this->GetWebsiteSettings();
         
         $this->DoRedirect($path);
+        
+        $this->Trackable = $this->TryExtractTaskManager($this->TrackerFile,1);
         
         while($path[0]=='/' || $path[0]=='\\') $path = substr($path,1);
         $len = strlen($path);
@@ -1386,6 +1390,9 @@ class LAManagement{
             if(isset($_POST['settings_small_quote_name'])){
                 $this->EditGeneralLineByName($Conf,'Website','SmallQuoteName',$_POST['settings_small_quote_name']);
             }
+            if(isset($_POST['settings_tracker_file'])){
+                $this->EditGeneralLineByName($Conf,'Website','TrackerFile',$_POST['settings_tracker_file']);
+            }
             if(isset($_POST['settings_admin_display']) && $_POST['settings_admin_display']!=''){
                 $this->EditArgumentByNamesN($Conf,'Users',$this->UserID,0,'DisplayName',$_POST['settings_admin_display']);
             }
@@ -1478,8 +1485,10 @@ class LAManagement{
         $this->StringTitle    = $this->GetLineValueByNames($Conf,"Website","DisplayTitle");
         $this->Footnote       = $this->GetLineValueByNames($Conf,"Website","Footnote");
         $this->SmallQuoteName = $this->GetLineValueByNames($Conf,"Website","SmallQuoteName");
+        $this->TrackerFile    = $this->GetLineValueByNames($Conf,"Website","TrackerFile");
         if(!$this->Title) $this->Title='LA<b>MDWIKI</b>';
         if(!$this->StringTitle) $this->StringTitle='LAMDWIKI';
+        if(!$this->TrackerFile) $this->TrackerFile='tasks.md';
         $i=0;$item=null;
         while($this->GetLineByNamesN($Conf,'Redirect','Entry',$i)!==Null){
             $item['from']    = $this->GetArgumentByNamesN($Conf,'Redirect','Entry',$i,'From');
@@ -1538,7 +1547,7 @@ class LAManagement{
             }
 
             
-            .login_half{ float: right; right: 10px; width: 95%; text-align: right;}
+            .login_half{ float: right; right: 10px; text-align: right;}
             
             /*.left_side_extra { left:0px; top:0px; bottom:0px; right:calc(20% - )}*/
             
@@ -1713,11 +1722,13 @@ class LAManagement{
                 h3 img{ float: unset; max-width:100%; margin: 5px auto;}
                 h4 img{ float: unset; max-width:100%; margin: 5px auto;}
                 
-                .navigation { display: none; margin: 0px; margin-bottom: 15px; }
-                .navigation p{ display: block; }
+                .navigation   { display: none; margin: 0px; margin-bottom: 15px; }
+                .navigation p { display: block; margin: 0px; }
+                .navigation a { display: block; margin-top: 5px; }
                 
-                .navigation_task p { display: block; }
-                .navigation_task   { display: block; }
+                .navigation_task   { display: none; margin: 0px; margin-bottom: 15px; }
+                .navigation_task p { display: block; margin: 0px; }
+                .navigation_task a { display: block; margin-top: 5px; }
                 
                 .hidden_on_mobile        { display: none; }
                 .hidden_on_desktop       { display: block; }
@@ -1898,6 +1909,7 @@ class LAManagement{
         <div class="navigation_task" id="task_navigation_container" style="display:none;text-align:center">
             &nbsp;&nbsp;
             <p><a href="?page=index.md"><b>&#8962;&nbsp;<?php echo $this->FROM_ZH('首页') ?></b></a></p>
+            <div class='hidden_on_desktop block_height_spacer' ></div>
         <?php
     }
     function TaskNavigationEnd(){
@@ -1912,6 +1924,7 @@ class LAManagement{
             <div id='WebsiteTitle'>
                 <a class='hidden_on_mobile' href="?page=index.md"><?php echo $this->Title;?></a>
                 <a class='hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
+                <?php if($this->Trackable){ ?><a class='hidden_on_mobile' href="?page=<?php echo $this->TrackerFile; ?>">跟踪</a> <?php } ?>
             </div>
         <?php }else{ ?>
             <a id="task_home_button" onClick="la_ToggleNavigationInTaskMode(); if(document.getElementById('task_view_buttons').style.display=='block'){la_toggle_login_task_mobile();}hide_login_uis();"><?php echo $this->Title;?></a>
@@ -2445,17 +2458,20 @@ class LAManagement{
         return $this->SmallQuoteName;
     }
     
-    function TryExtractTaskManager(){
-        if(!is_file($this->PagePath) || !is_readable($this->PagePath)) return;
+    function TryExtractTaskManager($override,$check_only){
+        $actual = $override?$override:$this->PagePath;
         
-        $f = fopen($this->PagePath,'r');
-        if(($size=filesize($this->PagePath))==0) return;
+        if(!is_file($actual) || !is_readable($actual)) return False;
+        
+        $f = fopen($actual,'r');
+        if(($size=filesize($actual))==0) return False;
         $ConfContent = fread($f,$size);
         $Conf = $this->ParseMarkdownConfig($ConfContent);
         fclose($f);
         $b = $this->GetBlock($Conf,'TaskManager');
         $list=[];
         if($b){
+            if($check_only) return True;
             $this->IsTaskManager = 1;
             $i=0;
             while($this->GetLineByNamesN($Conf,'TaskManager','Entry',$i)!==Null){
@@ -2465,21 +2481,24 @@ class LAManagement{
                 $i++;
             }
             $this->TaskManagerEntries = $list;
-            $this->ReadTaskFolderDescription(NULL,$this->PagePath,$this->TaskManagerTitle);
+            $this->ReadTaskFolderDescription(NULL,$actual,$this->TaskManagerTitle);
+            return True;
+        }else{
+            return False;
         }
     }
     function IsTaskManager(){
         return $this->IsTaskManager;
     }
 
-    function SortTaskList(&$unfinished_items, &$finished_items, &$active_items, $return_new_combined, $newest_first, $use_end_time){
+    function SortTaskList(&$unfinished_items, &$finished_items, &$active_items, $return_new_combined, $oldest_first, $use_end_time){
         $time_entry = $use_end_time?"time_end":"time_begin";
         $callback = function ($a,$b) use($time_entry) {
             return intval($this->TaskTimeDifferences($a[$time_entry], $b[$time_entry]))<=0?-1:1;
         };
-        if(isset($unfinished_items)) { usort($unfinished_items,$callback); if($newest_first) $unfinished_items=array_reverse($unfinished_items); }
-        if(isset($finished_items)) { usort($finished_items,$callback); if($newest_first) $finished_items=array_reverse($finished_items); }
-        if(isset($active_items)) { usort($active_items,$callback); if($newest_first) $active_items=array_reverse($active_items); }
+        if(isset($unfinished_items)) { usort($unfinished_items,$callback); if($oldest_first) $unfinished_items=array_reverse($unfinished_items); }
+        if(isset($finished_items)) { usort($finished_items,$callback); if($oldest_first) $finished_items=array_reverse($finished_items); }
+        if(isset($active_items)) { usort($active_items,$callback); if($oldest_first) $active_items=array_reverse($active_items); }
     }
     function ReadTaskFolderDescription($folder, $override_file, &$group_name){
         $f = $override_file?$override_file:$folder.'/index.md';
@@ -2562,7 +2581,7 @@ class LAManagement{
         }?>
         <div class='the_body'>
         <?php
-            $this->SortTaskList($unfinished_items, $finished_items, $active_items, 0, 1, 0);
+            $this->SortTaskList($unfinished_items, $finished_items, $active_items, 0, 0, 0);
             $this->MakeTaskGroupAdditional(NULL, 30,$unfinished_items, $finished_items, $active_items);
             $this->TaskManagerGroups = $groups;
         ?>
@@ -2629,6 +2648,10 @@ class LAManagement{
                 <br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_small_quote_name' name='settings_small_quote_name' form='settings_form' value='<?php echo $this->SmallQuoteName ?>' />
                 “我说”名片抬头文字
+                <br />
+                <br />
+                <input class='string_input no_horizon_margin' type='text' id='settings_tracker_file' name='settings_tracker_file' form='settings_form' value='<?php echo $this->TrackerFile ?>' />
+                站点事件跟踪器
             </div>
 
             <div id='Tab301Settings' style='display:none'>
@@ -2911,7 +2934,13 @@ class LAManagement{
     function MakeNavigationBegin(){
         ?>
         <div class="navigation" id='Navigation'>
-            <a class='hidden_on_desktop' href="?page=index.md"><b>&#8962;&nbsp;<?php echo $this->FROM_ZH('首页') ?></b></a>
+            <div class="hidden_on_desktop" >
+                <table style="table-layout:fixed; text-align:center;"><tr>
+                    <td><a href="?page=index.md" style='margin:0px;'><b>&#8962;&nbsp;<?php echo $this->FROM_ZH('首页') ?></b></a></td>
+                    <?php if($this->Trackable){ ?><td><a href="?page=<?php echo $this->TrackerFile ?>" style='margin:0px;'>跟踪</a><?php } ?>
+                </tr></table>
+            </div>
+            <div class='hidden_on_desktop block_height_spacer' ></div>
         <?php
     }
     function MakeNavigationEnd(){
@@ -4055,7 +4084,7 @@ class LAManagement{
             $content = fread($fi,$size);
             fclose($fi);
             
-            $modified = preg_replace_callback("/\*\*([TDCA])(".$id.")\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)$$/m",
+            $modified = preg_replace_callback("/\*\*([TDCA])(".$id.")\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)([\s]*)/m",
                 function($m) use ($state_change, $tags, $new_content, $delete) {
                     
                     if($delete) return "";
@@ -4090,14 +4119,12 @@ class LAManagement{
     function DayDifferences($y_from, $m_from, $d_from, $y_to, $m_to, $d_to){
         $from = new DateTime($y_from.'-'.$m_from.'-'.$d_from);
         $to = new DateTime($y_to.'-'.$m_to.'-'.$d_to);
-        $interval = $to->diff($from);
-        return intval($interval->format("%R%a"));
+        return $to->getTimeStamp() - $from->getTimeStamp();   
     }
     function TaskTimeDifferences($time_from,$time_to){
         $from = new DateTime($time_from['Y'].'-'.$time_from['M'].'-'.$time_from['D'].' '.$time_from['h'].':'.$time_from['m'].':'.$time_from['s']);
         $to = new DateTime($time_to['Y'].'-'.$time_to['M'].'-'.$time_to['D'].' '.$time_to['h'].':'.$time_to['m'].':'.$time_to['s']);
-        $interval = $to->diff($from);
-        return intval($interval->format("%R%s"));
+        return $to->getTimeStamp() - $from->getTimeStamp();
     }
     function ReadTaskItems($folder, $file_list, $done_day_lim, $today_y, $today_m, $today_d, &$unfinished_items, &$finished_items, &$active_items){
         $group_name=Null;
@@ -4115,7 +4142,7 @@ class LAManagement{
                 
                     if($ma2[3] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 31) > $done_day_lim) continue;
                     
-                    if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)$$/m",$ma2[6],$ma3,PREG_SET_ORDER)){
+                    if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)/m",$ma2[6],$ma3,PREG_SET_ORDER)){
                         
                         if(isset($ma3)) foreach($ma3 as $m){
                             $item = Null;
@@ -5516,9 +5543,10 @@ class LAManagement{
         <?php
     }
     function MakeTaskMasterHeader(){
-    ?>
+    ?>  
+        <?php if($this->Trackable && pathinfo($this->PagePath,PATHINFO_BASENAME)!=pathinfo($this->TrackerFile,PATHINFO_BASENAME)){ ?><a href="?page=<?php echo $this->TrackerFile ?>" style='margin:0px;'>总览</a><?php } ?>
         <span class="hidden_on_desktop_inline" ><span id="task_master_header"> <?php echo $this->TaskManagerTitle; ?> </span></span>
-        <span class="hidden_on_mobile"><span id="task_master_header_desktop"> 正在跟踪 <?php echo $this->TaskManagerTitle; ?> </span></span>
+        <span class="hidden_on_mobile"><span id="task_master_header_desktop"> 当前在 <?php echo $this->TaskManagerTitle; ?> </span></span>
     <?php
     }
 }
