@@ -1658,6 +1658,7 @@ class LAManagement{
             .string_input      { border:3px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; margin:5px; width:150px; }
             .quick_post_string { border:3px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; margin:0px; width:100%; resize: none; overflow: hidden; height: 25px; }
             .big_string        { width: calc(100% - 10px); height: 500px; resize: vertical; border:none; }
+            .big_string_height { height: 500px; }
             .title_string      { margin-top:-5px; margin-bottom:-5px; font-size:16px; text-align: right; }
             
             .no_horizon_margin { margin-left:0px; margin-right:0px; }
@@ -1737,6 +1738,7 @@ class LAManagement{
                 
                 .mobile_force_fullscreen { position: fixed; left:0px; right:0px; top:0px; bottom:0px; }
                 .modal_on_mobile { z-index:50; }
+                .editor_shrink { height:100px; }
                 
                 #HeaderQuickButtons{ top:0px; }
                 
@@ -1765,7 +1767,7 @@ class LAManagement{
                 .adaptive_column_container { display: block; }
                 
                 .passage_detail         { width:60%; }
-                .big_string             { height: calc(100% - 10px); }
+                .big_string_height      { height: calc(100% - 10px); }
                 
                 .novel_content          { max-width: unset;}
                 .more_vertical_margin   { margin-top: 0px; margin-bottom: 0px; }
@@ -3041,7 +3043,7 @@ class LAManagement{
         <div>
             <div id="editor_fullscreen_container" class="mobile_force_fullscreen modal_on_mobile white_bkg">
                 <div class="hidden_on_desktop"><a class="white_bkg modal_on_mobile" style="position:fixed; right:10px; top:10px; text-align:center;" onClick="editor_toggle_fullscreen_mobile()">切换全屏</a></div>
-                <textarea class='string_input big_string ' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
+                <textarea class='string_input big_string big_string_height' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
             </div>
             <div>
                 <span id='data_passage_character_count'>字数</span>
@@ -3049,7 +3051,11 @@ class LAManagement{
             <script>
                 function editor_toggle_fullscreen_mobile(){
                     c = document.getElementById("editor_fullscreen_container");
-                    c.className = c.className != ""?"":"mobile_force_fullscreen modal_on_mobile white_bkg";
+                    e = document.getElementById("data_passage_content");
+                    shown = c.className != "";
+                    c.className = shown?"":"mobile_force_fullscreen modal_on_mobile white_bkg";
+                    e.style.height = "";
+                    e.className = shown?"editor_shrink string_input big_string":"string_input big_string big_string_height";
                 }
                 window.onbeforeunload = function() { 
                     return "没写完就想跑？";
