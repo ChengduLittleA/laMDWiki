@@ -1549,8 +1549,6 @@ class LAManagement{
             
             .login_half{ float: right; right: 10px; text-align: right;}
             
-            /*.left_side_extra { left:0px; top:0px; bottom:0px; right:calc(20% - )}*/
-            
             .wide_body              { margin-left: 10px; margin-right:10px; }
             
             .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin;}
@@ -1617,6 +1615,7 @@ class LAManagement{
             
             .modal_block  { background-color:rgba(0,0,0,0.2); position: fixed; z-index:30; top: 0px; left: 0px; bottom: 0px; right: 0px; }
             .modal_dialog { z-index:50; }
+            .modal_on_mobile { z-index:0; }
             
             .btn          { border:1px solid #000; padding: 5px; color:#000; display: inline; background-color:#FFF; font-size:16px; cursor: pointer; text-align: center; }
             .btn:hover    { border:3px double #000; padding: 3px; }
@@ -1631,6 +1630,8 @@ class LAManagement{
             .preview_btn  { height:250px; overflow: hidden; }
             .full_btn     { width:100%; }
             .no_float     { float: unset; }
+            
+            .mobile_force_fullscreen { position: relative; }
             
             .inline_height_spacer      { display: block; height:15px; width:100%; }
             .inline_block_height_spacer{ display: block; height:10px; width:100%; }
@@ -1734,6 +1735,9 @@ class LAManagement{
                 .hidden_on_desktop       { display: block; }
                 .hidden_on_desktop_inline{ display: inline; }
                 
+                .mobile_force_fullscreen { position: fixed; left:0px; right:0px; top:0px; bottom:0px; }
+                .modal_on_mobile { z-index:50; }
+                
                 #HeaderQuickButtons{ top:0px; }
                 
                 .tile_container{ display: block; table-layout: unset; width: 100%; margin: 0px; }
@@ -1761,7 +1765,7 @@ class LAManagement{
                 .adaptive_column_container { display: block; }
                 
                 .passage_detail         { width:60%; }
-                .big_string             { height:100px; }
+                .big_string             { height: calc(100% - 10px); }
                 
                 .novel_content          { max-width: unset;}
                 .more_vertical_margin   { margin-top: 0px; margin-bottom: 0px; }
@@ -1908,6 +1912,7 @@ class LAManagement{
         ?>
         <div class="navigation_task" id="task_navigation_container" style="display:none;text-align:center">
             &nbsp;&nbsp;
+            <div class='hidden_on_desktop inline_block_height_spacer' ></div>
             <p><a href="?page=index.md"><b>&#8962;&nbsp;<?php echo $this->FROM_ZH('首页') ?></b></a></p>
             <div class='hidden_on_desktop block_height_spacer' ></div>
         <?php
@@ -3034,12 +3039,19 @@ class LAManagement{
     function MakeEditorBody($text){
         ?>
         <div>
-            <textarea class='string_input big_string ' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
+            <div id="editor_fullscreen_container" class="mobile_force_fullscreen modal_on_mobile white_bkg">
+                <div class="hidden_on_desktop"><a class="white_bkg modal_on_mobile" style="position:fixed; right:10px; top:10px; text-align:center;" onClick="editor_toggle_fullscreen_mobile()">切换全屏</a></div>
+                <textarea class='string_input big_string ' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
+            </div>
             <div>
                 <span id='data_passage_character_count'>字数</span>
             </div>
             <script>
-                 window.onbeforeunload = function() { 
+                function editor_toggle_fullscreen_mobile(){
+                    c = document.getElementById("editor_fullscreen_container");
+                    c.className = c.className != ""?"":"mobile_force_fullscreen modal_on_mobile white_bkg";
+                }
+                window.onbeforeunload = function() { 
                     return "没写完就想跑？";
                 }
                 function destroy_unload_dialog(){
