@@ -1453,9 +1453,9 @@ class LAManagement{
                     if(is_dir($path) && is_writeable($path)){
                         $fi = fopen($f,"w");
                         fwrite($fi, "本目录事件索引".PHP_EOL.PHP_EOL);
-                        fwrite($fi, "<!-- TaskManager -->".PHP_EOL.PHP_EOL);
+                        fwrite($fi, "<!-- EventTracker -->".PHP_EOL.PHP_EOL);
                         fwrite($fi, "GroupName = 新的事件组".PHP_EOL.PHP_EOL);
-                        fwrite($fi, "<!-- end of TaskManager -->".PHP_EOL.PHP_EOL);
+                        fwrite($fi, "<!-- end of EventTracker -->".PHP_EOL.PHP_EOL);
                         fflush($fi);
                         fclose($fi);
                         header('Location:?page='.$f);
@@ -2475,15 +2475,15 @@ class LAManagement{
         $ConfContent = fread($f,$size);
         $Conf = $this->ParseMarkdownConfig($ConfContent);
         fclose($f);
-        $b = $this->GetBlock($Conf,'TaskManager');
+        $b = $this->GetBlock($Conf,"EventTracker");
         $list=[];
         if($b){
             if($check_only) return True;
             $this->IsTaskManager = 1;
             $i=0;
-            while($this->GetLineByNamesN($Conf,'TaskManager','Entry',$i)!==Null){
-                $item['target'] = $this->GetArgumentByNamesN($Conf,'TaskManager','Entry',$i,'Target');
-                $item['past_count'] = $this->GetArgumentByNamesN($Conf,'TaskManager','Entry',$i,'PastCount'); if(!$item['past_count']) $item['past_count'] = 3;
+            while($this->GetLineByNamesN($Conf,"EventTracker",'Entry',$i)!==Null){
+                $item['target'] = $this->GetArgumentByNamesN($Conf,"EventTracker",'Entry',$i,'Target');
+                $item['past_count'] = $this->GetArgumentByNamesN($Conf,"EventTracker",'Entry',$i,'PastCount'); if(!$item['past_count']) $item['past_count'] = 3;
                 $list[] = $item;
                 $i++;
             }
@@ -2515,10 +2515,10 @@ class LAManagement{
             $content = fread($fi,filesize($f));
             fclose($fi);
             $Conf = $this->ParseMarkdownConfig($content);
-            $b = $this->GetBlock($Conf,'TaskManager');
+            $b = $this->GetBlock($Conf,"EventTracker");
             $list=[];
             if($b){
-                $name = $this->GetLineValueByNames($Conf,"TaskManager","GroupName");
+                $name = $this->GetLineValueByNames($Conf,"EventTracker","GroupName");
                 if(isset($name)) $group_name = $name;
                 return;
             }
@@ -3618,12 +3618,12 @@ class LAManagement{
         }else return;
             
         $i=0;
-        while($this->GetLineByNamesN($Config,'TaskManager','Entry',$i)!==Null){
+        while($this->GetLineByNamesN($Config,"EventTracker",'Entry',$i)!==Null){
             $i++;
         }
-        $this->EditBlock($Config,'TaskManager');
-        $this->EditGeneralLineNByName($Config,'TaskManager','Entry',$i,'');
-        $this->EditArgumentByNamesN($Config,'TaskManager','Entry',$i,'Target',$target_path);
+        $this->EditBlock($Config,"EventTracker");
+        $this->EditGeneralLineNByName($Config,"EventTracker",'Entry',$i,'');
+        $this->EditArgumentByNamesN($Config,"EventTracker",'Entry',$i,'Target',$target_path);
         $ConfWrite = fopen($Conf,'w');
         $this->WriteMarkdownConfig($Config, $ConfWrite);
         fclose($ConfWrite);
@@ -3641,12 +3641,12 @@ class LAManagement{
             
         $i=0;
         $a=Null;
-        while(($a = $this->GetArgumentByNamesN($Config,'TaskManager','Entry',$i,'Target'))!=$target_path && $a!==Null){
+        while(($a = $this->GetArgumentByNamesN($Config,"EventTracker",'Entry',$i,'Target'))!=$target_path && $a!==Null){
             $i++;
         }
         
         if($a!==Null){
-            $this->RemoveLineByNamesN($Config,'TaskManager','Entry',$i);
+            $this->RemoveLineByNamesN($Config,"EventTracker",'Entry',$i);
             $ConfWrite = fopen($Conf,'w');
             $this->WriteMarkdownConfig($Config, $ConfWrite);
             fclose($ConfWrite);
@@ -3668,12 +3668,12 @@ class LAManagement{
         
         $i=0;
         $a=Null;
-        while(($a = $this->GetArgumentByNamesN($Config,'TaskManager','Entry',$i,'Target'))!=$target && $a!==Null){
+        while(($a = $this->GetArgumentByNamesN($Config,"EventTracker",'Entry',$i,'Target'))!=$target && $a!==Null){
             $i++;
         }
         
         if($a!==Null){
-            if($count!==Null)    $this->EditArgumentByNamesN($Config,'TaskManager','Entry',$i,'PastCount',$count);
+            if($count!==Null)    $this->EditArgumentByNamesN($Config,"EventTracker",'Entry',$i,'PastCount',$count);
             $ConfWrite = fopen($Conf,'w');
             $this->WriteMarkdownConfig($Config, $ConfWrite);
             fclose($ConfWrite);
