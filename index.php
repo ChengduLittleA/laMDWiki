@@ -111,6 +111,8 @@ if($LA->IsLoggedIn()){
     echo $LA->DoApplySettings();
 }
 
+echo $LA->SwitchToTargetLanguageIfPossible();
+
 echo $LA->MakeHTMLHead();
 
 if(!$page_success){
@@ -124,8 +126,6 @@ if(!$LA->IsLoggedIn()){
         $LA->LimitAccess(1);
     }
 }
-
-echo $LA->SwitchToTargetLanguageIfPossible();
 
 if(isset($_GET['small_quote_only'])){
     echo $LA->MakeCenterContainerBegin();

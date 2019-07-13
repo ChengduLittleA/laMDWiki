@@ -7,5 +7,8 @@ GroupName = 全局事件列表
 Entry
 - Target = ./snd
 
+Entry
+- Target = ./img
+
 <!-- End of EventTracker -->
 

@@ -24,6 +24,7 @@ class LAManagement{
     
     protected $PagePath;
     protected $LanguageAppendix;
+    protected $FileTitle;
     
     protected $FolderNameList;
     protected $FileNameList;
@@ -116,7 +117,7 @@ class LAManagement{
             echo "<div class='the_body'>";
             echo "<div class='main_content' style='text-align:center;'>";
             echo "<h1>404</h1>";
-            echo "<p>页面不存在。<br />Page does not exist.</p><p>";
+            echo "<p>页面不存在。<br />Page does not exist.<br />".$_GET["page"]."</p><p>";
             if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 返回/Back</a>";
             echo "&nbsp;<a href='?page=index.md'>⌂ 首页/Home</a></p>";
             if($this->IsLoggedIn()) echo "<p><a href='?page=".$_GET["page"]."&operation=new&title=".pathinfo($_GET["page"],PATHINFO_FILENAME)."'>创建这个页面</a></p>";
@@ -364,11 +365,11 @@ class LAManagement{
     }
     
     function ForceLastGeneralLine(){
-        $this->$force_last_line=1;
+        $this->force_last_line=1;
     }
     
     function RestoreGeneralLine(){
-        $this->$force_last_line=0;
+        $this->force_last_line=0;
     }
     
     function FindGeneralLineN(&$Config,$Block,$Name,$Number){
@@ -818,14 +819,10 @@ class LAManagement{
         return implode("\n",$array);
     }
     function TitleOfFile($content){
-        if(preg_match('/# [ ]*(.*)\n[\s\S]*\n## [ ]*(.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
-            return '**'.$match[1][0].'**: '.$match[2][0];
-        }else{
-            if(preg_match('/# [ ]*(.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
-                return '**'.$match[1][0].'**';
-            }
-            return $this->FirstRows($content,1);
+        if(preg_match('/# [ ]*(.*)\n/U',$content,$match,PREG_OFFSET_CAPTURE)){
+            return '**'.$match[1][0].'**';
         }
+        return $this->FirstRows($content,1);
     }
     
     //============================================================================================================
@@ -940,6 +937,8 @@ class LAManagement{
     }
     
     function ChooseLanguageAppendix($file_path, $appendix){
+        if(!$file_path) return;
+    
         $path_parts = pathinfo($file_path);
         
         $file_orig = preg_replace('/_\D\D\.md$/','.md',$path_parts['basename']);
@@ -1488,7 +1487,7 @@ class LAManagement{
         $this->TrackerFile    = $this->GetLineValueByNames($Conf,"Website","TrackerFile");
         if(!$this->Title) $this->Title='LA<b>MDWIKI</b>';
         if(!$this->StringTitle) $this->StringTitle='LAMDWIKI';
-        if(!$this->TrackerFile) $this->TrackerFile='tasks.md';
+        if(!$this->TrackerFile) $this->TrackerFile='events.md';
         $i=0;$item=null;
         while($this->GetLineByNamesN($Conf,'Redirect','Entry',$i)!==Null){
             $item['from']    = $this->GetArgumentByNamesN($Conf,'Redirect','Entry',$i,'From');
@@ -1499,11 +1498,17 @@ class LAManagement{
     }
     
     function MakeHTMLHead(){
+        $append_title = NULL;
+        if($this->PagePath!='./index.md' && $this->PagePath!='index.md'){
+            $this->FileTitle = $this->TitleOfFile($this->ContentOfMarkdownFile($this->PagePath));
+            $append_title = $this->FileTitle;
+            $append_title = preg_replace('/[#*~\s]/',"",$append_title);
+        }
         ?>
         <!doctype html>
         <head>
         <meta name="viewport" content="user-scalable=no, width=device-width" />
-        <title><?php echo $this->StringTitle ?></title>
+        <title><?php echo $this->StringTitle ?><?php echo isset($append_title)?" | $append_title":""?></title>
         <style>
         
             html{ text-align:center; }
@@ -1571,7 +1576,7 @@ class LAManagement{
             .top_panel              { padding:10px; padding-top:15px; padding-bottom:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: hidden; }
             .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:1000; max-height: unset;}
             .gallery_left           { height:calc(100% - 160px); position: fixed; width:350px; }
-            .gallery_right          { width:calc(100% - 365px); left: 365px; z-index:10; position: relative;}
+            .gallery_right          { width:calc(100% - 365px); left: 365px; position: relative;}
             .gallery_main_height    { max-height: 100%; }
             .gallery_multi_height   { position: relative;}
             .gallery_multi_height::before   { content: " "; display: block; padding-top: 100%; }
@@ -3042,8 +3047,9 @@ class LAManagement{
         ?>
         <div>
             <div id="editor_fullscreen_container" class="mobile_force_fullscreen modal_on_mobile white_bkg">
-                <div class="hidden_on_desktop"><a class="white_bkg modal_on_mobile" style="position:fixed; right:10px; top:10px; text-align:center;" onClick="editor_toggle_fullscreen_mobile()">切换全屏</a></div>
+                
                 <textarea class='string_input big_string big_string_height' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
+                <div class="hidden_on_desktop"><a class="white_bkg modal_on_mobile" style="position:fixed; right:10px; bottom:10px; text-align:center;" onClick="editor_toggle_fullscreen_mobile()">切换全屏</a></div>
             </div>
             <div>
                 <span id='data_passage_character_count'>字数</span>
@@ -3052,6 +3058,7 @@ class LAManagement{
                 function editor_toggle_fullscreen_mobile(){
                     c = document.getElementById("editor_fullscreen_container");
                     e = document.getElementById("data_passage_content");
+                    b = document.getElementById("editor_fullscreen_button");
                     shown = c.className != "";
                     c.className = shown?"":"mobile_force_fullscreen modal_on_mobile white_bkg";
                     e.style.height = "";
@@ -4044,8 +4051,7 @@ class LAManagement{
             if($file == '.' || $file == '..' || $file=='index.md') {
                 continue;
             } else if(!is_dir($sub_dir)){
-                $ext=pathinfo($file,PATHINFO_EXTENSION);
-                if($ext=='md')
+                if(preg_match("/T[0-9]{4}-[0-9]{2}.md/",$file))
                     $file_list[] = $file;
             }
         }
@@ -4150,6 +4156,7 @@ class LAManagement{
         
         foreach($file_list as $f){
             if(!$f) continue;
+            if(!preg_match("/T[0-9]{4}-[0-9]{2}.md/",$f)) continue;
             $fi = fopen($folder.'/'.$f, "r");
             if(($size=filesize($folder.'/'.$f))==0) continue;
             $content = fread($fi,filesize($folder.'/'.$f));
@@ -4157,8 +4164,8 @@ class LAManagement{
             if(preg_match("/# ([0-9]{4})-([0-9]{2})([\s\S]*)/m",$content,$ma)){
                 // no need to process range here.
                 if(preg_match("/Total:([0-9]*)[\s]*Done:([0-9]*)[\s]*Pending:([0-9]*)[\s]*Canceled:([0-9]*)[\s]*Active:([0-9]*)([\s\S]*)/m",$ma[3],$ma2)){
-                
-                    if($ma2[3] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 31) > $done_day_lim) continue;
+
+                    if($ma2[3] == 0 && $ma2[5] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 31) > $done_day_lim) continue;
                     
                     if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)/m",$ma2[6],$ma3,PREG_SET_ORDER)){
                         
