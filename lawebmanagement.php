@@ -1531,7 +1531,7 @@ class LAManagement{
             
             table{ width:100%; border-collapse: collapse;}
             
-            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 10; text-align: left; }
+            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 1; text-align: left; }
             
             blockquote{ border-top:1px solid #000; border-bottom:1px solid #000; text-align: center; }
             
