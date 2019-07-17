@@ -4143,7 +4143,7 @@ class LAManagement{
     function DayDifferences($y_from, $m_from, $d_from, $y_to, $m_to, $d_to){
         $from = new DateTime($y_from.'-'.$m_from.'-'.$d_from);
         $to = new DateTime($y_to.'-'.$m_to.'-'.$d_to);
-        return $to->getTimeStamp() - $from->getTimeStamp();   
+        return ($to->getTimeStamp() - $from->getTimeStamp())/3600/24;
     }
     function TaskTimeDifferences($time_from,$time_to){
         $from = new DateTime($time_from['Y'].'-'.$time_from['M'].'-'.$time_from['D'].' '.$time_from['h'].':'.$time_from['m'].':'.$time_from['s']);
@@ -4165,7 +4165,7 @@ class LAManagement{
                 // no need to process range here.
                 if(preg_match("/Total:([0-9]*)[\s]*Done:([0-9]*)[\s]*Pending:([0-9]*)[\s]*Canceled:([0-9]*)[\s]*Active:([0-9]*)([\s\S]*)/m",$ma[3],$ma2)){
 
-                    if($ma2[3] == 0 && $ma2[5] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 31) > $done_day_lim) continue;
+                    if($ma2[3] == 0 && $ma2[5] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 31) < -$done_day_lim) continue;
                     
                     if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)/m",$ma2[6],$ma3,PREG_SET_ORDER)){
                         
@@ -4173,7 +4173,7 @@ class LAManagement{
                             $item = Null;
                             if(preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2})[\s]*([0-9]{2}):([0-9]{2}):([0-9]{2})/U",$m[3],$ma_time,PREG_SET_ORDER)){
                                 
-                                if(($m[1]=='D'||$m[1]=='C') && $this->DayDifferences($today_y, $today_m, $today_d, $ma_time[1][1], $ma_time[1][2], $ma_time[1][3])>$done_day_lim) continue;
+                                if(($m[1]=='D'||$m[1]=='C') && $this->DayDifferences($today_y, $today_m, $today_d, $ma_time[1][1], $ma_time[1][2], $ma_time[1][3]) < -$done_day_lim) continue;
                                 
                                 $item['time_begin']['Y'] = $ma_time[0][1]; $item['time_begin']['M'] = $ma_time[0][2]; $item['time_begin']['D'] = $ma_time[0][3];
                                 $item['time_begin']['h'] = $ma_time[0][4]; $item['time_begin']['m'] = $ma_time[0][5]; $item['time_begin']['s'] = $ma_time[0][6];

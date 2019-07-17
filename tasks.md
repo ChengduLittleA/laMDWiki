@@ -6,6 +6,7 @@ GroupName = 全局事件列表
 
 Entry
 - Target = ./snd
+- PastCount = 3
 
 Entry
 - Target = ./img
