@@ -63,6 +63,7 @@ $la_operation = null;
 if (isset($_GET["operation"])) $la_operation = $_GET["operation"];
 
 
+date_default_timezone_set('Asia/Shanghai');
 
 $LA = new LAManagement();
 $page_success = $LA->SetPagePath($la_page_path);

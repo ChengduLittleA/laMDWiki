@@ -82,35 +82,40 @@ class LAManagement{
     protected $cwhite;
     
     function ChooseColorScheme(){
-        $use_black = 0;
-        if(isset($_SESSION['la_theme'])){
-            if($_SESSION['la_theme'] == 'black'){
-                $use_black  = 1;
-            }
-        }else{
-            //select theme by server time
-            $hour = intval(date('H'));
-            if($hour>19 || $hour<6){
-                $use_black  = 1;
-            }
-        }
-        if($use_black){
+        if($this->prefer_dark){
             $this->cwhite = 'black';
             $this->cblack = 'white';
-            $this->prefer_dark = 1;
         }else{
             $this->cwhite = 'white';
             $this->cblack = 'black';
-            $this->prefer_dark = 0;
         }
     }
 
     function DoSetColorScheme(){
-        if(isset($_GET['theme'])) $theme = $_GET['theme'];
-        else return;
+        $hour = intval(date('H'));
 
-        if(!isset($theme)) unset($_SESSION['la_theme']);
-        else $_SESSION['la_theme']=$theme;
+        if(isset($_GET['theme'])){
+            $theme = $_GET['theme'];
+            if($theme == 'unset') unset($_SESSION['la_theme']);
+            else $_SESSION['la_theme']=$theme;
+        }
+
+        if(isset($_SESSION['la_theme'])){
+            if($_SESSION['la_theme'] == 'black'){
+                if($hour>=19 || $hour<6){
+                    unset($_SESSION['la_theme']);
+                }
+                $this->prefer_dark = 1;
+            }else{
+                if(!($hour>=19 || $hour<6)){
+                    unset($_SESSION['la_theme']);
+                }
+            }
+        }else{
+            if($hour>=19 || $hour<6){
+                $this->prefer_dark = 1;
+            }
+        }
     }
     
     function AddTranslationEntry($zh,$en){
@@ -1022,6 +1027,7 @@ class LAManagement{
         if(isset($_GET['logout'])){
             //要清除会话变量，将$_SESSION超级全局变量设置为一个空数组
             unset($_SESSION['user_id']);
+            unset($_SESSION['la_theme']);
             //如果存在一个会话cookie，通过将到期时间设置为之前1个小时从而将其删除
             if(isset($_COOKIE[session_name()])){
                 setcookie(session_name(),'',time()-3600);
@@ -1689,7 +1695,7 @@ class LAManagement{
                                                                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAGklEQVQImWNgYGD4j4YZ/v///x9VAEMFMgYAjNMS7u6EWNsAAAAASUVORK5CYII="?>) repeat; }
             .halftone3  { background: url(<?php echo (!$this->prefer_dark)?"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHUlEQVQImWNgYGD4j4YZGLAI/GfAIgAXxKYD1VwA+JoT7dVZ0wkAAAAASUVORK5CYII=":
                                                                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIUlEQVQImWNgYGD4D8P/////z4DGgQggcf4zoHAYGP4DAKLLG+XKz5dJAAAAAElFTkSuQmCC"?>) repeat; }
-            .halftone4  { background: url(<?php echo (!$this->prefer_dark)?"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAADklEQVQImWNgQID/uBkANfEC/tK2Q2IAAAAASUVORK5CYII=)":
+            .halftone4  { background: url(<?php echo (!$this->prefer_dark)?"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAADklEQVQImWNgQID/uBkANfEC/tK2Q2IAAAAASUVORK5CYII=":
                                                                            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAHElEQVQImU3GsQ0AAAzDIP5/2t2iMgGhKi9Z6ABU4BHvJiLMHQAAAABJRU5ErkJggg=="?>) repeat; }
             
             .inline            { display: inline; margin:0px; }
