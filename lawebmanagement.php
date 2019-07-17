@@ -3049,7 +3049,7 @@ class LAManagement{
             <div id="editor_fullscreen_container" class="mobile_force_fullscreen modal_on_mobile white_bkg">
                 
                 <textarea class='string_input big_string big_string_height' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
-                <div class="hidden_on_desktop"><a class="white_bkg modal_on_mobile" style="position:fixed; right:10px; bottom:10px; text-align:center;" onClick="editor_toggle_fullscreen_mobile()">切换全屏</a></div>
+                <div class="hidden_on_desktop"><a class="white_bkg modal_on_mobile" style="position:fixed; right:10px; top:10px; text-align:center;" onClick="editor_toggle_fullscreen_mobile()">切换全屏</a></div>
             </div>
             <div>
                 <span id='data_passage_character_count'>字数</span>
