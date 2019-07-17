@@ -113,6 +113,9 @@ if($LA->IsLoggedIn()){
 
 echo $LA->SwitchToTargetLanguageIfPossible();
 
+echo $LA->DoSetColorScheme();
+echo $LA->ChooseColorScheme();
+
 echo $LA->MakeHTMLHead();
 
 if(!$page_success){

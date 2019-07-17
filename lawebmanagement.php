@@ -77,6 +77,42 @@ class LAManagement{
     
     protected $DICT;
     
+    protected $prefer_dark;
+    protected $cblack;
+    protected $cwhite;
+    
+    function ChooseColorScheme(){
+        $use_black = 0;
+        if(isset($_SESSION['la_theme'])){
+            if($_SESSION['la_theme'] == 'black'){
+                $use_black  = 1;
+            }
+        }else{
+            //select theme by server time
+            $hour = intval(date('H'));
+            if($hour>19 || $hour<6){
+                $use_black  = 1;
+            }
+        }
+        if($use_black){
+            $this->cwhite = 'black';
+            $this->cblack = 'white';
+            $this->prefer_dark = 1;
+        }else{
+            $this->cwhite = 'white';
+            $this->cblack = 'black';
+            $this->prefer_dark = 0;
+        }
+    }
+
+    function DoSetColorScheme(){
+        if(isset($_GET['theme'])) $theme = $_GET['theme'];
+        else return;
+
+        if(!isset($theme)) unset($_SESSION['la_theme']);
+        else $_SESSION['la_theme']=$theme;
+    }
+    
     function AddTranslationEntry($zh,$en){
         $entry['zh'] = $zh;
         $entry['en'] = $en;
@@ -985,7 +1021,7 @@ class LAManagement{
         //登出
         if(isset($_GET['logout'])){
             //要清除会话变量，将$_SESSION超级全局变量设置为一个空数组
-            $_SESSION = array();
+            unset($_SESSION['user_id']);
             //如果存在一个会话cookie，通过将到期时间设置为之前1个小时从而将其删除
             if(isset($_COOKIE[session_name()])){
                 setcookie(session_name(),'',time()-3600);
@@ -1513,13 +1549,18 @@ class LAManagement{
         
             html{ text-align:center; }
             body{ width:100%; text-align:left; margin:0px;
-                background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAGUlEQVQImWNgYGD4z4AGMARwSvxnYGBgAACJugP9M1YqugAAAABJRU5ErkJggg==) repeat;
+                background:url(<?php echo $this->prefer_dark?"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAHklEQVQImWXKoREAAAyEsOy/NPVfgckBTSy8I1SFDuxlEe9gb9sYAAAAAElFTkSuQmCC":
+                                                             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAGUlEQVQImWNgYGD4z4AGMARwSvxnYGBgAACJugP9M1YqugAAAABJRU5ErkJggg=="?>) repeat;
                 background-attachment: fixed;
                 font-size:16px;
+                color:<?php echo $this->cblack ?>;
             }
             
             .the_body{ width:60%; min-width:900px; margin: 0 auto; }
-            
+
+            input    { background-color:<?php echo $this->cwhite ?>; color:<?php echo $this->cblack ?>; }
+            textarea { background-color:<?php echo $this->cwhite ?>; color:<?php echo $this->cblack ?>; }
+
             del{ color: gray;}
             
             img{ max-width: 100%; margin: 5px auto; display: block; }
@@ -1531,24 +1572,24 @@ class LAManagement{
             
             table{ width:100%; border-collapse: collapse;}
             
-            pre {border-left: 3px double black; padding: 10px; position: relative; z-index: 1; text-align: left; }
+            pre {border-left: 3px double <?php echo $this->cblack ?>; padding: 10px; position: relative; z-index: 1; text-align: left; }
             
-            blockquote{ border-top:1px solid #000; border-bottom:1px solid #000; text-align: center; }
+            blockquote{ border-top:1px solid <?php echo $this->cblack ?>; border-bottom:1px solid <?php echo $this->cblack ?>; text-align: center; }
             
-            ::-moz-selection{ background:#000; color:#FFF; }
-            ::selection{ background:#000; color:#FFF; }
-            ::-webkit-selection{ background:#000; color:#FFF; }
+            ::-moz-selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; }
+            ::selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; }
+            ::-webkit-selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; }
             
             #Header{ position: sticky; top:0px; left:15%; display: block; z-index:10; }
-            #WebsiteTitle{ border:1px solid #000; display: inline-block; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-left:0px; margin-right:0px; margin-bottom:15px;
-                background-color:#FFF; box-shadow: 5px 5px #000;
+            #WebsiteTitle{ border:1px solid <?php echo $this->cblack ?>; display: inline-block; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-left:0px; margin-right:0px; margin-bottom:15px;
+                background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>;
             }	
-            #HeaderQuickButtons{ border:1px solid #000; display: inline; right:0px; position: absolute; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-right:0px;
-                background-color:#FFF; box-shadow: 5px 5px #000;
+            #HeaderQuickButtons{ border:1px solid <?php echo $this->cblack ?>; display: inline; right:0px; position: absolute; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-right:0px;
+                background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>;
             }
             
-            .wide_title{ border:1px solid #000; display: inline-block; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-left:0px; margin-right:0px; margin-bottom:15px;
-                background-color:#FFF; box-shadow: 5px 5px #000; overflow: hidden; width: calc(100% - 22px);
+            .wide_title{ border:1px solid <?php echo $this->cblack ?>; display: inline-block; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-left:0px; margin-right:0px; margin-bottom:15px;
+                background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; overflow: hidden; width: calc(100% - 22px);
             }
 
             
@@ -1556,12 +1597,12 @@ class LAManagement{
             
             .wide_body              { margin-left: 10px; margin-right:10px; }
             
-            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: auto; scrollbar-color: #000 #ccc; scrollbar-width: thin;}
-            .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
-            .additional_content     { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; overflow: hidden; }
-            .task_content           { padding:3px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 2px #000; margin-bottom:5px; overflow: hidden; }
-            .inline_notes_outer     { padding:5px; border-left: 3px solid black; border-top: 3px solid black; padding-right: 8px; padding-bottom: 8px; margin-top: 5px; margin-bottom: 5px; }
-            .inline_notes_content   { padding:5px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; overflow: hidden; }
+            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: auto; scrollbar-color: <?php echo $this->cblack ?> #ccc; scrollbar-width: thin;}
+            .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; max-height:350px; }
+            .additional_content     { padding:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; }
+            .task_content           { padding:3px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 2px <?php echo $this->cblack ?>; margin-bottom:5px; overflow: hidden; }
+            .inline_notes_outer     { padding:5px; border-left: 3px solid <?php echo $this->cblack ?>; border-top: 3px solid <?php echo $this->cblack ?>; padding-right: 8px; padding-bottom: 8px; margin-top: 5px; margin-bottom: 5px; }
+            .inline_notes_content   { padding:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; overflow: hidden; }
             .sidenotes_content      { position: absolute; right:10px; max-width: calc(50% - 470px); width: calc(20% - 20px); }
             .sidenotes_position     { position: absolute; width:calc(100% - 13px); min-width: 250px; right:0px; bottom: 15px; display: block; }
             .sidenotes_expander     { position: absolute; left:0px; bottom: 15px; display: none;}
@@ -1571,9 +1612,9 @@ class LAManagement{
             .additional_content_left{ margin-right: 15px; float: left; text-align: center; position: sticky; top:82px; margin-bottom:0px;}
             .novel_content          { max-width:600px; margin:0px auto; line-height:2; }
             .more_vertical_margin   { margin-top: 100px; margin-bottom: 100px; }
-            .small_shadow           { box-shadow: 2px 2px #000; }
-            .tile_content           { padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:15px; max-height:350px; }
-            .top_panel              { padding:10px; padding-top:15px; padding-bottom:15px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: hidden; }
+            .small_shadow           { box-shadow: 2px 2px <?php echo $this->cblack ?>; }
+            .tile_content           { padding:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; max-height:350px; }
+            .top_panel              { padding:10px; padding-top:15px; padding-bottom:15px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; }
             .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:1000; max-height: unset;}
             .gallery_left           { height:calc(100% - 160px); position: fixed; width:350px; }
             .gallery_right          { width:calc(100% - 365px); left: 365px; position: relative;}
@@ -1595,10 +1636,10 @@ class LAManagement{
             
             .underline_when_hover:hover { text-decoration: underline; }
             
-            .audio_player_box       { z-index:20; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; bottom:15px; overflow: hidden; position: sticky; margin:15px auto; margin-top:0px; width:calc(60% - 55px); min-width:845px;}
+            .audio_player_box       { z-index:20; padding:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; bottom:15px; overflow: hidden; position: sticky; margin:15px auto; margin-top:0px; width:calc(60% - 55px); min-width:845px;}
             .bottom_sticky_menu_container { z-index:20; padding:10px; overflow: visible; position: sticky; bottom:80px; margin:15px auto; margin-bottom:0px; width:calc(60% - 33px); min-width:867px; }
-            .bottom_sticky_menu_left      { z-index:20; position: absolute; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; left:10px; bottom:10px; overflow: hidden; margin:0px;  width:50%; }
-            .bottom_sticky_menu_right     { z-index:20; position: absolute; padding:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; right:10px; bottom:10px; overflow: hidden; margin:0px;  width:50%; }
+            .bottom_sticky_menu_left      { z-index:20; position: absolute; padding:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; left:10px; bottom:10px; overflow: hidden; margin:0px;  width:50%; }
+            .bottom_sticky_menu_right     { z-index:20; position: absolute; padding:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; right:10px; bottom:10px; overflow: hidden; margin:0px;  width:50%; }
             
             canvas                  { width:100%; height:100%; }
             .canvas_box_warpper_wide           { position: relative;}
@@ -1616,15 +1657,15 @@ class LAManagement{
             .box_complete_background           { position: fixed; top: 0px; left: 0px; bottom: 0px; right: 0px; z-index: -1;}
             .box_hang_right                    { float: right; width:30%;}
             
-            .white_bkg    { background-color:#FFF; }
+            .white_bkg    { background-color:<?php echo $this->cwhite ?>; }
             
-            .modal_block  { background-color:rgba(0,0,0,0.2); position: fixed; z-index:30; top: 0px; left: 0px; bottom: 0px; right: 0px; }
+            .modal_block  { background-color:rgba(0,0,0,<?php echo $this->prefer_dark?"0.7":"0.2" ?>); position: fixed; z-index:30; top: 0px; left: 0px; bottom: 0px; right: 0px; }
             .modal_dialog { z-index:50; }
             .modal_on_mobile { z-index:0; }
             
-            .btn          { border:1px solid #000; padding: 5px; color:#000; display: inline; background-color:#FFF; font-size:16px; cursor: pointer; text-align: center; }
-            .btn:hover    { border:3px double #000; padding: 3px; }
-            .btn:active   { border:5px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; }
+            .btn          { border:1px solid <?php echo $this->cblack ?>; padding: 5px; color:<?php echo $this->cblack ?>; display: inline; background-color:<?php echo $this->cwhite ?>; font-size:16px; cursor: pointer; text-align: center; }
+            .btn:hover    { border:3px double <?php echo $this->cblack ?>; padding: 3px; }
+            .btn:active   { border:5px solid <?php echo $this->cblack ?>; border-bottom: 1px solid <?php echo $this->cblack ?>; border-right: 1px solid <?php echo $this->cblack ?>; padding: 3px; }
             .btn_nopadding          { padding: 2px; }
             .btn_nopadding:hover    { padding: 0px; }
             .btn_nopadding:active   { padding: 0px; }
@@ -1642,33 +1683,33 @@ class LAManagement{
             .inline_block_height_spacer{ display: block; height:10px; width:100%; }
             .block_height_spacer { display: block; height:4px; width:100%; }
             
-            .halftone1  { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgIBH8HxyKaQ+Icg71FGEAAMIRBftlPpkVAAAAAElFTkSuQmCC) repeat; }
-            .halftone1w { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAMElEQVQYlWP4TyRg+P///38GBgbiFBKjGEUWn2LCdlJdIcw5eBUiuxmnQnSPEe1GAL6NfJLaO8bfAAAAAElFTkSuQmCC) repeat; }
-            .halftone2  { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAD0lEQVQImWNgIAf8J10LADM2AQA1DEeOAAAAAElFTkSuQmCC) repeat; }
-            .halftone2w { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAFklEQVQImWP4jwUw4BVkYGAgUiUyAADQo2Cg/XS+dwAAAABJRU5ErkJggg==) repeat; }
-            .halftone3  { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHUlEQVQImWNgYGD4j4YZGLAI/GfAIgAXxKYD1VwA+JoT7dVZ0wkAAAAASUVORK5CYII=) repeat; }
-            .halftone3w { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAJElEQVQImW3IoREAAAjEsO6/dBEI/gAREwCTKk9MRnSukBNgAQ7LJ9m50jTuAAAAAElFTkSuQmCC) repeat; }
-            .halftone4  { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAADklEQVQImWNgQID/uBkANfEC/tK2Q2IAAAAASUVORK5CYII=) repeat; }
-            .halftone4w { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAGElEQVQImWP4DwUMDAz/GWAMKM0Ak/wPAAg7Gub7fKZwAAAAAElFTkSuQmCC) repeat; }
+            .halftone1  { background: url(<?php echo (!$this->prefer_dark)?"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgIBH8HxyKaQ+Icg71FGEAAMIRBftlPpkVAAAAAElFTkSuQmCC":
+                                                                           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAKklEQVQYlWNgYGD4TwAz/P///z9+BQQUITg4FBHhBlwYaiJeSewKkN0CAH68Ua9is7GVAAAAAElFTkSuQmCC" ?>) repeat; }
+            .halftone2  { background: url(<?php echo (!$this->prefer_dark)?"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAD0lEQVQImWNgIAf8J10LADM2AQA1DEeOAAAAAElFTkSuQmCC":
+                                                                           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAGklEQVQImWNgYGD4j4YZ/v///x9VAEMFMgYAjNMS7u6EWNsAAAAASUVORK5CYII="?>) repeat; }
+            .halftone3  { background: url(<?php echo (!$this->prefer_dark)?"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHUlEQVQImWNgYGD4j4YZGLAI/GfAIgAXxKYD1VwA+JoT7dVZ0wkAAAAASUVORK5CYII=":
+                                                                           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAIUlEQVQImWNgYGD4D8P/////z4DGgQggcf4zoHAYGP4DAKLLG+XKz5dJAAAAAElFTkSuQmCC"?>) repeat; }
+            .halftone4  { background: url(<?php echo (!$this->prefer_dark)?"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAADklEQVQImWNgQID/uBkANfEC/tK2Q2IAAAAASUVORK5CYII=)":
+                                                                           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAHElEQVQImU3GsQ0AAAzDIP5/2t2iMgGhKi9Z6ABU4BHvJiLMHQAAAABJRU5ErkJggg=="?>) repeat; }
             
             .inline            { display: inline; margin:0px; }
             .inline_components { display: inline; margin: 5px; }
-            .plain_block       { border: 1px solid #000; text-align: left; padding:5px; }
-            .preview_block     { border-right: 1px solid #000; margin:5px; }
-            .border_only       { border: 1px solid #000; }
+            .plain_block       { border: 1px solid <?php echo $this->cblack ?>; text-align: left; padding:5px; }
+            .preview_block     { border-right: 1px solid <?php echo $this->cblack ?>; margin:5px; }
+            .border_only       { border: 1px solid <?php echo $this->cblack ?>; }
             
             .inline_p          { }
             .inline_p p, .inline_p h1, .inline_p h2, .inline_p h3, .inline_p h4, .inline_p h5, .inline_p h6, .inline_p { display: inline; margin:0px; }
             
-            .string_input      { border:3px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; margin:5px; width:150px; }
-            .quick_post_string { border:3px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; margin:0px; width:100%; resize: none; overflow: hidden; height: 25px; }
+            .string_input      { border:3px solid <?php echo $this->cblack ?>; border-bottom: 1px solid <?php echo $this->cblack ?>; border-right: 1px solid <?php echo $this->cblack ?>; padding: 3px; margin:5px; width:150px; }
+            .quick_post_string { border:3px solid <?php echo $this->cblack ?>; border-bottom: 1px solid <?php echo $this->cblack ?>; border-right: 1px solid <?php echo $this->cblack ?>; padding: 3px; margin:0px; width:100%; resize: none; overflow: hidden; height: 25px; }
             .big_string        { width: calc(100% - 10px); height: 500px; resize: vertical; border:none; }
             .big_string_height { height: 500px; }
             .title_string      { margin-top:-5px; margin-bottom:-5px; font-size:16px; text-align: right; }
             
             .no_horizon_margin { margin-left:0px; margin-right:0px; }
             
-            .navigation        { border:1px solid #000; display: inline; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; right:0px; background-color:#FFF; box-shadow: 5px 5px #000; white-space: nowrap; text-align: center;}
+            .navigation        { border:1px solid <?php echo $this->cblack ?>; display: inline; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; right:0px; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; <?php echo $this->cwhite ?>-space: nowrap; text-align: center;}
             .navigation p      { display: inline; }
             
             .navigation_task p { display: inline; }
@@ -1677,16 +1718,16 @@ class LAManagement{
             .tile_container    { display: table; table-layout: fixed; width: calc(100% + 30px); border-spacing:15px 7px; margin-left: -15px; margin-top: -7px; margin-bottom: 8px; }
             .tile_item         { display: table-cell; }
             
-            .footer            { padding:10px; padding-top:15px; padding-bottom:5px; border:1px solid #000; background-color:#FFF; box-shadow: 5px 5px #000; margin-bottom:15px; overflow: hidden; display: inline-block; }
-            .additional_options{ padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid #000; background-color:#FFF; box-shadow: 3px 3px #000; margin-bottom:-15px; overflow: hidden; display: inline-block; position: relative; z-index:100; }
+            .footer            { padding:10px; padding-top:15px; padding-bottom:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; display: inline-block; }
+            .additional_options{ padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:-15px; overflow: hidden; display: inline-block; position: relative; z-index:100; }
             
             
-            a        { border:1px solid #000; padding: 5px; color:#000; text-decoration: none; }
-            a:hover  { border:3px double #000; padding: 3px; }
-            a:active { border:5px solid #000; border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 3px; }
+            a        { border:1px solid <?php echo $this->cblack ?>; padding: 5px; color:<?php echo $this->cblack ?>; text-decoration: none; }
+            a:hover  { border:3px double <?php echo $this->cblack ?>; padding: 3px; }
+            a:active { border:5px solid <?php echo $this->cblack ?>; border-bottom: 1px solid <?php echo $this->cblack ?>; border-right: 1px solid <?php echo $this->cblack ?>; padding: 3px; }
             .main_content a       { padding: 0px; padding-left:3px; padding-right:3px; display: inline-block;}            
-            .main_content a:hover { border:1px solid #000; text-decoration: underline; }
-            .main_content a:active{ border:1px solid #000; color:#FFF; background-color:#000; }
+            .main_content a:hover { border:1px solid <?php echo $this->cblack ?>; text-decoration: underline; }
+            .main_content a:active{ border:1px solid <?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; background-color:<?php echo $this->cblack ?>; }
             .main_content .no_border:hover { border: none; }
             .main_content .no_border:active { border: none; }
             
@@ -1794,22 +1835,22 @@ class LAManagement{
                 .additional_content,
                 .additional_content_left,
                 .tile_content,
-                .top_panel              { padding:0;  border: none; background-color:#FFF; box-shadow: unset; margin:0; overflow: unset; }
+                .top_panel              { padding:0;  border: none; background-color:<?php echo $this->cwhite ?>; box-shadow: unset; margin:0; overflow: unset; }
                 .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:1000; max-height: unset;}
-                .gallery_left           { height: unset; width: unset; position: unset; padding:0;  border: none; background-color:#FFF; box-shadow: unset; margin:0; overflow: unset; }
-                .gallery_right          { height: unset; width: unset; left: unset; z-index:10; position: unset; padding:0;  border: none; background-color:#FFF; box-shadow: unset; margin:0; overflow: unset; }
+                .gallery_left           { height: unset; width: unset; position: unset; padding:0;  border: none; background-color:<?php echo $this->cwhite ?>; box-shadow: unset; margin:0; overflow: unset; }
+                .gallery_right          { height: unset; width: unset; left: unset; z-index:10; position: unset; padding:0;  border: none; background-color:<?php echo $this->cwhite ?>; box-shadow: unset; margin:0; overflow: unset; }
                 .gallery_main_height    { max-height: unset }
                 .no_padding             { padding: 0px; }
                 
-                .print_document h1{ border-left: 10px solid black; padding-left:10px; border-bottom: 1px solid black; margin-bottom: 5px }
+                .print_document h1{ border-left: 10px solid <?php echo $this->cblack ?>; padding-left:10px; border-bottom: 1px solid <?php echo $this->cblack ?>; margin-bottom: 5px }
                 
-                .print_document h2{ border-left: 5px solid black; padding-left:5px;}
+                .print_document h2{ border-left: 5px solid <?php echo $this->cblack ?>; padding-left:5px;}
                 
-                .print_document h3{ border-left: 1px solid black; padding-left:9px;}
+                .print_document h3{ border-left: 1px solid <?php echo $this->cblack ?>; padding-left:9px;}
                 
                 .gallery_left h1, .gallery_left h2, .gallery_left h3, .gallery_left h4, .gallery_left h5, .gallery_left h6 { display: inline; }
                 
-                pre{ white-space: pre-wrap; border: 1px dotted black; }
+                pre{ <?php echo $this->cwhite ?>-space: pre-wrap; border: 1px dotted <?php echo $this->cblack ?>; }
                 
                 .print_document          { padding-left: 10px; }
                 .print_document h1, .print_document h2, .print_document h3, .print_document h4, .print_document h5, .print_document h6 { margin-left: -10px; }
@@ -1853,7 +1894,7 @@ class LAManagement{
     }
     function MakeSpecialStripe(){
         ?>
-        <div class='hidden_on_print' style='background-color:#000; height:10px; margin-top: -20px;margin-left: -15px;margin-right: -15px; margin-bottom:15px;'>
+        <div class='hidden_on_print' style='background-color:black; height:10px; margin-top: -20px;margin-left: -15px;margin-right: -15px; margin-bottom:15px;'>
             <div style='width:600px; max-width:100%; height:100%; font-size:0px; overflow:hidden;'>
             <?php
                 $this->SpetialStripeSegment('3.97%','#550000');
@@ -2739,6 +2780,9 @@ class LAManagement{
                     查看为
                     <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
                     <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
+                    <div class="inline_height_spacer hidden_on_desktop"></div>
+                    <a href='?page=<?php echo $this->PagePath;?>&theme=white'>明亮</a>
+                    <a href='?page=<?php echo $this->PagePath;?>&theme=black'>夜间</a>
                 <?php } ?>
             <?php } ?>
             
@@ -2761,6 +2805,14 @@ class LAManagement{
                             <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
                             <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
                         <?php } ?>
+                        <div class="inline_height_spacer"></div>
+                        
+                        <?php if($this->prefer_dark){ ?>
+                            <p class = "inline_components" >在夜间模式</p>
+                            <a href='?page=<?php echo $this->PagePath;?>&theme=white'>调成明亮</a>
+                        <?php }else{ ?>
+                            <a href='?page=<?php echo $this->PagePath;?>&theme=black'>进入夜间模式</a>
+                        <?php }?>
                     <?php } ?>
                     <?php 
                     if(!isset($_GET['static_generator'])){
@@ -4165,7 +4217,7 @@ class LAManagement{
                 // no need to process range here.
                 if(preg_match("/Total:([0-9]*)[\s]*Done:([0-9]*)[\s]*Pending:([0-9]*)[\s]*Canceled:([0-9]*)[\s]*Active:([0-9]*)([\s\S]*)/m",$ma[3],$ma2)){
 
-                    if($ma2[3] == 0 && $ma2[5] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 31) < -$done_day_lim) continue;
+                    if($ma2[3] == 0 && $ma2[5] == 0 && $this->DayDifferences($today_y, $today_m, $today_d, $ma[1], $ma[2], 28) < -$done_day_lim) continue;
                     
                     if(preg_match_all("/\*\*([TDCA])([0-9]{5})\*\*[\s]*\[(.*)\][\s]*\[(.*)\][\s]*(.*)/m",$ma2[6],$ma3,PREG_SET_ORDER)){
                         
@@ -4731,7 +4783,7 @@ class LAManagement{
                     </div>
                     <div class='additional_content no_overflow_mobile'>
                         <div class='hidden_on_desktop' style='clear:both;text-align:right;position:sticky;top:80px;'>
-                            <div class='plain_block small_shadow' style='text-align:center;display:inline-block;background-color:#FFF;'>
+                            <div class='plain_block small_shadow' style='text-align:center;display:inline-block;background-color:<?php echo $this->cwhite ?>;'>
                                 <div style='float:right'>
                                     &nbsp;<?php echo $is_draft?'<b>草稿</b>':($m?('于'.$y.'/'.$m.'/<b>'.$d.'</b>'):'<b>过去</b>的某一天') ?>
                                 </div>
@@ -4844,7 +4896,7 @@ class LAManagement{
                      <?php } ?>
                      </div>
                      <div class = 'narrow_content' style='overflow:auto;'>
-                        <b style='background-color:#FFF;'><?php echo $f?></b>
+                        <b style='background-color:<?php echo $this->cwhite ?>;'><?php echo $f?></b>
                      </div>
                 </div>
                 <div class='the_body' style='clear:both;text-align:right'>
@@ -5103,7 +5155,7 @@ class LAManagement{
                 
                 <div id='audio_player_bar' class='plain_block' style='display: inline-block; width: calc(100% - 115px); position:relative;'>
                     
-                    <div id='audio_player_progress' style='width:0%; background-color:#000; position:absolute; display:inline_block; z-index:-1; margin: -5px; height: 100%;'>
+                    <div id='audio_player_progress' style='width:0%; background-color:<?php echo $this->cblack ?>; position:absolute; display:inline_block; z-index:-1; margin: -5px; height: 100%;'>
                         &nbsp;
                     </div>
                     
@@ -5111,11 +5163,11 @@ class LAManagement{
                         &nbsp;
                     </div>
                     
-                    <div id='audio_player_time' style='background-color:#FFF; align-items: center; display: inline-block;'>
+                    <div id='audio_player_time' style='background-color:<?php echo $this->cwhite ?>; align-items: center; display: inline-block;'>
                         已停止
                     </div>
                     
-                    <div id='audio_total_time' style='float:right; margin-right:4px; background-color:#FFF; align-items: center; display: inline-block;'>
+                    <div id='audio_total_time' style='float:right; margin-right:4px; background-color:<?php echo $this->cwhite ?>; align-items: center; display: inline-block;'>
                         请稍候
                     </div>
                     
