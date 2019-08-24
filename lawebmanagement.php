@@ -1657,7 +1657,7 @@ class LAManagement{
             ::selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; }
             ::-webkit-selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; }
             
-            #Header{ position: sticky; top:0px; left:15%; display: block; z-index:10; }
+            #Header{ position: sticky; top:0px; display: block; z-index:10; }
             #WebsiteTitle{ border:1px solid <?php echo $this->cblack ?>; display: inline-block; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-left:0px; margin-right:0px; margin-bottom:15px;
                 background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>;
             }	
