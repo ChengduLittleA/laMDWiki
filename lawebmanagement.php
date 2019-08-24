@@ -142,6 +142,11 @@ class LAManagement{
         return $en;
     }
     
+    function UseLanguage(){
+        if(!$this->LanguageAppendix) return 'zh';
+        else return $this->LanguageAppendix;
+    }
+    
     function __construct() {
         $this->PDE = new ParsedownExtra();
         $this->PDE->SetInterlinkPath('/');
@@ -149,6 +154,72 @@ class LAManagement{
         $this->AddTranslationEntry('上级','Up');
         $this->AddTranslationEntry('首页','Home');
         $this->AddTranslationEntry('列表','List');
+        $this->AddTranslationEntry('在夜间模式','In night mode');
+        $this->AddTranslationEntry('调成明亮','Brighten up');
+        $this->AddTranslationEntry('进入夜间模式','Go to night mode');
+        $this->AddTranslationEntry('列表','List');
+        
+        $this->AddTranslationEntry('更多','More');
+        $this->AddTranslationEntry('编辑','Edit');
+        $this->AddTranslationEntry('完成','Finish');
+        $this->AddTranslationEntry('放弃','Discard');
+        $this->AddTranslationEntry('放弃修改','Discard changes');
+        
+        $this->AddTranslationEntry('登录','Log in');
+        $this->AddTranslationEntry('用户名','User name');
+        $this->AddTranslationEntry('密码','Password');
+        $this->AddTranslationEntry('不是您本人？','Not yourself?');
+        $this->AddTranslationEntry('登出','Log out');
+        
+        $this->AddTranslationEntry('跟踪','Tracker');
+        $this->AddTranslationEntry('正在跟踪','Tracking');
+        $this->AddTranslationEntry('总览','Overview');
+        $this->AddTranslationEntry('当前在','At');
+        $this->AddTranslationEntry('新增','New');
+        $this->AddTranslationEntry('在事件组','in event group');
+        $this->AddTranslationEntry('事件描述','Event description');
+        $this->AddTranslationEntry('标签','Tags');
+        $this->AddTranslationEntry('取消','Cancel');
+        $this->AddTranslationEntry('保存','Save');
+        $this->AddTranslationEntry('修改','Edit');
+        $this->AddTranslationEntry('进行','Run');
+        $this->AddTranslationEntry('丢弃','Cancel');
+        $this->AddTranslationEntry('删除','Delete');
+        $this->AddTranslationEntry('暂缓','Wait');
+        $this->AddTranslationEntry('放回队列','Put back');
+        $this->AddTranslationEntry('删除条目','Delete item');
+        $this->AddTranslationEntry('确认','Confirm');
+        $this->AddTranslationEntry('确定','Confirm');
+        $this->AddTranslationEntry('新增事件','New event');
+        $this->AddTranslationEntry('到','to');
+        $this->AddTranslationEntry('设置分组','Config grouping');
+        $this->AddTranslationEntry('进入分组','Detailes');
+        $this->AddTranslationEntry('编辑文字','Edit text');
+        $this->AddTranslationEntry('添加组','New group');
+        $this->AddTranslationEntry('删','Del');
+        $this->AddTranslationEntry('创建索引','Create index');
+        $this->AddTranslationEntry('选组','Select groups');
+        $this->AddTranslationEntry('位于','at');
+        
+        $this->AddTranslationEntry('下一页','Next');
+        $this->AddTranslationEntry('上一页','Previous');
+        $this->AddTranslationEntry('不看了','Close');
+        
+        $this->AddTranslationEntry('返回顶部','Back to top');
+        
+        $this->AddTranslationEntry('选项','Options');
+        $this->AddTranslationEntry('上传','Upload');
+        $this->AddTranslationEntry('新文件夹','New folder');
+        $this->AddTranslationEntry('新文件夹名','folder name');
+        $this->AddTranslationEntry('到这里','Put');
+        $this->AddTranslationEntry('选这个','Select');
+        $this->AddTranslationEntry('进入','Enter');
+        $this->AddTranslationEntry('移动','Move');
+        $this->AddTranslationEntry('改名','Rename');
+        $this->AddTranslationEntry('调整','Adjust');
+        $this->AddTranslationEntry('选这个','Select');
+        $this->AddTranslationEntry('的新名字','\'s new name');
+        
         $this->GLOBAL_TASK_I=0;
     }
     
@@ -1465,8 +1536,8 @@ class LAManagement{
                 if( isset($_POST['task_editor_confirm'])
                     && isset($_POST['task_editor_content']) && isset($_POST['task_editor_tags'])
                     && isset($_GET['target']) && isset($_GET['id'])){
-                    if($_POST['task_editor_content']=="事件描述" || $_POST['task_editor_content']=="") return;
-                    if($_POST['task_editor_tags'] == "标签") $_POST['task_editor_tags']="";
+                    if($_POST['task_editor_content']=="<?php echo $this->FROM_ZH('事件描述') ?>" || $_POST['task_editor_content']=="") return;
+                    if($_POST['task_editor_tags'] == "<?php echo $this->FROM_ZH('标签') ?>") $_POST['task_editor_tags']="";
                     if(intval($_GET['id'])<0) 
                         $this->EditTask($_GET['target'], $_GET['id'], $_POST['task_editor_content'], $_POST['task_editor_tags'], "T", 0, 0);
                     else
@@ -1603,7 +1674,7 @@ class LAManagement{
             
             .wide_body              { margin-left: 10px; margin-right:10px; }
             
-            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: auto; scrollbar-color: <?php echo $this->cblack ?> #ccc; scrollbar-width: thin;}
+            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: auto; scrollbar-color: <?php echo $this->cblack ?> <?php echo $this->cwhite ?>; scrollbar-width: thin;}
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; }
             .task_content           { padding:3px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 2px <?php echo $this->cblack ?>; margin-bottom:5px; overflow: hidden; }
@@ -1712,6 +1783,9 @@ class LAManagement{
             .big_string        { width: calc(100% - 10px); height: 500px; resize: vertical; border:none; }
             .big_string_height { height: 500px; }
             .title_string      { margin-top:-5px; margin-bottom:-5px; font-size:16px; text-align: right; }
+
+            .quick_post_div_left  { width:calc(100% - 160px);display:inline-block; }
+            .quick_post_div_right { float:right; }
             
             .no_horizon_margin { margin-left:0px; margin-right:0px; }
             
@@ -1815,6 +1889,9 @@ class LAManagement{
                 .bottom_sticky_menu_container { margin:10px auto;  width:calc(100% - 38px); min-width:unset;}
                 .bottom_sticky_menu_left      { width: 300px; max-width:calc(100% - 42px); }
                 .bottom_sticky_menu_right     { width: 300px; max-width:calc(100% - 42px); }
+
+                .quick_post_div_left  { width:unset; display:block; }
+                .quick_post_div_right { float:right; }
                 
                 .adaptive_column_container { display: block; }
                 
@@ -1983,7 +2060,7 @@ class LAManagement{
             <div id='WebsiteTitle'>
                 <a class='hidden_on_mobile' href="?page=index.md"><?php echo $this->Title;?></a>
                 <a class='hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
-                <?php if($this->Trackable){ ?><a class='hidden_on_mobile' href="?page=<?php echo $this->TrackerFile; ?>">跟踪</a> <?php } ?>
+                <?php if($this->Trackable){ ?><a class='hidden_on_mobile' href="?page=<?php echo $this->TrackerFile; ?>"><?php echo $this->FROM_ZH('跟踪') ?></a> <?php } ?>
             </div>
         <?php }else{ ?>
             <a id="task_home_button" onClick="la_ToggleNavigationInTaskMode(); if(document.getElementById('task_view_buttons').style.display=='block'){la_toggle_login_task_mobile();}hide_login_uis();"><?php echo $this->Title;?></a>
@@ -2814,10 +2891,10 @@ class LAManagement{
                         <div class="inline_height_spacer"></div>
                         
                         <?php if($this->prefer_dark){ ?>
-                            <p class = "inline_components" >在夜间模式</p>
-                            <a href='?page=<?php echo $this->PagePath;?>&theme=white'>调成明亮</a>
+                            <p class = "inline_components" ><?php echo $this->FROM_ZH('在夜间模式') ?></p>
+                            <a href='?page=<?php echo $this->PagePath;?>&theme=white'><?php echo $this->FROM_ZH('调成明亮') ?></a>
                         <?php }else{ ?>
-                            <a href='?page=<?php echo $this->PagePath;?>&theme=black'>进入夜间模式</a>
+                            <a href='?page=<?php echo $this->PagePath;?>&theme=black'><?php echo $this->FROM_ZH('进入夜间模式') ?></a>
                         <?php }?>
                     <?php } ?>
                     <?php 
@@ -2831,14 +2908,14 @@ class LAManagement{
                             <div class="inline_height_spacer"></div>
                         <?php } ?>
                         <form method = "post" action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>" style='margin-bottom:10px;'>
-                            <div class = "inline_components">用户名:</div>
+                            <div class = "inline_components"><?php echo $this->FROM_ZH('用户名') ?>:</div>
                             <input class='string_input' type="text" id="username" name="username" style='margin-right:0px;'
                             value="<?php if(!empty($user_username)) {echo $user_username;} ?>" />
                             <br />
-                            <div class='inline_components'>密码:</div>
+                            <div class='inline_components'><?php echo $this->FROM_ZH('密码') ?>:</div>
                             <input class='string_input' type="password" id="password" name="password" style='margin-right:0px;margin-bottom:15px;'/>
                             <br />
-                            <input class='btn form_btn' style="float:right" type="submit" value="登录" name="button_login"/>
+                            <input class='btn form_btn' style="float:right" type="submit" value="<?php echo $this->FROM_ZH('登录') ?>" name="button_login"/>
                         </form>
                     </div>
                     <?php
@@ -2854,9 +2931,9 @@ class LAManagement{
                         <div class="inline_height_spacer"></div>
                     <?php }
                     echo '<p class = "inline_components">'.$this->UserDisplayName.'</p>';
-                    echo '<p class = "inline_components">'.'不是您本人？'.'</p>';
+                    echo '<p class = "inline_components">'.$this->FROM_ZH('不是您本人？').'</p>';
                     ?>
-                    <input class='btn form_btn' type="button" name="logout" value="登出" onclick="location.href='<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>&logout=True'" />
+                    <input class='btn form_btn' type="button" name="logout" value="<?php echo $this->FROM_ZH('登出') ?>" onclick="location.href='<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>&logout=True'" />
                     <?php if($this->IsTaskManager){ ?>
                         </div>
                     <?php } ?>
@@ -2910,7 +2987,7 @@ class LAManagement{
                 if(!isset($_GET['operation'])){
                     echo $this->MakeBackButton();
                 }?>
-                <div id="login_again_button" class='btn' style='display:none' onClick="la_toggle_login_again();">登录</div>
+                <div id="login_again_button" class='btn' style='display:none' onClick="la_toggle_login_again();"><?php echo $this->FROM_ZH('登录') ?></div>
                 <div id='LoginToggle' class='btn' onClick="la_toggle_login_button()"><b>中En</b></div>
             <?php
             }else{
@@ -2942,9 +3019,9 @@ class LAManagement{
                     <a>总表</a>
                     <a>日历</a>
                 </div>                
-                <span class="hidden_on_desktop_inline"><div id="login_again_button" class='btn' style='display:none' onClick="la_toggle_login_task_desktop();"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:"登录"?></div></span>
+                <span class="hidden_on_desktop_inline"><div id="login_again_button" class='btn' style='display:none' onClick="la_toggle_login_task_desktop();"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:$this->FROM_ZH('登录') ?></div></span>
                 <span class="hidden_on_desktop_inline"><div class='btn' onClick="la_toggle_login_task_mobile()">查看</div></span>
-                <span class="hidden_on_mobile"><div class='btn' onClick="la_toggle_login_task_desktop()"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:"登录"?></div></span>
+                <span class="hidden_on_mobile"><div class='btn' onClick="la_toggle_login_task_desktop()"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:$this->FROM_ZH('登录')?></div></span>
             </div>
             <span class="hidden_on_desktop_inline">
                 <div id="task_view_buttons" style="display:block;text-align:right;display:none;">
@@ -3007,7 +3084,7 @@ class LAManagement{
             <div class="hidden_on_desktop" >
                 <table style="table-layout:fixed; text-align:center;"><tr>
                     <td><a href="?page=index.md" style='margin:0px;'><b>&#8962;&nbsp;<?php echo $this->FROM_ZH('首页') ?></b></a></td>
-                    <?php if($this->Trackable){ ?><td><a href="?page=<?php echo $this->TrackerFile ?>" style='margin:0px;'>跟踪</a><?php } ?>
+                    <?php if($this->Trackable){ ?><td><a href="?page=<?php echo $this->TrackerFile ?>" style='margin:0px;'><?php echo $this->FROM_ZH('跟踪') ?></a><?php } ?>
                 </tr></table>
             </div>
             <div class='hidden_on_desktop block_height_spacer' ></div>
@@ -3037,7 +3114,7 @@ class LAManagement{
         ?>
         <div class='the_body'>
         <div id = "EditorHeader" class="top_panel">
-            <a id='EditorToggleMore' class='btn'>更多</a>
+            <a id='EditorToggleMore' class='btn'><?php echo $this->FROM_ZH('更多') ?></a>
             &nbsp;
             <div id='EditorToggleH1' class='btn'>H1</div>
             <div id='EditorToggleH2' class='btn'>H2</div>
@@ -3059,12 +3136,12 @@ class LAManagement{
             </div>
             <div class='inline hidden_on_mobile'>
             &nbsp;
-                <a id='EditorCancel' class='btn' style='display:none;' href='?page=<?php echo $this->PagePath?>'>放弃修改</a>
+                <a id='EditorCancel' class='btn' style='display:none;' href='?page=<?php echo $this->PagePath?>'><?php echo $this->FROM_ZH('放弃修改') ?></a>
             </div>
             
             <div class='hidden_on_desktop' >
                 <div id='EditorSpacer2' class='inline_height_spacer' style='display:none;'></div>
-                <a id='EditorCancelMobile' class='btn' style='display:none;' href='?page=<?php echo $this->PagePath?>'>放弃</a>
+                <a id='EditorCancelMobile' class='btn' style='display:none;' href='?page=<?php echo $this->PagePath?>'><?php echo $this->FROM_ZH('放弃') ?></a>
             </div>            
             
             <div class='inline_height_spacer hidden_on_desktop'></div>
@@ -3093,7 +3170,7 @@ class LAManagement{
                     ?>
                     
                     &nbsp;
-                    <input class='btn form_btn' type="submit" value="完成" name="button_new_passage" form='form_passage' onClick='destroy_unload_dialog()' />
+                    <input class='btn form_btn' type="submit" value="<?php echo $this->FROM_ZH('完成') ?>" name="button_new_passage" form='form_passage' onClick='destroy_unload_dialog()' />
                 </form>
             </div>
             
@@ -3350,18 +3427,18 @@ class LAManagement{
         ?>
         <div class='top_panel'>
         
-            <a href="?page=<?php echo $upper.($additional_mode?'&operation='.$_GET["operation"].'&action=view&for='.$_GET['for']:'&operation=list'.($move_mode?'&moving='.$moving:''));?>" class='btn'><b>上级</b></a>
+            <a href="?page=<?php echo $upper.($additional_mode?'&operation='.$_GET["operation"].'&action=view&for='.$_GET['for']:'&operation=list'.($move_mode?'&moving='.$moving:''));?>" class='btn'><b><?php echo $this->FROM_ZH('上级') ?></b></a>
             
             <div style="float:right;text-align:right;margin-left:5px;">
                 <?php if(!$move_mode){ ?>
-                    <div class='btn' id='folder_permission'>选项</div>
+                    <div class='btn' id='folder_permission'><?php echo $this->FROM_ZH('选项') ?></div>
                     &nbsp;
-                    <a class='btn' id='folder_upload'>上传</a> 
-                    <a class='btn' id='folder_new_folder'>新文件夹</a>
+                    <a class='btn' id='folder_upload'><?php echo $this->FROM_ZH('上传') ?></a> 
+                    <a class='btn' id='folder_new_folder'><?php echo $this->FROM_ZH('新文件夹') ?></a>
                     <div id='new_folder_dialog' style='display:none'>
                         <div class='inline_height_spacer'></div>
                         <form method = "post" style='display:inline;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=list';?>" id="form_new_folder">
-                            <div>新文件夹名</div>
+                            <div><?php echo $this->FROM_ZH('新文件夹名') ?></div>
                             <div class='inline_block_height_spacer'></div>
                             <input class="string_input title_string" type="text" id="NewFolderName" name="new_folder_name" value="NewFolder" form="form_new_folder">
                             <input class="btn form_btn" type="submit" value="确定" name="button_new_folder" form="form_new_folder" id='folder_new_folder_confirm'>
@@ -3370,7 +3447,7 @@ class LAManagement{
                     <div id='upload_dialog' style='display:none'>
                         <div class='inline_height_spacer'></div>
                         <form method = "post" enctype="multipart/form-data" style='display:inline;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=list';?>" id="form_upload">
-                            <div>选择要上传的文件</div>
+                            <div><?php echo $this->FROM_ZH('选择要上传的文件') ?></div>
                             <div class='inline_block_height_spacer'></div>
                             <input class="string_input title_string" type="file" id="NewFileName" name="upload_file_name" form="form_upload">
                             <input class="btn form_btn" type="submit" value="确定" name="button_upload" form="form_upload" id='upload_confirm'>
@@ -3444,11 +3521,11 @@ class LAManagement{
                         });
                     </script>   
                 <?php }else if(!$additional_mode){ ?>
-                    <a class='btn' href='?page=<?php echo $moving ?>&operation=list'>取消</a>
-                    <a class='btn' href='?page=<?php echo $path ?>&moving=<?php echo $moving ?>&to=<?php echo $path ?>'>到这里</a>
+                    <a class='btn' href='?page=<?php echo $moving ?>&operation=list'><?php echo $this->FROM_ZH('取消') ?></a>
+                    <a class='btn' href='?page=<?php echo $path ?>&moving=<?php echo $moving ?>&to=<?php echo $path ?>'><?php echo $this->FROM_ZH('到这里') ?></a>
                 <?php }else{ ?>
-                    <a class='btn' href='?page=<?php echo $_GET["for"] ?><?php echo $_GET['operation']!='task'?'&operation='.$_GET['operation']:""?>'>取消</a>
-                    <a class='btn' href='?page=<?php echo $path ?>&operation=<?php echo $_GET['operation']?>&action=add&for=<?php echo $_GET["for"] ?>&target=<?php echo $path ?>'>选这个</a>
+                    <a class='btn' href='?page=<?php echo $_GET["for"] ?><?php echo $_GET['operation']!='task'?'&operation='.$_GET['operation']:""?>'><?php echo $this->FROM_ZH('取消') ?></a>
+                    <a class='btn' href='?page=<?php echo $path ?>&operation=<?php echo $_GET['operation']?>&action=add&for=<?php echo $_GET["for"] ?>&target=<?php echo $path ?>'><?php echo $this->FROM_ZH('选这个') ?></a>
                 <?php } ?>
             </div>
 
@@ -4051,13 +4128,13 @@ class LAManagement{
             <?php echo $quote['content']; ?>
             </p>
             <?php if($show_quick_post && $this->IsLoggedIn()){?>
-                <div style='width:calc(100% - 160px);display:inline-block;'>
+                <div class='quick_post_div_left'>
                 <form method = "post" style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&quote_quick='.$folder;?>" id='form_passage'></form>
                 <textarea type='text' class='quick_post_string' form='form_passage' id='data_small_quote_content' name='data_small_quote_content'
                           onfocus="if (value =='小声哔哔…'){value =''}"onblur="if (value ==''){value='小声哔哔…';la_auto_grow(this);}" oninput="la_auto_grow(this)">小声哔哔…</textarea>
                 <div class='block_height_spacer'></div>
                 </div>
-                <div style='float:right;'>
+                <div class='quick_post_div_right'>
                     <input class='btn' type="submit" value="发出去给大家看看" name="button_new_quote" form='form_passage' />
                 </div>
                 <script> la_auto_grow(document.getElementById("data_small_quote_content"));</script>
@@ -4303,38 +4380,38 @@ class LAManagement{
                     </p>
                     <?php if ($this->IsLoggedIn()){ ?>
                         <?php if ($it['status']!='C'){ ?>
-                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=C">丢弃</a>
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=C"><?php echo $this->FROM_ZH('丢弃') ?></a>
                         <?php }else{ ?>
-                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=D">完成</a>
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=D"><?php echo $this->FROM_ZH('完成') ?></a>
                         <?php } ?>
-                        <a id="task_delete_button_<?php echo $i; ?>">删除</a>
+                        <a id="task_delete_button_<?php echo $i; ?>"><?php echo $this->FROM_ZH('删除') ?></a>
                         <div id="task_save_buttons_<?php echo $i; ?>" style="float:right;">
-                            <a onclick="la_showTaskEditor('<?php echo $it['folder']; ?>','<?php echo $it['id']; ?>','<?php echo $i; ?>');">修改</a>
+                            <a onclick="la_showTaskEditor('<?php echo $it['folder']; ?>','<?php echo $it['id']; ?>','<?php echo $i; ?>');"><?php echo $this->FROM_ZH('修改') ?></a>
                             <?php if ($it['status']=='T'){ ?>
                                 <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=A">
-                                    <b>&nbsp;进行&nbsp;</b>
+                                    <b>&nbsp;<?php echo $this->FROM_ZH('进行') ?>&nbsp;</b>
                                 </a>
                                 <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=D">
-                                    &nbsp;完成&nbsp;
+                                    &nbsp;<?php echo $this->FROM_ZH('完成') ?>&nbsp;
                                 </a>
                             <?php }else{ ?>
                                 <?php if($it['status']=='A'){?>
                                     <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=T">
-                                        &nbsp;暂缓&nbsp;
+                                        &nbsp;<?php echo $this->FROM_ZH('暂缓') ?>&nbsp;
                                     </a>
                                     <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=D">
-                                        <b>&nbsp;完成&nbsp;</b>
+                                        <b>&nbsp;<?php echo $this->FROM_ZH('完成') ?>&nbsp;</b>
                                     </a>
                                 <?php }else{ ?>
                                     <a href="?page=<?php echo $this->PagePath; ?>&operation=set_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>&state=T">
-                                        &nbsp;放回队列&nbsp;
+                                        &nbsp;<?php echo $this->FROM_ZH('放回队列') ?>&nbsp;
                                     </a>
                                 <?php } ?>
                             <?php } ?>
                         </div>
                         <div id="task_delete_prompt_<?php echo $i; ?>" style="display:none;float:right;">
-                            删除#<?php echo $it['id']; ?>条目
-                            <a href="?page=<?php echo $this->PagePath; ?>&operation=delete_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>">确认</a>
+                            <?php echo $this->FROM_ZH('删除条目') ?> #<?php echo $it['id']; ?>
+                            <a href="?page=<?php echo $this->PagePath; ?>&operation=delete_task&target=<?php echo $it['folder']?>&id=<?php echo $it['id']; ?>"><?php echo $this->FROM_ZH('确认') ?></a>
                         </div>
                     <?php }?>
                 </div>
@@ -4361,7 +4438,7 @@ class LAManagement{
         <div class='main_content' style='overflow:unset;'>
             <?php if(!$override){ ?>
             <div>
-                <b>跟踪：<?php echo $folder_title;?></b>
+                <b><?php echo $this->FROM_ZH('正在跟踪') ?>：<?php echo $folder_title;?></b>
             </div>
             <?php } ?>
             <ul class="task_ul"><?php
@@ -4386,7 +4463,14 @@ class LAManagement{
             </ul>
             <?php if($this->IsLoggedIn() && !$override){ ?>
                 <div class='additional_content' style="position:sticky; bottom:15px; margin-bottom:0px;">
-                    <a class="no_border" style="display:block;text-align:center;"onClick="la_showTaskEditor('<?php echo $folder;?>',-1,-1);">在 <?php echo $folder_title;?> 中新增事件 +</a>
+                    <a class="no_border" style="display:block;text-align:center;"onClick="la_showTaskEditor('<?php echo $folder;?>',-1,-1);">
+                    +
+                    <?php if ($this->UseLanguage() == 'zh'){ ?>
+                        在 <?php echo $folder_title;?> 中新增事件
+                    <?php } else if ($this->UseLanguage() == 'en'){ ?>
+                        Create a new event in <?php echo $folder_title;?>
+                    <?php } ?>
+                    </a>
                 </div>
             <?php } ?>
         </div>
@@ -4397,21 +4481,21 @@ class LAManagement{
         <?php if($this->IsLoggedIn()){ ?>
             <div class='audio_player_box modal_dialog' style='display:none;' id='task_editor_box'>
                 <p class='task_p'>
-                    <b><span id="task_editing_id"></span></b>&nbsp;在事件组&nbsp;<span id="task_editing_path"></span>
+                    <b><span id="task_editing_id"></span></b>&nbsp;<?php echo $this->FROM_ZH('在事件组') ?>&nbsp;<span id="task_editing_path"></span>
                 </p>
                 <div>
                 <form method = "post" style='display:inline;' 
                 action=""
                 id="form_task_editor">
                     <textarea class="quick_post_string no_border" type="text" id="task_editor_content" name="task_editor_content" form="form_task_editor"
-                        onfocus="if (value =='事件描述'){value ='';}"onblur="if (value ==''){value='事件描述';la_auto_grow(this);}" oninput="la_auto_grow(this);">事件描述</textarea>
+                        onfocus="if (value =='<?php echo $this->FROM_ZH('事件描述') ?>'){value ='';}"onblur="if (value ==''){value='<?php echo $this->FROM_ZH('事件描述') ?>';la_auto_grow(this);}" oninput="la_auto_grow(this);"><?php echo $this->FROM_ZH('事件描述') ?></textarea>
                     <textarea class="quick_post_string no_border" style="font-size:12px;" type="text" id="task_editor_tags" name="task_editor_tags" form="form_task_editor"
-                        onfocus="if (value =='标签'){value ='';}"onblur="if (value ==''){value='标签';la_auto_grow(this);}" oninput="la_auto_grow(this);">标签</textarea>
+                        onfocus="if (value =='<?php echo $this->FROM_ZH('标签') ?>'){value ='';}"onblur="if (value ==''){value='<?php echo $this->FROM_ZH('标签') ?>';la_auto_grow(this);}" oninput="la_auto_grow(this);"><?php echo $this->FROM_ZH('标签') ?></textarea>
                 </form>
                 <div class="inline_block_height_spacer"></div>
                     <table style="table-style:fixed;"><tr>
-                        <td style="text-align:left;"><a onClick="la_hideTaskEditor();">取消</a></td>
-                        <td><input style="width:100%;"class="btn form_btn" type="submit" value="保存" name="task_editor_confirm" form="form_task_editor" id='task_editor_confirm'></td>
+                        <td style="text-align:left;"><a onClick="la_hideTaskEditor();"><?php echo $this->FROM_ZH('取消') ?></a></td>
+                        <td><input style="width:100%;"class="btn form_btn" type="submit" value="<?php echo $this->FROM_ZH('保存') ?>" name="task_editor_confirm" form="form_task_editor" id='task_editor_confirm'></td>
                     </table>
                 <div class="block_height_spacer"></div>
                 <script> la_auto_grow(document.getElementById("task_editor_content")); la_auto_grow(document.getElementById("task_editor_tags"));</script>
@@ -4454,11 +4538,11 @@ class LAManagement{
                 footer = document.getElementById("task_manager_footer");
                 
                 editor.style.display="block";
-                eid.innerHTML=id>=0?id:"新增";
+                eid.innerHTML=id>=0?id:"<?php echo $this->FROM_ZH('新增') ?>";
                 epath.innerHTML=path;
-                etc.innerHTML=tc?tc.innerHTML.trim():"事件描述";
+                etc.innerHTML=tc?tc.innerHTML.trim():"<?php echo $this->FROM_ZH('事件描述') ?>";
                 tags = tt?tt.innerHTML.trim():"";
-                ett.innerHTML=tags==""?"标签":tags;
+                ett.innerHTML=tags==""?"<?php echo $this->FROM_ZH('标签') ?>":tags;
                 
                 tef.action = "?page="+"<?php echo$this->PagePath?>"+"&operation=edit_task&target="+path+"&id="+id;
                 
@@ -4541,11 +4625,11 @@ class LAManagement{
                 <div class='top_panel block'>
                     <a href='?page=<?php echo $this->PagePath?>'>不看了</a>
                     <div style='text-align:right;float:right;right:0px;'>
-                        <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b>上一页</b></a><?php } ?>
+                        <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b><?php echo $this->FROM_ZH('上一页') ?></b></a><?php } ?>
                         &nbsp;
                         <?php echo ($position+1).'/'.$max_page ?>
                         &nbsp;
-                        <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?>'><b>下一页</b></a><?php } ?>
+                        <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?>'><b><?php echo $this->FROM_ZH('下一页') ?></b></a><?php } ?>
                     </div>
                 </div>
                 <?php
@@ -4837,11 +4921,11 @@ class LAManagement{
                 <div style='text-align:center;position:sticky;bottom:0px;'>
                     <div class='top_panel inline_block'>
                         <div style='text-align:right;float:right;right:0px;'>
-                            <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b>上一页</b></a><?php } ?>
+                            <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b><?php echo $this->FROM_ZH('上一页') ?></b></a><?php } ?>
                             &nbsp;
                             <?php echo ($position+1).'/'.$max_page ?>
                             &nbsp;
-                            <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?>'><b>下一页</b></a><?php } ?>
+                            <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?>'><b><?php echo $this->FROM_ZH('下一页') ?></b></a><?php } ?>
                         </div>
                     </div>
                 </div>
@@ -4883,22 +4967,22 @@ class LAManagement{
             ?>
                 <div class='the_body'>
                      <div class = 'narrow_content' style='float:left;margin-right:15px'>
-                        <a href="?page=<?php echo $path.'/'.$f.($viewing?'&for='.$_GET['for'].'&operation='.$_GET["operation"].'&action=view':'&operation=list'.($move_mode?'&moving='.$moving:''));?>" class='btn'><b>进入</b></a>
+                        <a href="?page=<?php echo $path.'/'.$f.($viewing?'&for='.$_GET['for'].'&operation='.$_GET["operation"].'&action=view':'&operation=list'.($move_mode?'&moving='.$moving:''));?>" class='btn'><b><?php echo $this->FROM_ZH('进入') ?></b></a>
                      </div>
                      <div class = 'narrow_content' style='float:right;margin-left:15px'>
                      <?php if (!$move_mode){ ?>
                         <div style='display:none;' id='folder_option_<?php echo $f;?>'>
-                            <a id='folder_delete_btn_<?php echo $f;?>'>删除</a>
+                            <a id='folder_delete_btn_<?php echo $f;?>'><?php echo $this->FROM_ZH('删除') ?></a>
                             &nbsp;
-                            <a id='folder_move_btn_<?php echo $f;?>' href='?page=<?php echo $path ?>&operation=list&moving=<?php echo $path.'/'.$f ?>'>移动</a>
-                            <a id='folder_rename_btn_<?php echo $f;?>'>改名</a>
+                            <a id='folder_move_btn_<?php echo $f;?>' href='?page=<?php echo $path ?>&operation=list&moving=<?php echo $path.'/'.$f ?>'><?php echo $this->FROM_ZH('移动') ?></a>
+                            <a id='folder_rename_btn_<?php echo $f;?>'><?php echo $this->FROM_ZH('改名') ?></a>
                             &nbsp;
                         </div>
-                        <a class='btn' id='folder_option_btn_<?php echo $f;?>'>调整</a>
+                        <a class='btn' id='folder_option_btn_<?php echo $f;?>'><?php echo $this->FROM_ZH('调整') ?></a>
                      <?php }else if($viewing){ ?>
-                        <a class='btn' id='folder_option_btn_<?php echo $f;?>' href='?page=<?php echo $path ?>&operation=<?php echo $_GET['operation']?>&action=add&for=<?php echo $_GET['for'] ?>&target=<?php echo $path.'/'.$f ?>'>选这个</a>
+                        <a class='btn' id='folder_option_btn_<?php echo $f;?>' href='?page=<?php echo $path ?>&operation=<?php echo $_GET['operation']?>&action=add&for=<?php echo $_GET['for'] ?>&target=<?php echo $path.'/'.$f ?>'><?php echo $this->FROM_ZH('选这个') ?></a>
                      <?php }else{ ?>
-                        <a class='btn' id='folder_option_btn_<?php echo $f;?>' href='?page=<?php echo $path ?>&moving=<?php echo $moving ?>&to=<?php echo $path.'/'.$f ?>'>到这里</a>
+                        <a class='btn' id='folder_option_btn_<?php echo $f;?>' href='?page=<?php echo $path ?>&moving=<?php echo $moving ?>&to=<?php echo $path.'/'.$f ?>'><?php echo $this->FROM_ZH('到这里') ?></a>
                      <?php } ?>
                      </div>
                      <div class = 'narrow_content' style='overflow:auto;'>
@@ -4907,13 +4991,13 @@ class LAManagement{
                 </div>
                 <div class='the_body' style='clear:both;text-align:right'>
                     <div class = 'narrow_content' style='display:none' id='folder_delete_panel_<?php echo $f;?>'>
-                    确认 <a class='btn' href='?page=<?php echo $this->InterlinkPath();?>&operation=delete_folder&target=<?php echo $f?>'>删除 <?php echo $f?></a>
+                    <?php echo $this->FROM_ZH('确认') ?> <a class='btn' href='?page=<?php echo $this->InterlinkPath();?>&operation=delete_folder&target=<?php echo $f?>'><?php echo $this->FROM_ZH('删除') ?> <?php echo $f?></a>
                     </div>
                     <div class = 'narrow_content' style='display:none' id='folder_rename_panel_<?php echo $f;?>'>
-                    <?php echo $f;?> 的新名字
+                    <?php echo $f;?> <?php echo $this->FROM_ZH('的新名字') ?>
                     <form method = "post" style='display:inline;' id='folder_rename_form_<?php echo $f?>' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=list&target='.$f;?>">
                         <input class="string_input title_string" type="text" id="RenameFolderName" name="rename_folder_name" form="folder_rename_form_<?php echo $f?>">
-                        <input class="btn form_btn" type="submit" value="确定" name="button_rename_folder" form="folder_rename_form_<?php echo $f?>">
+                        <input class="btn form_btn" type="submit" value="<?php echo $this->FROM_ZH('确定') ?>" name="button_rename_folder" form="folder_rename_form_<?php echo $f?>">
                     </form>
                     </div>
                 </div>
@@ -5239,10 +5323,10 @@ class LAManagement{
                     <?php if($this->IsLoggedIn()){ ?>
                         <div class="inline_block_height_spacer"></div>
                         <div>
-                            <div class='btn' id='task_item_content_button'>设置分组</div>
+                            <div class='btn' id='task_item_content_button'><?php echo $this->FROM_ZH('设置分组') ?></div>
                             <div style="float:right; display:none;" id='task_item_content_button_extra'>
-                                <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=edit'>编辑文字</a>
-                                <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>'>添加组</a>
+                                <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=edit'><?php echo $this->FROM_ZH('编辑文字') ?></a>
+                                <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>'><?php echo $this->FROM_ZH('添加组') ?></a>
                             </div>
                             <div class='inline_block_height_spacer'></div>
                             <div id='task_item_content_dialog' style='display:none'>
@@ -5252,9 +5336,9 @@ class LAManagement{
                                     $pc=$item['past_count'];
                                     ?>
                                     <tr>
-                                        <td><a class='btn' style="display:block" onclick='task_option_toggle_<?php echo $tic ?>()'><?php echo $item['title']?> 位于 <?php echo $item['path']?></a></td>
+                                        <td><a class='btn' style="display:block" onclick='task_option_toggle_<?php echo $tic ?>()'><?php echo $item['title']?> <?php echo $this->FROM_ZH('位于') ?> <?php echo $item['path']?></a></td>
                                         <td style="width:30px;">
-                                            <a class='btn' style="display:block" href='?page=<?php echo $this->PagePath?>&operation=task&action=delete&for=<?php echo $this->PagePath?>&target=<?php echo $item['path']?>'>删</a>
+                                            <a class='btn' style="display:block" href='?page=<?php echo $this->PagePath?>&operation=task&action=delete&for=<?php echo $this->PagePath?>&target=<?php echo $item['path']?>'><?php echo $this->FROM_ZH('删') ?></a>
                                         </td>
                                     </tr>
                                     <tr id='task_item_option_<?php echo $tic ?>' style='display:none'>
@@ -5303,10 +5387,10 @@ class LAManagement{
                                     <td><a style="display:block;"><?php echo $folder_item['title']?></a></td>
                                     <td style='width:80px;'>
                                     <?php if(is_readable($folder_item['path'].'/index.md')){ ?>
-                                        <a style="display:block;" href="?page=<?php echo $folder_item['path']; ?>">进入分组</a>
+                                        <a style="display:block;" href="?page=<?php echo $folder_item['path']; ?>"><?php echo $this->FROM_ZH('进入分组') ?></a>
                                     <?php }else{?>
                                         <?php if($this->IsLoggedIn()){ ?>
-                                            <a style="display:block;" href="?page=<?php echo $this->PagePath; ?>&operation=task_new_index&for=<?php echo $folder_item['path']; ?>">创建索引</a>
+                                            <a style="display:block;" href="?page=<?php echo $this->PagePath; ?>&operation=task_new_index&for=<?php echo $folder_item['path']; ?>"><?php echo $this->FROM_ZH('创建索引') ?></a>
                                         <?php }else{?>
                                             &nbsp;
                                         <?php }?></td>
@@ -5322,7 +5406,7 @@ class LAManagement{
                         <?php foreach ($this->TaskManagerGroups as $folder_item){?>
                             <div>
                                 <table style="text-align:center;"><tr>
-                                    <td width="70%;" ><a style="display:block;" onClick="la_task_adder_toogle();la_showTaskEditor('<?php echo $folder_item['path']; ?>',-1,-1);">到 <?php echo $folder_item['title']?></a></td>
+                                    <td width="70%;" ><a style="display:block;" onClick="la_task_adder_toogle();la_showTaskEditor('<?php echo $folder_item['path']; ?>',-1,-1);"><?php echo $this->FROM_ZH('到') ?> <?php echo $folder_item['title']?></a></td>
                                 </tr></table>
                             </div>
                         <?php } ?>
@@ -5331,16 +5415,19 @@ class LAManagement{
             </div>
         <?php } ?>
         <div id="task_manager_footer" class="audio_player_box modal_dialog">
-            
-            <div class="block_height_spacer"></div>
             <table style="text-align:center;"><tr>
                 <?php if(!$this->TaskManagerSelf){ ?>
-                    <td style="width:50%;"><a style="display:block;" onClick="la_task_group_switcher_toogle()">共 <?php echo count($this->TaskManagerGroups); ?> 个事件组</a></td>
-                    <?php if($this->IsLoggedIn()){ ?><td style="width:50%;"><a style="display:block;" onClick="la_task_adder_toogle()">新增事件 +</a></td><?php } ?>
+                    <td style="width:50%;"><a style="display:block;" onClick="la_task_group_switcher_toogle()">
+                    <?php if($this->UseLanguage() == 'zh'){?>
+                        共 <?php echo count($this->TaskManagerGroups); ?> 个事件组
+                    <?php } else if($this->UseLanguage() == 'en'){ ?>
+                        <?php echo count($this->TaskManagerGroups); ?> event groups in total
+                    <?php } ?></a></td>
+                    <?php if($this->IsLoggedIn()){ ?><td style="width:50%;"><a style="display:block;" onClick="la_task_adder_toogle()"><?php echo $this->FROM_ZH('新增事件') ?> +</a></td><?php } ?>
                 <?php }else{ ?>
-                    <td style="width:25%;"><a style="display:block;" href="?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>">选组</a></td>
-                    <td style="width:25%;"><a style="display:block;" href="?page=<?php echo $this->PagePath?>&operation=edit">编辑</a></td>
-                    <td style="width:50%;"><a style="display:block;" onClick="la_showTaskEditor('<?php echo $this->InterlinkPath(); ?>',-1,-1);">新增事件 +</a></td>
+                    <td style="width:25%;"><a style="display:block;" href="?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>"><?php echo $this->FROM_ZH('选组') ?></a></td>
+                    <td style="width:25%;"><a style="display:block;" href="?page=<?php echo $this->PagePath?>&operation=edit"><?php echo $this->FROM_ZH('编辑') ?></a></td>
+                    <td style="width:50%;"><a style="display:block;" onClick="la_showTaskEditor('<?php echo $this->InterlinkPath(); ?>',-1,-1);"><?php echo $this->FROM_ZH('新增事件') ?> +</a></td>
                 <?php } ?>
                 
             </tr></table>
@@ -5374,11 +5461,15 @@ class LAManagement{
         <div class='the_body'>
         <div style='text-align:right;'>
             <div class='footer'>
-                <a class='btn' href="javascript:scrollTo(0,0);">返回顶部</a>
+                <a class='btn' href="javascript:scrollTo(0,0);"><?php echo $this->FROM_ZH('返回顶部') ?></a>
                 <br />
                 <div class = 'inline_block_height_spacer'></div>
                 <p style='font-size:12px;margin:0px;'><?php echo $this->Footnote ?></p>
-                <p style='font-size:12px;margin:0px;'>使用 <a href='http://www.wellobserve.com/?page=MDWiki/index.md' style='padding:1px;border:none;'>LAMDWIKI</a> 创建</p>
+                <?php if($this->UseLanguage() == 'zh'){?>
+                    <p style='font-size:12px;margin:0px;'>使用 <a href='http://www.wellobserve.com/?page=MDWiki/index.md' style='padding:1px;border:none;'>LAMDWIKI</a> 创建
+                <?php }else if ($this->UseLanguage() == 'en'){?>
+                    <p style='font-size:12px;margin:0px;'>Created using <a href='http://www.wellobserve.com/?page=MDWiki/index.md' style='padding:1px;border:none;'>LAMDWIKI</a></p>
+                <?php } ?>
             </div>
         </div>
         </div>
@@ -5627,9 +5718,9 @@ class LAManagement{
     }
     function MakeTaskMasterHeader(){
     ?>  
-        <?php if($this->Trackable && pathinfo($this->PagePath,PATHINFO_BASENAME)!=pathinfo($this->TrackerFile,PATHINFO_BASENAME)){ ?><a href="?page=<?php echo $this->TrackerFile ?>" style='margin:0px;'>总览</a><?php } ?>
+        <?php if($this->Trackable && pathinfo($this->PagePath,PATHINFO_BASENAME)!=pathinfo($this->TrackerFile,PATHINFO_BASENAME)){ ?><a href="?page=<?php echo $this->TrackerFile ?>" style='margin:0px;'><?php echo $this->FROM_ZH('总览') ?></a><?php } ?>
         <span class="hidden_on_desktop_inline" ><span id="task_master_header"> <?php echo $this->TaskManagerTitle; ?> </span></span>
-        <span class="hidden_on_mobile"><span id="task_master_header_desktop"> 当前在 <?php echo $this->TaskManagerTitle; ?> </span></span>
+        <span class="hidden_on_mobile"><span id="task_master_header_desktop"> <?php echo $this->FROM_ZH('当前在') ?> <?php echo $this->TaskManagerTitle; ?> </span></span>
     <?php
     }
 }

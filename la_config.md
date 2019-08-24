@@ -29,7 +29,7 @@ SmallQuoteName = 成都小A说
 
 Additional
 - Path = ./img
-- Style = 3
+- Style = 4
 - Title = 小A说
 - More = 小A还说…
 - QuickPost = 1
