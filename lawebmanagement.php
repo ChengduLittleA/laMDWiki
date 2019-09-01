@@ -2907,35 +2907,34 @@ class LAManagement{
                 if(!$this->IsLoggedIn()){
                     ?>
                     <?php if(!$this->IsTaskManager){ ?>
-                        <h3 class = "inline_components" >Language/语言</h3>
-                        <?php if (isset($_GET['static_generator'])){
-                            $StaticLangEN = $this->ChooseLanguageAppendix($this->PagePath,'en');
-                            $StaticLangZH = $this->ChooseLanguageAppendix($this->PagePath,'zh');
-                            ?>
-                            <a href='?page=<?php echo $StaticLangEN; ?>'>English</a>
-                            <a href='?page=<?php echo $StaticLangZH; ?>'>中文</a>
-                            <?php
-                        }else{ ?>
-                            <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
-                            <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
-                        <?php } ?>
-                        <div class="inline_height_spacer"></div>
-                        
-                        <?php if($this->prefer_dark){ ?>
-                            <p class = "inline_components" ><?php echo $this->FROM_ZH('在夜间模式') ?></p>
-                            <a href='?page=<?php echo $this->PagePath;?>&theme=white'><?php echo $this->FROM_ZH('调成明亮') ?></a>
-                        <?php }else{ ?>
-                            <a href='?page=<?php echo $this->PagePath;?>&theme=black'><?php echo $this->FROM_ZH('进入夜间模式') ?></a>
-                        <?php }?>
+                        <div id='language_dialog'>
+                            <h3 class = "inline_components" >Language/语言</h3>
+                            <?php if (isset($_GET['static_generator'])){
+                                $StaticLangEN = $this->ChooseLanguageAppendix($this->PagePath,'en');
+                                $StaticLangZH = $this->ChooseLanguageAppendix($this->PagePath,'zh');
+                                ?>
+                                <a href='?page=<?php echo $StaticLangEN; ?>'>English</a>
+                                <a href='?page=<?php echo $StaticLangZH; ?>'>中文</a>
+                                <?php
+                            }else{ ?>
+                                <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
+                                <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
+                            <?php } ?>
+                            <div class="inline_height_spacer"></div>
+                            
+                            <?php if($this->prefer_dark){ ?>
+                                <p class = "inline_components" ><?php echo $this->FROM_ZH('在夜间模式') ?></p>
+                                <a href='?page=<?php echo $this->PagePath;?>&theme=white'><?php echo $this->FROM_ZH('调成明亮') ?></a>
+                            <?php }else{ ?>
+                                <a href='?page=<?php echo $this->PagePath;?>&theme=black'><?php echo $this->FROM_ZH('进入夜间模式') ?></a>
+                            <?php }?>
+                        </div>
                     <?php } ?>
                     <?php 
                     if(!isset($_GET['static_generator'])){
                     ?>
                     <div id="login_again_dialog" style="display:none;">
-                        <?php if(!$this->IsTaskManager){ ?>
-                            <div class='inline_block_height_spacer'></div>
-                            <hr />
-                        <?php }else{ ?>
+                        <?php if($this->IsTaskManager){ ?>
                             <div class="inline_height_spacer"></div>
                         <?php } ?>
                         <form method = "post" action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>" style='margin-bottom:10px;'>
@@ -3067,7 +3066,9 @@ class LAManagement{
         <script>
         function la_toggle_login_again(){
             dialog = document.getElementById("login_again_dialog");
+            lang = document.getElementById("language_dialog");
             dialog.style.display = dialog.style.display=="none"?"block":"none";
+            lang.style.display = lang.style.display=="none"?"block":"none";
         }
         function la_toggle_login_button(){
             btn = document.getElementById("login_again_button");
