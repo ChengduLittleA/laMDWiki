@@ -1071,13 +1071,13 @@ class LAManagement{
             if ($avail_zh){
                 $path_prefer = $path_parts['dirname'].'/'.$file_zh;
             }else if($avail_en && $avail_orig){
-                $path_prefer = $path_parts['dirname'].'/'.$avail_orig;
+                $path_prefer = $path_parts['dirname'].'/'.$file_orig;
             }
         }else if($appendix=='en'){
             if ($avail_en){
                 $path_prefer = $path_parts['dirname'].'/'.$file_en;
             }else if($avail_zh && $avail_orig){
-                $path_prefer = $path_parts['dirname'].'/'.$avail_orig;
+                $path_prefer = $path_parts['dirname'].'/'.$file_orig;
             }
         }
         if(isset($path_prefer))
