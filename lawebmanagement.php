@@ -320,13 +320,18 @@ class LAManagement{
             if($path[$len-1] != '/' && $path[$len-1] != '\\') $path = $path.'/';
             $path=$path.'index.md';
         }
-        if ((!file_exists($path) || is_readable($path) == false)
+
+        $this->PagePath = $path;
+        
+        $this->SwitchToTargetLanguageIfPossible();
+        
+        if((!file_exists($this->PagePath) || is_readable($this->PagePath) == false)
             &&!isset($_GET['operation'])
             &&!isset($_GET['moving'])
             &&!isset($_POST['button_new_passage'])) {
             return false;
         }
-        $this->PagePath = $path;
+        
         return true;
     }
     
@@ -1054,11 +1059,28 @@ class LAManagement{
         $path_parts = pathinfo($file_path);
         
         $file_orig = preg_replace('/_\D\D\.md$/','.md',$path_parts['basename']);
-        $file_prefer = preg_replace('/\.md$/','_'.$appendix.'.md',$file_orig);
         
-        $path_prefer = $path_parts['dirname'].'/'.$file_prefer;
-
-        if (file_exists($path_prefer) && is_readable($path_prefer))
+        $file_en = preg_replace('/\.md$/','_en.md',$file_orig);
+        $file_zh = preg_replace('/\.md$/','_zh.md',$file_orig);
+        
+        $avail_orig = (file_exists($file_orig) && is_readable($file_orig));
+        $avail_en = (file_exists($file_en) && is_readable($file_en));
+        $avail_zh = (file_exists($file_zh) && is_readable($file_zh));
+        
+        if($appendix=='zh'){
+            if ($avail_zh){
+                $path_prefer = $path_parts['dirname'].'/'.$file_zh;
+            }else if($avail_en && $avail_orig){
+                $path_prefer = $path_parts['dirname'].'/'.$avail_orig;
+            }
+        }else if($appendix=='en'){
+            if ($avail_en){
+                $path_prefer = $path_parts['dirname'].'/'.$file_en;
+            }else if($avail_zh && $avail_orig){
+                $path_prefer = $path_parts['dirname'].'/'.$avail_orig;
+            }
+        }
+        if(isset($path_prefer))
             return $path_prefer;
         
         return $path_parts['dirname'].'/'.$file_orig;
@@ -1077,8 +1099,17 @@ class LAManagement{
     }
     
     function SwitchToTargetLanguageIfPossible(){
+        if(isset($_GET['operation'])||isset($_GET['moving'])||isset($_POST['button_new_passage'])) return;
+        
         if(isset($_COOKIE['la_language'])){
             $this->LanguageAppendix = $_COOKIE['la_language'];
+        }else{
+            if(isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])){
+                $lang = $_SERVER['HTTP_ACCEPT_LANGUAGE'];
+                $lang = substr($lang,0,5);
+                if(preg_match("/zh/i",$lang))$this->LanguageAppendix = 'zh';
+                else $this->LanguageAppendix = 'en';
+            }
         }
         $this->PagePath = $this->ChooseLanguageMain($this->PagePath);
     }
@@ -4623,7 +4654,7 @@ class LAManagement{
                 
                 ?>
                 <div class='top_panel block'>
-                    <a href='?page=<?php echo $this->PagePath?>'>不看了</a>
+                    <a href='?page=<?php echo $this->PagePath?>'><?php echo $this->FROM_ZH('不看了') ?></a>
                     <div style='text-align:right;float:right;right:0px;'>
                         <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b><?php echo $this->FROM_ZH('上一页') ?></b></a><?php } ?>
                         &nbsp;

@@ -66,6 +66,9 @@ if (isset($_GET["operation"])) $la_operation = $_GET["operation"];
 date_default_timezone_set('Asia/Shanghai');
 
 $LA = new LAManagement();
+
+echo $LA->DoSetTranslation();
+
 $page_success = $LA->SetPagePath($la_page_path);
 $LA->SetInterlinkPath($la_page_path);
 
@@ -90,8 +93,6 @@ $LA->SetInterlinkPath($la_page_path);
 //if($LA->CheckArgumentByNames($Config,'Users','admin','my data','123123')) echo 'OH YEAH BAE! <br />';
 //if(!$LA->CheckArgumentByNames($Config,'Users','admin','ab2c','ab2c')) echo 'FUCK YOU BITCH! <br />';
 
-echo $LA->DoSetTranslation();
-
 echo $LA->DoLogin();
 
 if($LA->IsLoggedIn()){
@@ -111,8 +112,6 @@ if($LA->IsLoggedIn()){
     echo $LA->DoTaskManagerConfig();
     echo $LA->DoApplySettings();
 }
-
-echo $LA->SwitchToTargetLanguageIfPossible();
 
 echo $LA->DoSetColorScheme();
 echo $LA->ChooseColorScheme();
