@@ -5360,7 +5360,7 @@ class LAManagement{
                                 <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=task&action=view&for=<?php echo $this->PagePath?>'><?php echo $this->FROM_ZH('添加组') ?></a>
                             </div>
                             <div class='inline_block_height_spacer'></div>
-                            <div id='task_item_content_dialog' style='display:none'>
+                            <div id='task_item_content_dialog' style='max-height: calc(-167px + 100vh); overflow: auto; display:none'>
                                 <table>
                                 <?php $tic=0;   ?>
                                 <?php foreach ($this->TaskManagerGroups as $item){
@@ -5404,7 +5404,7 @@ class LAManagement{
                                     extra_buttons = document.getElementById("task_item_content_button_extra");
                                     default_list = document.getElementById("task_default_list");
                                     disp = content_dialog.style.display;
-                                    content_dialog.style.cssText = disp=='none'?'display:block':'display:none';
+                                    content_dialog.style.display = disp=='none'?'block':'none';
                                     extra_buttons.style.display = disp=='none'?'block':'none';
                                     default_list.style.display = disp=='none'?'none':'block';
                                 });
