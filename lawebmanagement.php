@@ -1861,7 +1861,7 @@ class LAManagement{
             .novel_content hr { height: 5em; border: none; }
             
             .no_border { border: none; }
-            .under_border { border: none; border-bottom: 1px solid black; }
+            .under_border { border: none; border-bottom: 1px solid <?php echo $this->cblack ?>; }
             
             .appendix { text-align: right; font-size: 12px; line-height: 1.2;}
             
@@ -2764,13 +2764,13 @@ class LAManagement{
     function InsertSideNotes($html){
         global $sn_i;
         $sn_i=0;
-        $new = preg_replace_callback('/<p>([\(（]注意[:：])([\s\S]*)([\)）])(\s*)<\/p>/Uu',
+        $new = preg_replace_callback('/<p>(!!)([\s\S]*)<\/p>/Uu',
                                      function($matches){
                                         return '<div class="inline_notes_outer halftone4"> <div class="inline_notes_content">'.
                                                $matches[2].
                                                '</div> </div>';
                                      },$html);
-        $new = preg_replace_callback('/<p>([\(（]旁注[:：])([\s\S]*)([\)）])(\s*)<\/p>/Uu',
+        $new = preg_replace_callback('/<p>(!&gt;)([\s\S]*)<\/p>/Uu',
                                      function($matches){
                                         global $sn_i;
                                         $ret = '<div class="sidenotes_content"> <div id="sn_content_'.$sn_i.'"class="inline_notes_content sidenotes_position" onclick="sn_hide_'.$sn_i.'()">'.
