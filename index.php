@@ -254,6 +254,8 @@ if($la_operation == 'new'){
 }else if($LA->IsTaskManager()){
     echo $LA->MakeTaskList();
 }else{
+
+    echo $LA->MakeNotifications();
  
     $LA->ExtractPassageConfigFromFile($la_page_path);
     

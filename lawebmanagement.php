@@ -1192,12 +1192,16 @@ class LAManagement{
                 $file_path = (isset($_GET['quick'])?$_GET['quick']:$this->InterlinkPath()).'/'.$file_name.'.md';
                 $file_path = $this->GetUniquePath($file_path);
             }
+            
+            if((isset($_GET['delete_on_empty'])&&$_GET['delete_on_empty']==true) && $passage==''){
+                if(file_exists($file_path)) unlink($file_path);
+            }else{
+                $file = fopen($file_path, "w");
+                fwrite($file,$passage);
+                fclose($file);
+            }
 
-            $file = fopen($file_path, "w");
-            fwrite($file,$passage);
-            fclose($file);
-
-            header('Location:?page='.(isset($_GET['quick'])?$this->PagePath:$file_path).'&translation=disabled');
+            header('Location:?page='.(isset($_GET['return_to'])?$_GET['return_to']:((isset($_GET['quick'])?$this->PagePath:$file_path))).'&translation=disabled');
             exit;
         }
     }
@@ -2141,6 +2145,33 @@ class LAManagement{
         <?php
     }
     
+    function MakeNotifications(){
+        $path = $this->InterlinkPath();
+        $file = $path.'/notifications.md';
+        
+        if(file_exists($file)){
+            $f = fopen($file,'r');
+            $size=filesize($file);
+            $content = fread($f,$size);
+            fclose($f);
+        }else return;
+        
+        if($content == ''){
+            unlink($file);
+            return;
+        }
+        
+        ?>
+            <div class='the_body'>
+            <div class='main_content' style='padding-top:0px; padding-bottom:0px;'>
+        <?php
+        echo $this->HTMLFromMarkdown($this->InsertAdaptiveContents($content));
+        ?>
+            </div>
+            </div>
+        <?php
+    }
+    
     function RemoveBlankAfterInserts($html){
         return preg_replace('/<div.*class=[\'\"]the_body[\'\"].*>\s*<div.*class=[\'\"]main_content[\'\"].*>\s*<div>\s*<\/div>\s*<\/div>\s*<\/div>/U',
                             "",
@@ -2158,9 +2189,9 @@ class LAManagement{
                                          return "<table style='table-layout: fixed;'> <tr>".
                                                 preg_replace_callback('/\[column\]([\s\S]*)\[\/column\]/U',
                                                                       function($matches){
-                                                                          return "<td class='adaptive_column_container'>".
+                                                                          return "<td class='adaptive_column_container'><div>".
                                                                                  $this->HTMLFromMarkdown($matches[1]).
-                                                                                 "</td>";
+                                                                                 "</div></td>";
                                                                       },
                                                                       $matches[1]).
                                                 "</tr> </table>";
@@ -3133,6 +3164,7 @@ class LAManagement{
         <?php
     }
     function MakePassageEditButtons(){
+        $path = $this->InterlinkPath();
         $this->GetFileNameDateFormat($this->PagePath,$y,$m,$d,$is_draft);
         ?>
         <div class='hidden_on_print' style='float:right;z-index:1;text-align:right;'>
@@ -3144,6 +3176,8 @@ class LAManagement{
             <?php }else{ ?> 
                 <a href="?page=<?php echo $this->PagePath ?>&set_draft=1">设为草稿</a>
             <?php } ?>
+            <div class='block_height_spacer'></div>
+            <a href='?page=<?php echo $path.'/notifications.md'.(!file_exists($path.'/notifications.md')?'&operation=new&title=notifications':'&operation=edit').'&return_to='.$this->PagePath.'&delete_on_empty=true';?>'>编辑通知</a>
         </div>
         <?php
     }
@@ -3184,7 +3218,8 @@ class LAManagement{
             <div class='inline_height_spacer hidden_on_desktop'></div>
             
             <div style='text-align:right; float:right; right:0px;'>
-                <form method = "post" style='display:inline;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>" id='form_passage'>
+                <form method = "post" style='display:inline;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.
+                            (isset($_GET['return_to'])?'&return_to='.$_GET['return_to']:'').(isset($_GET['delete_on_empty'])?'&delete_on_empty='.$_GET['delete_on_empty']:'');?>" id='form_passage'>
                     <div id='EditorMoreOptions' class='hidden_on_desktop' style='display:none;'>
                         <div>
                         <?php echo '放在 '.$this->InterlinkPath(); ?>
@@ -3910,9 +3945,9 @@ class LAManagement{
             <a class='btn' href='?page=<?php echo $this->PagePath?>'>退出</a>
             <div style="float:right;text-align:right;margin-left:5px;">
                 <?php if ((!$layout || $layout=='Normal') && isset($additional_disp)){ ?>
-                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=set_additional_layout&layout=Gallery&for=<?php echo $this->PagePath?>'>设为画廊布局</a>
+                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=set_additional_layout&layout=Gallery&for=<?php echo $this->PagePath?>'>设为两栏</a>
                 <?php }else if($layout && $layout=='Gallery'){ ?>
-                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=set_additional_layout&layout=Normal&for=<?php echo $this->PagePath?>'>设为普通布局</a>
+                    <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=set_additional_layout&layout=Normal&for=<?php echo $this->PagePath?>'>设为一栏</a>
                 <?php } ?>
                 <div class='btn' id='additional_display_button'>附加内容</div>
                 <div id='additional_display_dialog' style='display:none'>
