@@ -217,13 +217,13 @@ $LA->SetInterlinkPath($la_page_path);
 
 if($la_operation == 'new'){
 
-    echo $LA->MakeMainContentBegin();
+    echo $LA->MakeMainContentBegin(1);
     echo $LA->MakeEditorBody('Some text here.');
     echo $LA->MakeMainContentEnd();
     
 }else if($la_operation == 'edit'){
 
-    echo $LA->MakeMainContentBegin();
+    echo $LA->MakeMainContentBegin(1);
     echo $LA->MakeEditorBody($LA->ContentOfMarkdownFile($la_page_path));
     echo $LA->MakeMainContentEnd();
     
@@ -247,7 +247,7 @@ if($la_operation == 'new'){
     
 }else if($la_operation == 'settings'){
 
-    echo $LA->MakeMainContentBegin();
+    echo $LA->MakeMainContentBegin(1);
     echo $LA->MakeSettings();
     echo $LA->MakeMainContentEnd();
 
@@ -262,7 +262,7 @@ if($la_operation == 'new'){
     
     $LA->HandleInsertsBeforePassage($Content2D,$Content3D);
 
-    echo $LA->MakeMainContentBegin();
+    echo $LA->MakeMainContentBegin(1);
     
     if($LA->IsLoggedIn())
         echo $LA->MakePassageEditButtons();
@@ -273,10 +273,11 @@ if($la_operation == 'new'){
          $LA->ProcessHREFForPrint(
          $LA->InsertSideNotes(
          $LA->RemoveBlankAfterInserts(
+         $LA->InsertMagicSeparator(
          $LA->Insert3DContent(
          $LA->Insert2DContent(
          $LA->ProcessHTMLLanguageForLinks(
-         $LA->HTMLFromMarkdownFile($LA->ActuallPath()))))))));
+         $LA->HTMLFromMarkdownFile($LA->ActuallPath())))))))));
     
     echo $LA->MakeHREFListForPrint();
          

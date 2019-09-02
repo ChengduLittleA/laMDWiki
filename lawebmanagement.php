@@ -1058,7 +1058,7 @@ class LAManagement{
     
         $path_parts = pathinfo($file_path);
         
-        $file_orig = preg_replace('/_\D\D\.md$/','.md',$path_parts['basename']);
+        $file_orig = $path_parts['dirname'].'/'.preg_replace('/_\D\D\.md$/','.md',$path_parts['basename']);
         
         $file_en = preg_replace('/\.md$/','_en.md',$file_orig);
         $file_zh = preg_replace('/\.md$/','_zh.md',$file_orig);
@@ -1069,21 +1069,21 @@ class LAManagement{
         
         if($appendix=='zh'){
             if ($avail_zh){
-                $path_prefer = $path_parts['dirname'].'/'.$file_zh;
+                $path_prefer = $file_zh;
             }else if($avail_en && $avail_orig){
-                $path_prefer = $path_parts['dirname'].'/'.$file_orig;
+                $path_prefer = $file_orig;
             }
         }else if($appendix=='en'){
             if ($avail_en){
-                $path_prefer = $path_parts['dirname'].'/'.$file_en;
+                $path_prefer = $file_en;
             }else if($avail_zh && $avail_orig){
-                $path_prefer = $path_parts['dirname'].'/'.$file_orig;
+                $path_prefer = $file_orig;
             }
         }
         if(isset($path_prefer))
             return $path_prefer;
         
-        return $path_parts['dirname'].'/'.$file_orig;
+        return $file_orig;
     }
     
     function ChooseLanguage($file_path){
@@ -1706,7 +1706,7 @@ class LAManagement{
             .wide_body              { margin-left: 10px; margin-right:10px; }
             
             .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: auto; scrollbar-color: <?php echo $this->cblack ?> <?php echo $this->cwhite ?>; scrollbar-width: thin;}
-            .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; max-height:350px; }
+            .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:8px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; }
             .task_content           { padding:3px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 2px <?php echo $this->cblack ?>; margin-bottom:5px; overflow: hidden; }
             .inline_notes_outer     { padding:5px; border-left: 3px solid <?php echo $this->cblack ?>; border-top: 3px solid <?php echo $this->cblack ?>; padding-right: 8px; padding-bottom: 8px; margin-top: 5px; margin-bottom: 5px; }
@@ -1814,9 +1814,6 @@ class LAManagement{
             .big_string        { width: calc(100% - 10px); height: 500px; resize: vertical; border:none; }
             .big_string_height { height: 500px; }
             .title_string      { margin-top:-5px; margin-bottom:-5px; font-size:16px; text-align: right; }
-
-            .quick_post_div_left  { width:calc(100% - 160px);display:inline-block; }
-            .quick_post_div_right { float:right; }
             
             .no_horizon_margin { margin-left:0px; margin-right:0px; }
             
@@ -1864,12 +1861,15 @@ class LAManagement{
             .novel_content hr { height: 5em; border: none; }
             
             .no_border { border: none; }
+            .under_border { border: none; border-bottom: 1px solid black; }
             
             .appendix { text-align: right; font-size: 12px; line-height: 1.2;}
             
             .hidden_on_desktop       { display: none; }
             .hidden_on_desktop_inline{ display: none; }
             .only_on_print           { display: none; }
+            
+            .no_overflow             { overflow: unset;}
             
             @media screen and (max-width: 1000px) {
                 
@@ -1921,9 +1921,6 @@ class LAManagement{
                 .bottom_sticky_menu_left      { width: 300px; max-width:calc(100% - 42px); }
                 .bottom_sticky_menu_right     { width: 300px; max-width:calc(100% - 42px); }
 
-                .quick_post_div_left  { width:unset; display:block; }
-                .quick_post_div_right { float:right; }
-                
                 .adaptive_column_container { display: block; }
                 
                 .passage_detail         { width:60%; }
@@ -2111,7 +2108,7 @@ class LAManagement{
         ob_end_clean();
         return $content;
     }
-    function MakeMainContentBegin(){
+    function MakeMainContentBegin($use_stripe){
         $layout = $this->GetAdditionalLayout();
         $this->AdditionalLayout = $layout;
         $novel_mode = $this->FolderNovelMode($this->InterlinkPath());
@@ -2126,12 +2123,12 @@ class LAManagement{
         ?>
             <div class='gallery_left'>
             <div class='main_content gallery_main_height'>
-            <?php echo $this->MakeSpecialStripe(); ?>
+            <?php if($use_stripe) echo $this->MakeSpecialStripe(); ?>
         <?php
         }else{
         ?>
             <div class='main_content <?php echo $novel_mode?"":"print_document" ?>' style='<?php echo $this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":""?>'>
-            <?php echo $this->MakeSpecialStripe(); ?>
+            <?php if($use_stripe) echo $this->MakeSpecialStripe(); ?>
             <div class='<?php echo ($novel_mode && !$this->GetEditMode())?"novel_content more_vertical_margin":""?>'>
         <?php
         }
@@ -2427,6 +2424,14 @@ class LAManagement{
         $contents = ob_get_contents();
         ob_end_clean();
         return $contents;
+    }
+    function InsertMagicSeparator($Content){
+        ob_start();
+        $this->MakeMainContentEnd();
+        $this->MakeMainContentBegin(0);
+        $Inserts = ob_get_contents();
+        ob_end_clean();
+        return preg_replace('/(<p>\s*={3,}\s*<\/p>)/U',$Inserts,$Content);
     }
     function Insert3DContent($Content){
         if(!isset($this->SceneList[0])) return $Content;
@@ -4160,14 +4165,13 @@ class LAManagement{
             <?php echo $quote['content']; ?>
             </p>
             <?php if($show_quick_post && $this->IsLoggedIn()){?>
-                <div class='quick_post_div_left'>
                 <form method = "post" style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&quote_quick='.$folder;?>" id='form_passage'></form>
-                <textarea type='text' class='quick_post_string' form='form_passage' id='data_small_quote_content' name='data_small_quote_content'
+                <textarea type='text' class='quick_post_string under_border' form='form_passage' id='data_small_quote_content' name='data_small_quote_content'
                           onfocus="if (value =='小声哔哔…'){value =''}"onblur="if (value ==''){value='小声哔哔…';la_auto_grow(this);}" oninput="la_auto_grow(this)">小声哔哔…</textarea>
                 <div class='block_height_spacer'></div>
-                </div>
-                <div class='quick_post_div_right'>
-                    <input class='btn' type="submit" value="发出去给大家看看" name="button_new_quote" form='form_passage' />
+
+                <div style='float:right;'>
+                    <input class='btn' type="submit" value="大声宣扬" name="button_new_quote" form='form_passage' />
                 </div>
                 <script> la_auto_grow(document.getElementById("data_small_quote_content"));</script>
             <?php } ?>
@@ -4780,10 +4784,9 @@ class LAManagement{
             
             if(isset($a['title']) && $a['title']!='' && $a['style']!=4){
                 ?>
-                <div style='text-align:center;'>
-                    <div class='narrow_content inline_block'>
-                        <?php echo $a['title'] ?>
-                    </div>
+                <div class='block_height_spacer'>&nbsp;</div>
+                <div class='narrow_content'>
+                    <b><?php echo $a['title'] ?></b>
                 </div>
                 <?php
             }
@@ -4862,22 +4865,15 @@ class LAManagement{
                 if($this->IsLoggedIn() && isset($a['quick_post']) && $a['quick_post']!=0){
                     ?>
                     <div>
-                        <div class='additional_content additional_content_left hidden_on_mobile'>
-                            <div class='plain_block' style='text-align:center'>
-                            <span style='font-size:24px;'><b><?php echo date("d")?></b></span><br /><?php echo date("Y")?>/<?php echo date("m") ?>
-                            </div>
-                        </div>
                         <div class='additional_content'>
-                            <div class='hidden_on_desktop' style='clear:both;text-align:center'>
-                                <span style='font-size:24px;'><b><?php echo date("d")?></b></span><br /><?php echo date("Y")?>/<?php echo date("m") ?>
-                            </div>
                             <form method = "post" style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&quick='.$path;?>" id='form_passage'></form>
                             <input style='display:none;' type="text" id="EditorFileName" name="editor_file_name" value='<?php echo $this->GetUniqueName(date("Ymd"));?>'/ form='form_passage'>
-                            <textarea type='text' class='quick_post_string' form='form_passage' id='data_passage_content' name='data_passage_content'
+                            <textarea type='text' class='quick_post_string under_border' form='form_passage' id='data_passage_content' name='data_passage_content'
                                       onfocus="if (value =='我有一个想法…'){value =''}"onblur="if (value ==''){value='我有一个想法…';la_auto_grow(this);}" oninput="la_auto_grow(this)">我有一个想法…</textarea>
                             <div class='block_height_spacer'></div>
                             <div style='text-align:right;'>
-                                <input class='btn' type="submit" value="和世界分享您刚编的故事" name="button_new_passage" form='form_passage' />
+                                <?php echo date("Y")?>/<?php echo date("m") ?>/<b><?php echo date("d")?></b>
+                                <input class='btn' type="submit" value="与世界分享" name="button_new_passage" form='form_passage' />
                             </div>
                             <script> la_auto_grow(document.getElementById("data_passage_content"));</script>
                         </div>
@@ -4898,13 +4894,8 @@ class LAManagement{
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
                     <div>
-                    <div class='additional_content additional_content_left hidden_on_mobile'>
-                        <div class='plain_block' style='text-align:center'>
-                        <span style='font-size:24px;'><b><?php echo $is_draft?'草稿':$d?></b></span><br /><?php echo $y?><?php echo $m?'/'.$m:'' ?>
-                        </div>
-                    </div>
-                    <div class='additional_content no_overflow_mobile'>
-                        <div class='hidden_on_desktop' style='clear:both;text-align:right;position:sticky;top:80px;'>
+                    <div class='additional_content no_overflow'>
+                        <div style='clear:both;text-align:right;position:sticky;top:80px;'>
                             <div class='plain_block small_shadow' style='text-align:center;display:inline-block;background-color:<?php echo $this->cwhite ?>;'>
                                 <div style='float:right'>
                                     &nbsp;<?php echo $is_draft?'<b>草稿</b>':($m?('于'.$y.'/'.$m.'/<b>'.$d.'</b>'):'<b>过去</b>的某一天') ?>
@@ -4935,11 +4926,10 @@ class LAManagement{
                 }
                 if(isset($a['more']) && $a['more']!=''){
                     ?>
-                    <div style='text-align:center;'>
-                        <div class='narrow_content inline_block'>
-                            <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $a['path']?>'><?php echo $a['more'] ?></a>
-                        </div>
+                    <div class='narrow_content' style='text-align: right; margin-top:-7px;'>
+                        <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $a['path']?>'><?php echo $a['more'] ?></a>
                     </div>
+                    <div class='block_height_spacer'>&nbsp;</div>
                     <?php
                 }
             }else if (isset($a['style']) && $a['style']==4){
