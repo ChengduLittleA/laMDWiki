@@ -97,6 +97,7 @@ echo $LA->DoLogin();
 
 if($LA->IsLoggedIn()){
     echo $LA->DoNewPassage();
+    echo $LA->DoMarkPassageUpdate();
     echo $LA->DoNewSmallQuote();
     echo $LA->DoEditTask();
     echo $LA->DoNewFolder();
@@ -154,15 +155,16 @@ if($LA->IsTaskManager()){
 }
 
 echo $LA->ProcessLinksToStatic(
-     $LA->MakeTitleButton());        
+     $LA->MakeTitleButton());
 
 if(!$LA->IsTaskManager()){
     echo $LA->MakeNavigationBegin();
     $LA->SetInterlinkPath('index.md');
 
     echo $LA->ProcessLinksToStatic(
+         $LA->ProcessUpdatedLink(
          $LA->ProcessHTMLLanguageForLinks(
-         $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md'))));
+         $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md')))));
          
     echo $LA->MakeNavigationEnd();
 }else{
@@ -181,8 +183,9 @@ if($LA->IsTaskManager()){
     $LA->SetInterlinkPath('index.md');
 
     echo $LA->ProcessLinksToStatic(
+        $LA->ProcessUpdatedLink(
          $LA->ProcessHTMLLanguageForLinks(
-         $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md'))));
+         $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md')))));
          
     echo $LA->TaskNavigationEnd();
     
@@ -273,13 +276,14 @@ if($la_operation == 'new'){
     
     echo $LA->ProcessLinksToStatic(
          $LA->ProcessHREFForPrint(
+         $LA->ProcessUpdatedLink(
          $LA->InsertSideNotes(
          $LA->RemoveBlankAfterInserts(
          $LA->InsertMagicSeparator(
          $LA->Insert3DContent(
          $LA->Insert2DContent(
          $LA->ProcessHTMLLanguageForLinks(
-         $LA->HTMLFromMarkdownFile($LA->ActuallPath())))))))));
+         $LA->HTMLFromMarkdownFile($LA->ActuallPath()))))))))));
     
     echo $LA->MakeHREFListForPrint();
          

@@ -30,6 +30,8 @@ class LAManagement{
     protected $FileNameList;
     protected $OtherFileNameList;
     
+    protected $RecentUpdatedList;
+    
     protected $IsEditing;
     
     protected $IsTaskManager;
@@ -80,14 +82,17 @@ class LAManagement{
     protected $prefer_dark;
     protected $cblack;
     protected $cwhite;
+    protected $chighlight;
     
     function ChooseColorScheme(){
         if($this->prefer_dark){
             $this->cwhite = 'black';
             $this->cblack = 'white';
+            $this->chighlight = 'cornflowerblue';
         }else{
             $this->cwhite = 'white';
             $this->cblack = 'black';
+            $this->chighlight = 'lightsteelblue';
         }
     }
 
@@ -1181,7 +1186,63 @@ class LAManagement{
             setcookie('la_language',$_GET['set_translation']);
             $_COOKIE['la_language'] = $_GET['set_translation'];
         }
-    }   
+    }
+    function MarkPassageUpdate($path,$updated){
+        $path_clean = preg_replace('/^\.\/(.*)/','$1',$path);
+    
+        $this->UserConfig = fopen("la_config.md",'r');
+        $ConfContent = fread($this->UserConfig,filesize("la_config.md"));
+        fclose($this->UserConfig);
+        $Conf = $this->ParseMarkdownConfig($ConfContent);
+        
+        $this->EditBlock($Conf,"RecentUpdates");
+        
+        if($updated){
+            $i=0;
+            while($this->GetLineByNamesN($Conf,'RecentUpdates','Entry',$i)!==Null){
+                $i++;
+            }            
+            $this->EditGeneralLineNByName($Conf,'RecentUpdates','Entry',$i,'');
+            $this->EditArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,'Path',$path_clean);
+            $this->EditArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,'Time',$this->CurrentTimeReadable());
+        }else{
+            $i=0;
+            $a=Null;
+            while(($a = $this->GetArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,'Path'))!=$path_clean && $a!==Null){
+                $i++;
+            }
+            
+            if($a!==Null){
+                $this->RemoveLineByNamesN($Conf,'RecentUpdates','Entry',$i);
+            }
+        }
+        
+        $this->UserConfig = fopen("la_config.md",'w');
+        $this->WriteMarkdownConfig($Conf,$this->UserConfig);
+        fclose($this->UserConfig);
+    }
+    function DoMarkPassageUpdate(){
+        if(isset($_GET['mark_update'])){
+            if($_GET['mark_update'] != 0){
+                $this->MarkPassageUpdate($this->PagePath, 1);
+            }else{
+                $this->MarkPassageUpdate($this->PagePath, 0);
+            }
+            header('Location:?page='.$this->PagePath);
+        }
+    }
+    function IsPathUpdated($path){
+        $path_clean = preg_replace('/^\.\/(.*)/','$1',$this->ChooseLanguage($path));
+        $is_folder_index = preg_match('/(.*)\/index(_zh|_en)?.md$/', $path_clean, $folder);
+        if(isset($this->RecentUpdatedList)) foreach($this->RecentUpdatedList as $item){
+            if($item['path'] == $path_clean)
+                return True;
+            if($is_folder_index){
+                if(preg_match('%^'.$folder[1].'%',$item['path'])) return true;
+            }
+        }
+        return False;
+    }
     function DoNewPassage(){
         if(isset($_POST['button_new_passage'])){
             $passage = $_POST['data_passage_content'];
@@ -1199,6 +1260,7 @@ class LAManagement{
                 $file = fopen($file_path, "w");
                 fwrite($file,$passage);
                 fclose($file);
+                $this->MarkPassageUpdate($file_path, 1);
             }
 
             header('Location:?page='.(isset($_GET['return_to'])?$_GET['return_to']:((isset($_GET['quick'])?$this->PagePath:$file_path))).'&translation=disabled');
@@ -1623,6 +1685,33 @@ class LAManagement{
         rmdir($dir);
     }
     
+    function ReadableTimeDifference($time_from, $time_to){
+        $from = new DateTime($time_from);
+        $to = new DateTime($time_to);
+        return $to->getTimeStamp() - $from->getTimeStamp();
+    }
+    
+    function IsDatedEntry($item, $days){
+        $time = $this->CurrentTimeReadable();
+        $days_diff = $this->ReadableTimeDifference($item['time'], $time)/3600/24;
+        if($days_diff>$days) return True;
+        return False;
+    }
+    function ProcessUpdatedLink($HtmlContent){
+        return preg_replace_callback("/<a([\s\S]*)>([\s\S]*)<\/a>/Uu",
+                                      function($matches){
+                                          $str = $matches[0];
+                                          if(preg_match('/href=[\'"]\?page=(.*)[\'"]/', $matches[1], $link) && $this->IsPathUpdated($link[1])){
+                                              if(preg_match('/class/',$matches[1])){
+                                                $str = '<a'.preg_replace('/class=[\'"](.*)[\'"]/',"class='$1 recent_updated'",$matches[1]).'>'.$matches[2].'</a>';
+                                              }else{
+                                                  $str = '<a class="recent_updated"'.$matches[1].'>'.$matches[2].'</a>';
+                                              }
+                                          }
+                                          return $str;
+                                      },$HtmlContent);
+    }
+    
     function GetWebsiteSettings(){
         $this->UserConfig = fopen("la_config.md",'r');
         $ConfContent = fread($this->UserConfig,filesize("la_config.md"));
@@ -1642,6 +1731,23 @@ class LAManagement{
             $item['to']      = $this->GetArgumentByNamesN($Conf,'Redirect','Entry',$i,'To');
             $this->List301[] = $item;
             $i++;
+        }
+        $i=0;$item=null;$any_removed=False;
+        while($this->GetLineByNamesN($Conf,'RecentUpdates','Entry',$i)!==Null){
+            $item['path']    = $this->GetArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,'Path');
+            $item['time']      = $this->GetArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,'Time');
+            if($this->IsDatedEntry($item, 7)){
+                $this->RemoveLineByNamesN($Conf,'RecentUpdates','Entry',$i);
+                $some_removed = True;
+            }else{
+                $this->RecentUpdatedList[] = $item;
+                $i++;
+            }
+        }
+        if($any_removed){
+            $ConfWrite = fopen($this->UserConfig,'w');
+            $this->WriteMarkdownConfig($Conf, $ConfWrite);
+            fclose($ConfWrite);
         }
     }
     
@@ -1833,6 +1939,8 @@ class LAManagement{
             .footer            { padding:10px; padding-top:15px; padding-bottom:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; display: inline-block; }
             .additional_options{ padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:-15px; overflow: hidden; display: inline-block; position: relative; z-index:100; }
             
+            
+            .recent_updated    { background-color: <?php echo $this->chighlight ?>; }
             
             a        { border:1px solid <?php echo $this->cblack ?>; padding: 5px; color:<?php echo $this->cblack ?>; text-decoration: none; }
             a:hover  { border:3px double <?php echo $this->cblack ?>; padding: 3px; }
@@ -2732,7 +2840,7 @@ class LAManagement{
         
         if($this->TaskManagerEntries==Null){
             $item['target'] = $this->InterlinkPath();
-            $item['past_count'] = 30;
+            $item['past_count'] = 1000;
             $this->TaskManagerEntries[] = $item;
             $this->TaskManagerSelf = 1;
         }
@@ -3175,6 +3283,12 @@ class LAManagement{
                 <a href="?page=<?php echo $this->PagePath ?>&set_draft=0">设为公开</a>
             <?php }else{ ?> 
                 <a href="?page=<?php echo $this->PagePath ?>&set_draft=1">设为草稿</a>
+            <?php } ?>
+            <div class='block_height_spacer'></div>
+            <?php if ($this->IsPathUpdated($this->PagePath)){ ?>
+                <a href="?page=<?php echo $this->PagePath ?>&mark_update=0">标记旧文</a>
+            <?php }else{ ?> 
+                <a href="?page=<?php echo $this->PagePath ?>&mark_update=1">标记更新</a>
             <?php } ?>
             <div class='block_height_spacer'></div>
             <a href='?page=<?php echo $path.'/notifications.md'.(!file_exists($path.'/notifications.md')?'&operation=new&title=notifications':'&operation=edit').'&return_to='.$this->PagePath.'&delete_on_empty=true';?>'>编辑通知</a>
@@ -4001,35 +4115,6 @@ class LAManagement{
         $max = ceil(count($list)/10);
         return $ret;
     }
-    function GetAdditionalContentBackground($for){
-        $ad = $this->GetAdditionalDisplayData($for);
-        if(!isset($ad[0])) return null;
-        
-        $list=Null;
-        
-        foreach($ad as $a){
-            $path = $a['path'];
-            $current_dir = opendir($path);
-            while(($file = readdir($current_dir)) !== false) {
-                $sub_dir = $path . '/' . $file;
-                if($file == '.' || $file == '..' || $file=='index.md') {
-                    continue;
-                } else if(!is_dir($sub_dir)){
-                    $ext=pathinfo($file,PATHINFO_EXTENSION);
-                    if($ext=='jpg' || $ext=='jpeg' || $ext=='png' || $ext=='svg' || $ext=='webp' || $ext=='gif'){
-                        $list[] = $this->GetRelativePath($this->InterlinkPath(),$sub_dir);
-                    }
-                }
-            }
-        }
-        
-        if(!isset($list[0])) return Null;
-        
-        sort($list);
-        $list = array_reverse($list);
-        
-        return $list[0];
-    }
     
     function GetSmallQuoteFiles($path,$file_count){
         $file_list = Null;
@@ -4836,7 +4921,7 @@ class LAManagement{
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
-                    <div class='additional_content'>
+                    <div class='additional_content' <?php echo $this->IsPathUpdated($path.'/'.$f)?"style='background-color:".$this->chighlight.";'":""?> >
                         <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
                             <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:center;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
@@ -4857,7 +4942,7 @@ class LAManagement{
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
-                    <div class='tile_content tile_item'>
+                    <div class='tile_content tile_item' <?php echo $this->IsPathUpdated($path.'/'.$f)?"style='background-color:".$this->chighlight.";'":""?> >
                         □
                         <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
                             <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:center;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
@@ -4924,12 +5009,11 @@ class LAManagement{
                     if($is_draft && !$this->IsLoggedIn()) continue;
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),$show_complete?10000:10);
                     $title = $this->TitleOfFile($rows);
-                    $background = $this->GetAdditionalContentBackground($path.'/'.$f);
                     $last_interlink = $this->InterlinkPath();
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
                     <div>
-                    <div class='additional_content no_overflow'>
+                    <div class='additional_content no_overflow' <?php echo $this->IsPathUpdated($path.'/'.$f)?"style='background-color:".$this->chighlight.";'":""?> >
                         <div style='clear:both;text-align:right;position:sticky;top:80px;'>
                             <div class='plain_block small_shadow' style='text-align:center;display:inline-block;background-color:<?php echo $this->cwhite ?>;'>
                                 <div style='float:right'>
@@ -4943,7 +5027,7 @@ class LAManagement{
                         </div>
                         <div style=';'>
                         </div>
-                        <div class='btn block' style="text-align:unset;<?php if(!$folder && $background) echo "background-image:url('".$background."');background-repeat:no-repeat;background-size:cover;background-position:center;" ?>"
+                        <div class='btn block' style="text-align:unset;"
                              onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
                                 <div class='preview <?php echo (!$folder && $background)?"gallery_box_when_bkg top_panel":""?>' style="<?php echo $show_complete?'':'max-height:200px;overflow:hidden;'?><?php echo $this->FileIsNSFW?'text-align:center;':''?>">
                                     <div class='<?php echo $novel_mode?"novel_content":"" ?>'>

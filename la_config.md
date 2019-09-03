@@ -29,7 +29,7 @@ SmallQuoteName = 成都小A说
 
 Additional
 - Path = ./img
-- Style = 4
+- Style = 3
 - Title = 小A说
 - More = 小A还说…
 - QuickPost = 1
@@ -51,4 +51,12 @@ Layout = Normal
 ShowListButton = 0
 
 <!-- End of FolderConf -->
+
+<!-- RecentUpdates -->
+
+Entry
+- Path = img/20190903.md
+- Time = 2019-09-03 22:14:21
+
+<!-- End of RecentUpdates -->
 
