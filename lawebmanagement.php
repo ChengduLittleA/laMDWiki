@@ -92,7 +92,7 @@ class LAManagement{
         }else{
             $this->cwhite = 'white';
             $this->cblack = 'black';
-            $this->chighlight = 'lightsteelblue';
+            $this->chighlight = 'gold';
         }
     }
 
@@ -2116,44 +2116,38 @@ class LAManagement{
         <?php
     }
     function MakeSpecialStripe(){
+        $show = (isset($_GET['operation']) && ($_GET['operation'] == 'new' || $_GET['operation'] == 'edit'))  || $this->IsPathUpdated($this->PagePath);
         ?>
-        <div class='hidden_on_print' style='background-color:black; height:10px; margin-top: -20px;margin-left: -15px;margin-right: -15px; margin-bottom:15px;'>
+        <div class='hidden_on_print' style='background-color:<?php echo $this->cwhite?>; height:10px; margin-top: -20px;margin-left: -15px;margin-right: -15px; margin-bottom:10px;'>
             <div style='width:600px; max-width:100%; height:100%; font-size:0px; overflow:hidden;'>
             <?php
-                $this->SpetialStripeSegment('3.97%','#550000');
-                $this->SpetialStripeSegment('2.26%','#800000');
-                $this->SpetialStripeSegment('0.53%','#d40000');
-                $this->SpetialStripeSegment('1.75%','#cd4a00');
-                $this->SpetialStripeSegment('5.15%','#cd6200');
-                $this->SpetialStripeSegment('2.06%','#f6a400');
-                $this->SpetialStripeSegment('1.76%','#ffed22');
-                $this->SpetialStripeSegment('0.80%','#f6ff0f');
-                $this->SpetialStripeSegment('1.04%','#c7fb00');
-                $this->SpetialStripeSegment('3.50%','#59e800');
-                $this->SpetialStripeSegment('4.12%','#00c000');
-                $this->SpetialStripeSegment('1.02%','#009245');
-                $this->SpetialStripeSegment('0.55%','#00875f');
-                $this->SpetialStripeSegment('1.28%','#00796f');
-                $this->SpetialStripeSegment('3.14%','#006879');
-                $this->SpetialStripeSegment('5.14%','#005b7c');
-                $this->SpetialStripeSegment('1.58%','#004897');
-                $this->SpetialStripeSegment('1.02%','#001cb7');
-                $this->SpetialStripeSegment('0.76%','#190087');
-                $this->SpetialStripeSegment('1.90%','#4600a7');
-                $this->SpetialStripeSegment('4.35%','#6c00bd');
-                $this->SpetialStripeSegment('1.30%','#8e00c2');
-                $this->SpetialStripeSegment('1.08%','#cb00d5');
-                $this->SpetialStripeSegment('0.70%','#ff2ad4');
-                $this->SpetialStripeSegment('1.39%','#ff179c');
-                $this->SpetialStripeSegment('4.00%','#ff016b');
-                $this->SpetialStripeSegment('1.96%','#e8004e');
-                $this->SpetialStripeSegment('1.02%','#c40028');
-                $this->SpetialStripeSegment('1.95%','#a0000f');
-                $this->SpetialStripeSegment('5.54%','#900000');
-                $this->SpetialStripeSegment('11.52%','#780000');
-                $this->SpetialStripeSegment('5.20%','#5e0000');
-                $this->SpetialStripeSegment('6.14%','#4e0000');
-                $this->SpetialStripeSegment('10.51%','#3e0000');
+            if($show){
+                if($this->prefer_dark){
+                    $this->SpetialStripeSegment('25%','#6495ed');
+                    $this->SpetialStripeSegment('17%','#5a87d7');
+                    $this->SpetialStripeSegment('12%','#5179c1');
+                    $this->SpetialStripeSegment('10%','#486cac');
+                    $this->SpetialStripeSegment('9%','#3f5e96');
+                    $this->SpetialStripeSegment('8%','#365181');
+                    $this->SpetialStripeSegment('7%','#2d436b');
+                    $this->SpetialStripeSegment('6%','#243656');
+                    $this->SpetialStripeSegment('5%','#1b2840');
+                    $this->SpetialStripeSegment('4%','#121b2b');
+                    $this->SpetialStripeSegment('3%','#090d15');
+                }else{
+                    $this->SpetialStripeSegment('25%','#ffd700');
+                    $this->SpetialStripeSegment('17%','#ffda17');
+                    $this->SpetialStripeSegment('12%','#ffde2e');
+                    $this->SpetialStripeSegment('10%','#ffe145');
+                    $this->SpetialStripeSegment('9%','#ffe55c');
+                    $this->SpetialStripeSegment('8%','#ffe973');
+                    $this->SpetialStripeSegment('7%','#ffec8b');
+                    $this->SpetialStripeSegment('6%','#fff0a2');
+                    $this->SpetialStripeSegment('5%','#fff4b9');
+                    $this->SpetialStripeSegment('4%','#fff7d0');
+                    $this->SpetialStripeSegment('3%','#fffbe7');
+                }
+            }
             ?>
             </div>
         </div>
