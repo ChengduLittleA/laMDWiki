@@ -84,6 +84,8 @@ class LAManagement{
     protected $cwhite;
     protected $chighlight;
     
+    protected $lock_file;
+    
     function ChooseColorScheme(){
         if($this->prefer_dark){
             $this->cwhite = 'black';
@@ -150,6 +152,15 @@ class LAManagement{
     function UseLanguage(){
         if(!$this->LanguageAppendix) return 'zh';
         else return $this->LanguageAppendix;
+    }
+    
+    function LockRoot(){
+        if(!file_exists("la_lock")){
+            $f = fopen("la_lock","w");
+            fclose($f);
+        }
+        $this->lock_file = fopen("la_lock","r");
+        flock($this->lock_file,LOCK_EX);
     }
     
     function __construct() {
@@ -226,6 +237,14 @@ class LAManagement{
         $this->AddTranslationEntry('的新名字','\'s new name');
         
         $this->GLOBAL_TASK_I=0;
+        
+        $this->LockRoot();
+    }
+    
+    function __deconstruct(){
+        if(!isset($this->lock_file)) return;
+        flock($this->lock_file,LOCK_UN);
+        fclose($this->lock_file);
     }
     
     function LimitAccess($mode){
