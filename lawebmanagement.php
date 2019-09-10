@@ -82,6 +82,7 @@ class LAManagement{
     protected $prefer_dark;
     protected $cblack;
     protected $cwhite;
+    protected $chalfhighlight;
     protected $chighlight;
     
     protected $lock_file;
@@ -91,10 +92,12 @@ class LAManagement{
             $this->cwhite = 'black';
             $this->cblack = 'white';
             $this->chighlight = 'cornflowerblue';
+            $this->chalfhighlight = '#365181';
         }else{
             $this->cwhite = 'white';
             $this->cblack = 'black';
             $this->chighlight = 'gold';
+            $this->chalfhighlight = '#fff4b9';
         }
     }
 
@@ -1218,7 +1221,7 @@ class LAManagement{
         
         if($updated){
             $i=0;
-            while($this->GetLineByNamesN($Conf,'RecentUpdates','Entry',$i)!==Null){
+            while(($entry = $this->GetLineByNamesN($Conf,'RecentUpdates','Entry',$i))!==Null && $this->GetArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,"Path")!=$path_clean){
                 $i++;
             }            
             $this->EditGeneralLineNByName($Conf,'RecentUpdates','Entry',$i,'');
@@ -1227,12 +1230,14 @@ class LAManagement{
         }else{
             $i=0;
             $a=Null;
-            while(($a = $this->GetArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,'Path'))!=$path_clean && $a!==Null){
-                $i++;
-            }
-            
-            if($a!==Null){
-                $this->RemoveLineByNamesN($Conf,'RecentUpdates','Entry',$i);
+            while(($a = $this->GetArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,'Path'))){
+                if($a!=$path_clean){
+                    $i++;
+                    continue;
+                }
+                if($a!==Null){
+                    $this->RemoveLineByNamesN($Conf,'RecentUpdates','Entry',$i);
+                }
             }
         }
         
@@ -1261,6 +1266,29 @@ class LAManagement{
             }
         }
         return False;
+    }
+    function PathUpdatedLevel($path){
+        $path_clean = preg_replace('/^\.\/(.*)/','$1',$this->ChooseLanguage($path));
+        $is_folder_index = preg_match('/(.*)\/index(_zh|_en)?.md$/', $path_clean, $folder);
+        $folder_max = 100;
+        if(isset($this->RecentUpdatedList)) foreach($this->RecentUpdatedList as $item){
+            if($item['path'] == $path_clean || $is_folder_index){
+                $time = $this->CurrentTimeReadable();
+                $days_diff = $this->ReadableTimeDifference($item['time'], $time)/3600/24;
+                if($item['path'] == $path_clean){
+                    if($days_diff<1) return 1;
+                    if($days_diff<3) return 2;
+                }
+                if($is_folder_index){
+                    if(preg_match('%^'.$folder[1].'%',$item['path'])){
+                        if($days_diff<1) $folder_max = min($folder_max,1);
+                        else if($days_diff<3) $folder_max = min($folder_max,2);
+                    }
+                }
+            }
+        }
+        if($folder_max > 50) return 0;
+        return $folder_max;
     }
     function DoNewPassage(){
         if(isset($_POST['button_new_passage'])){
@@ -1717,14 +1745,15 @@ class LAManagement{
         return False;
     }
     function ProcessUpdatedLink($HtmlContent){
+        $level=0;
         return preg_replace_callback("/<a([\s\S]*)>([\s\S]*)<\/a>/Uu",
                                       function($matches){
                                           $str = $matches[0];
-                                          if(preg_match('/href=[\'"]\?page=(.*)[\'"]/', $matches[1], $link) && $this->IsPathUpdated($link[1])){
+                                          if(preg_match('/href=[\'"]\?page=(.*)[\'"]/', $matches[1], $link) && ($level = $this->PathUpdatedLevel($link[1]))){
                                               if(preg_match('/class/',$matches[1])){
                                                 $str = '<a'.preg_replace('/class=[\'"](.*)[\'"]/',"class='$1 recent_updated'",$matches[1]).'>'.$matches[2].'</a>';
                                               }else{
-                                                  $str = '<a class="recent_updated"'.$matches[1].'>'.$matches[2].'</a>';
+                                                  $str = '<a class="'.($level==1?'recent_updated"':'recent_updated_half"').$matches[1].'>'.$matches[2].'</a>';
                                               }
                                           }
                                           return $str;
@@ -1755,16 +1784,16 @@ class LAManagement{
         while($this->GetLineByNamesN($Conf,'RecentUpdates','Entry',$i)!==Null){
             $item['path']    = $this->GetArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,'Path');
             $item['time']      = $this->GetArgumentByNamesN($Conf,'RecentUpdates','Entry',$i,'Time');
-            if($this->IsDatedEntry($item, 7)){
+            if($this->IsDatedEntry($item, 3)){
                 $this->RemoveLineByNamesN($Conf,'RecentUpdates','Entry',$i);
-                $some_removed = True;
+                $any_removed = True;
             }else{
                 $this->RecentUpdatedList[] = $item;
                 $i++;
             }
         }
         if($any_removed){
-            $ConfWrite = fopen($this->UserConfig,'w');
+            $ConfWrite = fopen("la_config.md",'w');
             $this->WriteMarkdownConfig($Conf, $ConfWrite);
             fclose($ConfWrite);
         }
@@ -1959,7 +1988,8 @@ class LAManagement{
             .additional_options{ padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:-15px; overflow: hidden; display: inline-block; position: relative; z-index:100; }
             
             
-            .recent_updated    { background-color: <?php echo $this->chighlight ?>; }
+            .recent_updated      { background-color: <?php echo $this->chighlight ?>; }
+            .recent_updated_half { background-color: <?php echo $this->chalfhighlight ?>; }
             
             a        { border:1px solid <?php echo $this->cblack ?>; padding: 5px; color:<?php echo $this->cblack ?>; text-decoration: none; }
             a:hover  { border:3px double <?php echo $this->cblack ?>; padding: 3px; }
@@ -2805,7 +2835,7 @@ class LAManagement{
                 $i++;
             }
             $this->TaskManagerEntries = $list;
-            $this->ReadTaskFolderDescription(NULL,$actual,$this->TaskManagerTitle);
+            $this->ReadTaskFolderDescription(NULL,$actual,$this->TaskManagerTitle, $unused, $unused);
             return True;
         }else{
             return False;
@@ -2824,7 +2854,7 @@ class LAManagement{
         if(isset($finished_items)) { usort($finished_items,$callback); if($oldest_first) $finished_items=array_reverse($finished_items); }
         if(isset($active_items)) { usort($active_items,$callback); if($oldest_first) $active_items=array_reverse($active_items); }
     }
-    function ReadTaskFolderDescription($folder, $override_file, &$group_name){
+    function ReadTaskFolderDescription($folder, $override_file, &$group_name, &$old_task_days, &$ancient_task_days){
         $f = $override_file?$override_file:$folder.'/index.md';
         if(is_readable($f))
             $fi = fopen($f,"r");
@@ -2837,6 +2867,10 @@ class LAManagement{
             if($b){
                 $name = $this->GetLineValueByNames($Conf,"EventTracker","GroupName");
                 if(isset($name)) $group_name = $name;
+                $old_d = $this->GetLineValueByNames($Conf,"EventTracker","OldDays");
+                $old_task_days = $old_d?$old_d:10000;
+                $ancient_d = $this->GetLineValueByNames($Conf,"EventTracker","AncientDays");
+                $ancient_task_days = $ancient_d?$ancient_d:10000;
                 return;
             }
         }
@@ -2885,17 +2919,21 @@ class LAManagement{
                         }
                         if($this->FileNameList)     sort($this->FileNameList);
                         
-                        $this->ReadTaskItems($path, $this->FileNameList, $pc, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items, $active_items);
+                        $this->ReadTaskItems($path, $this->FileNameList, $pc, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items, $active_items, $have_delayed);
                         
-                        $this->ReadTaskFolderDescription($path, NULL,$folder_title);
+                        $this->ReadTaskFolderDescription($path, NULL,$folder_title, $old_count, $ancient_count);
                         $folder_item['title'] = $folder_title;
                         $folder_item['path'] = $path;
                         $folder_item['past_count']=$pc;
+                        $folder_item['old_count']=$old_count;
+                        $folder_item['ancient_count']=$ancient_count;
                         $groups[] = $folder_item;
                     }else{
                         $folder_item['title'] = '无法读取';
                         $folder_item['path'] = $path;
                         $folder_item['past_count']=1;
+                        $folder_item['old_count']=100000;
+                        $folder_item['ancient_count']=100000;
                         $groups[] = $folder_item;
                     }
                 ?>
@@ -2906,7 +2944,7 @@ class LAManagement{
         <div class='the_body'>
         <?php
             $this->SortTaskList($unfinished_items, $finished_items, $active_items, 0, 0, 0);
-            $this->MakeTaskGroupAdditional(NULL, 30,$unfinished_items, $finished_items, $active_items);
+            $this->MakeTaskGroupAdditional(NULL, 30,$unfinished_items, $finished_items, $active_items, $have_delayed);
             $this->TaskManagerGroups = $groups;
         ?>
         </div>
@@ -3205,6 +3243,11 @@ class LAManagement{
                     <a>正常</a>
                     <a>总表</a>
                     <a>日历</a>
+                    <?php if($this->prefer_dark){ ?>
+                        <a href='?page=<?php echo $this->PagePath;?>&theme=white'><?php echo $this->FROM_ZH('调成明亮') ?></a>
+                    <?php }else{ ?>
+                        <a href='?page=<?php echo $this->PagePath;?>&theme=black'><?php echo $this->FROM_ZH('进入夜间') ?></a>
+                    <?php }?>
                 </div>                
                 <span class="hidden_on_desktop_inline"><div id="login_again_button" class='btn' style='display:none' onClick="la_toggle_login_task_desktop();"><?php echo $this->IsLoggedIn()?$this->UserDisplayName:$this->FROM_ZH('登录') ?></div></span>
                 <span class="hidden_on_desktop_inline"><div class='btn' onClick="la_toggle_login_task_mobile()">查看</div></span>
@@ -3216,6 +3259,11 @@ class LAManagement{
                     <a>正常</a>
                     <a>总表</a>
                     <a>日历</a>
+                    <?php if($this->prefer_dark){ ?>
+                        <a href='?page=<?php echo $this->PagePath;?>&theme=white'><?php echo $this->FROM_ZH('调成明亮') ?></a>
+                    <?php }else{ ?>
+                        <a href='?page=<?php echo $this->PagePath;?>&theme=black'><?php echo $this->FROM_ZH('进入夜间') ?></a>
+                    <?php }?>
                 </div>
             </span>
         <?php }
@@ -3427,10 +3475,10 @@ class LAManagement{
                 var sp1 = document.getElementById("EditorSpacer1");
                 var sp2 = document.getElementById("EditorSpacer2");
                 
-                count.innerHTML=text_area.value.length+" 个字符";
+                count.innerHTML=text_area.value.replace(/[\ \r\n]/g, "").length+" 个字符 长度 "+text_area.value.length;
                 
                 text_area.addEventListener("input",function(){
-                    count.innerHTML=this.value.length+" 个字符";
+                    count.innerHTML=this.value.replace(/[\ \r\n]/g, "").length+" 个字符 长度 "+text_area.value.length;
                 });
 
                 function selectionStart(){
@@ -4454,9 +4502,9 @@ class LAManagement{
         $to = new DateTime($time_to['Y'].'-'.$time_to['M'].'-'.$time_to['D'].' '.$time_to['h'].':'.$time_to['m'].':'.$time_to['s']);
         return $to->getTimeStamp() - $from->getTimeStamp();
     }
-    function ReadTaskItems($folder, $file_list, $done_day_lim, $today_y, $today_m, $today_d, &$unfinished_items, &$finished_items, &$active_items){
+    function ReadTaskItems($folder, $file_list, $done_day_lim, $today_y, $today_m, $today_d, &$unfinished_items, &$finished_items, &$active_items, &$have_delayed){
         $group_name=Null;
-        $this->ReadTaskFolderDescription($folder, NULL ,$group_name);
+        $this->ReadTaskFolderDescription($folder, NULL ,$group_name, $old_count, $ancient_count);
         
         foreach($file_list as $f){
             if(!$f) continue;
@@ -4494,6 +4542,9 @@ class LAManagement{
                             preg_match_all("/[\S]+/",$m[4],$item['tags'],PREG_SET_ORDER);
                             $item['content'] = $m[5];
                             
+                            $item['delay_level'] = $this->TaskIsDelayed($item, $ancient_count)?2:($this->TaskIsDelayed($item, $old_count)?1:0);
+                            if($item['delay_level']) $have_delayed = 1;
+                            
                             if($m[1]=='D'||$m[1]=='C') $finished_items[] = $item;
                             else if($m[1]=='A') $active_items[] = $item;
                             else $unfinished_items[] = $item;
@@ -4503,7 +4554,13 @@ class LAManagement{
             }
         }
     }
-    function MakeTaskListItem($i, $it, $show_group_name){
+    function TaskIsDelayed($it, $days){
+        if($this->DayDifferences($it['time_begin']['Y'],$it['time_begin']['M'],$it['time_begin']['D'],date("Y"),date("m"),date("d"))>$days){
+            return true;
+        }
+        return false;
+    }
+    function MakeTaskListItem($i, $it, $show_group_name, $use_highlight){
         ?>
         <?php if ($it['status']=='D'){ ?>
             <li class="done">
@@ -4514,8 +4571,9 @@ class LAManagement{
         <?php }else{ ?>
             <li class="pending">
         <?php } ?>
-            <div id = 'task_item_wrapper_<?php echo $i; ?>'>
-                
+            <div id = 'task_item_wrapper_<?php echo $i; ?>' <?php echo $use_highlight?
+                ($it['delay_level']==2?"style='background-color: ".$this->chighlight.";'":
+                ($it['delay_level']==1?"style='background-color: ".$this->chalfhighlight.";'":"")):"" ?> >
                 <div id='task_item_<?php echo $i; ?>'>
                     <div class='underline_when_hover'>
                         <?php echo $show_group_name?"<b>".$it['group_name']."</b> ":""; ?>
@@ -4588,16 +4646,18 @@ class LAManagement{
         </li>
         <?php
     }
-    function MakeTaskGroupAdditional($folder, $done_limit, $override_unfinished_items, $override_finished_items, $override_active_items){
+    function MakeTaskGroupAdditional($folder, $done_limit, $override_unfinished_items, $override_finished_items, $override_active_items, $show_delay_marks){
         $override = (isset($override_unfinished_items)||isset($override_finished_items)||isset($override_active_items));
+        $have_delayed = 0;
         if(!$override){
             $task_files = $this->FileNameList;
-            $this->ReadTaskItems($folder, $task_files, $done_limit, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items, $active_items);
-            $this->ReadTaskFolderDescription($folder, NULL,$folder_title);
+            $this->ReadTaskItems($folder, $task_files, $done_limit, date('Y'), date('m'), date('d'), $unfinished_items, $finished_items, $active_items, $have_delayed);
+            $this->ReadTaskFolderDescription($folder, NULL,$folder_title,$unused,$unused);
         }else{
             $unfinished_items = $override_unfinished_items;
             $finished_items = $override_finished_items;
             $active_items = $override_active_items;
+            $have_delayed = $show_delay_marks;
         }
         if($this->TaskManagerSelf){
             $folder_title = $this->TaskManagerTitle;
@@ -4605,6 +4665,15 @@ class LAManagement{
         }
         ?>
         <div class='main_content' style='overflow:unset;'>
+            <?php if(isset($have_delayed)&&$have_delayed){ ?>
+                <div style="float:right" >
+                    <table style="text-align:center;table-style:fixed;"><tr>
+                    <tl>&nbsp;&nbsp;正常&nbsp;&nbsp;</tl>
+                    <tl style="background-color:<?php echo $this->chalfhighlight?>;" >&nbsp;&nbsp;较早&nbsp;&nbsp;</tl>
+                    <tl style="background-color:<?php echo $this->chighlight?>;" >&nbsp;&nbsp;很早&nbsp;&nbsp;</tl>
+                    </tr></table>
+                </div>
+            <?php } ?>
             <?php if(!$override){ ?>
             <div>
                 <b><?php echo $this->FROM_ZH('正在跟踪') ?>：<?php echo $folder_title;?></b>
@@ -4613,20 +4682,20 @@ class LAManagement{
             <ul class="task_ul"><?php
             $show_group_name = $override && (!$this->TaskManagerSelf);
             if(isset($active_items)) foreach($active_items as $it){
-                $this->MakeTaskListItem($this->GLOBAL_TASK_I,$it,$show_group_name);
+                $this->MakeTaskListItem($this->GLOBAL_TASK_I,$it,$show_group_name, 1);
                 $this->GLOBAL_TASK_I++;
             }?>
             </ul>
             <ul class="task_ul"><?php
             if(isset($unfinished_items)) foreach($unfinished_items as $it){
-                $this->MakeTaskListItem($this->GLOBAL_TASK_I,$it,$show_group_name);
+                $this->MakeTaskListItem($this->GLOBAL_TASK_I,$it,$show_group_name, 1);
                 $this->GLOBAL_TASK_I++;
             }?>
             </ul>
             <ul class="task_ul">
             <?php
             if(isset($finished_items)) foreach($finished_items as $it){
-                $this->MakeTaskListItem($this->GLOBAL_TASK_I,$it,$show_group_name);
+                $this->MakeTaskListItem($this->GLOBAL_TASK_I,$it,$show_group_name, 0);
                 $this->GLOBAL_TASK_I++;
             }?>
             </ul>
@@ -4934,7 +5003,7 @@ class LAManagement{
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
-                    <div class='additional_content' <?php echo $this->IsPathUpdated($path.'/'.$f)?"style='background-color:".$this->chighlight.";'":""?> >
+                    <div class='additional_content' <?php echo ($level=$this->PathUpdatedLevel($path.'/'.$f))?"style='background-color:".($level==1?$this->chighlight:$this->chalfhighlight).";'":""?> >
                         <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
                             <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:center;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
                         </div>
@@ -4955,7 +5024,7 @@ class LAManagement{
                     $rows = $this->FirstRows($this->ContentOfMarkdownFile($path.'/'.$f),20);
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
-                    <div class='tile_content tile_item' <?php echo $this->IsPathUpdated($path.'/'.$f)?"style='background-color:".$this->chighlight.";'":""?> >
+                    <div class='tile_content tile_item' <?php echo ($level=$this->PathUpdatedLevel($path.'/'.$f))?"style='background-color:".($level==1?$this->chighlight:$this->chalfhighlight).";'":""?> >
                         □
                         <div class='btn block' style='text-align:unset;overflow:hidden;' onclick='location.href="?page=<?php echo $path.'/'.$f;?>"'>
                             <div class='preview' style='max-height:300px;<?php echo $this->FileIsNSFW?"text-align:center;":""?>'><?php echo $this->HTMLFromMarkdown($rows);?></div>
@@ -5026,7 +5095,7 @@ class LAManagement{
                     $this->SetInterlinkPath($path.'/'.$f);
                     ?>
                     <div>
-                    <div class='additional_content no_overflow' <?php echo $this->IsPathUpdated($path.'/'.$f)?"style='background-color:".$this->chighlight.";'":""?> >
+                    <div class='additional_content no_overflow' <?php echo ($level=$this->PathUpdatedLevel($path.'/'.$f))?"style='background-color:".($level==1?$this->chighlight:$this->chalfhighlight).";'":""?> >
                         <div style='clear:both;text-align:right;position:sticky;top:80px;'>
                             <div class='plain_block small_shadow' style='text-align:center;display:inline-block;background-color:<?php echo $this->cwhite ?>;'>
                                 <div style='float:right'>
@@ -5068,7 +5137,7 @@ class LAManagement{
                 $this->MakeSmallQuoteAdditional($a['path'],$a['title'],$a['more'],$a['quick_post']);
             }else if (isset($a['style']) && $a['style']==5){
                 $this->FileNameList = array_reverse($this->FileNameList);//old first
-                $this->MakeTaskGroupAdditional($path, $a['count'],NULL,NULL,NULL);
+                $this->MakeTaskGroupAdditional($path, $a['count'],NULL,NULL,NULL,NULL);
             }
             if(isset($folder)){
                 ?>
