@@ -4666,9 +4666,9 @@ class LAManagement{
         ?>
         <div class='main_content' style='overflow:unset;'>
             <?php if(isset($have_delayed)&&$have_delayed){ ?>
-                <div style="float:right" >
+                <div style="float:right; position:relative; z-index:100;" >
                     <table style="text-align:center;table-style:fixed;"><tr>
-                    <tl>&nbsp;&nbsp;正常&nbsp;&nbsp;</tl>
+                    <tl style="background-color:<?php echo $this->cwhite?>;">&nbsp;&nbsp;正常&nbsp;&nbsp;</tl>
                     <tl style="background-color:<?php echo $this->chalfhighlight?>;" >&nbsp;&nbsp;较早&nbsp;&nbsp;</tl>
                     <tl style="background-color:<?php echo $this->chighlight?>;" >&nbsp;&nbsp;很早&nbsp;&nbsp;</tl>
                     </tr></table>
