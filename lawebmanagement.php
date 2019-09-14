@@ -181,6 +181,7 @@ class LAManagement{
         $this->AddTranslationEntry('进入夜间模式','Go to night mode');
         $this->AddTranslationEntry('列表','List');
         
+        $this->AddTranslationEntry('今天','Today');
         $this->AddTranslationEntry('更多','More');
         $this->AddTranslationEntry('编辑','Edit');
         $this->AddTranslationEntry('完成','Finish');
@@ -1128,9 +1129,7 @@ class LAManagement{
         return $this->ChooseLanguageAppendix($file_path,$this->LanguageAppendix);
     }
     
-    function SwitchToTargetLanguageIfPossible(){
-        if((isset($_GET['operation']) && $_GET['operation']!='settings')||isset($_GET['moving'])||isset($_POST['button_new_passage'])) return;
-        
+    function SwitchToTargetLanguageIfPossible(){        
         if(isset($_COOKIE['la_language'])){
             $this->LanguageAppendix = $_COOKIE['la_language'];
         }else{
@@ -1141,6 +1140,9 @@ class LAManagement{
                 else $this->LanguageAppendix = 'en';
             }
         }
+        
+        if((isset($_GET['operation']) && $_GET['operation']!='settings')||isset($_GET['moving'])||isset($_POST['button_new_passage'])) return;
+        
         $this->PagePath = $this->ChooseLanguageMain($this->PagePath);
     }
     
@@ -3444,6 +3446,7 @@ class LAManagement{
                         echo '放在 '.$this->InterlinkPath().'/';
                         ?>
                         </span>
+                        <a id='EditorTodayButton'><b><?php echo $this->FROM_ZH("今天"); ?></b></a>
                         <input class='string_input title_string' type="text" id="EditorFileName" name="editor_file_name" value='<?php echo $this->GetUniqueName(isset($_GET['title'])?$_GET['title']:'Untitled');?>'/>
                         .md
                         <?php
@@ -3508,6 +3511,8 @@ class LAManagement{
                 var div_more_btns = document.getElementById("EditorMoreBtns");
                 var sp1 = document.getElementById("EditorSpacer1");
                 var sp2 = document.getElementById("EditorSpacer2");
+                var btn_today = document.getElementById("EditorTodayButton");
+                var editor_file_name = document.getElementById("EditorFileName");
                 
                 count.innerHTML=text_area.value.replace(/[\ \r\n]/g, "").length+" 个字符 长度 "+text_area.value.length;
                 
@@ -3688,6 +3693,38 @@ class LAManagement{
                     div_more_btns.style.cssText = disp=='none'?'display:inline':'';
                     sp1.style.cssText = disp=='none'?'':'display:none';
                     sp2.style.cssText = disp=='none'?'':'display:none';
+                });
+                Date.prototype.format = function(fmt) { 
+                     var o = { 
+                        "M+" : this.getMonth()+1,
+                        "d+" : this.getDate(),
+                        "h+" : this.getHours(),
+                        "m+" : this.getMinutes(),
+                        "s+" : this.getSeconds(),
+                        "q+" : Math.floor((this.getMonth()+3)/3),
+                        "S"  : this.getMilliseconds()
+                    }; 
+                    if(/(y+)/.test(fmt)) {
+                            fmt=fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length)); 
+                    }
+                     for(var k in o) {
+                        if(new RegExp("("+ k +")").test(fmt)){
+                             fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+                         }
+                     }
+                    return fmt; 
+                }
+                btn_today.addEventListener("click", function() {
+                    name = editor_file_name.value;
+                    var re= /^[0-9]{8}_/;
+                    if(name.match(re)!=null){
+                        editor_file_name.value = name.replace(re,"");
+                        btn_today.innerHTML="<b><?php echo $this->FROM_ZH("今天"); ?></b>";
+                    }else{
+                        var date = new Date().format("yyyyMMdd_");
+                        editor_file_name.value = date+name;
+                        btn_today.innerHTML="<del><?php echo $this->FROM_ZH("今天"); ?></del>";
+                    }
                 });
             </script>
         </div>
