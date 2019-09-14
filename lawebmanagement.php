@@ -65,8 +65,11 @@ class LAManagement{
     
     
     protected $Title;
+    protected $TitleEN;
     protected $StringTitle;
+    protected $StringTitleEN;
     protected $Footnote;
+    protected $FootnoteEN;    
     protected $SmallQuoteName;
     
     protected $BackgroundSemi;
@@ -1126,7 +1129,7 @@ class LAManagement{
     }
     
     function SwitchToTargetLanguageIfPossible(){
-        if(isset($_GET['operation'])||isset($_GET['moving'])||isset($_POST['button_new_passage'])) return;
+        if((isset($_GET['operation']) && $_GET['operation']!='settings')||isset($_GET['moving'])||isset($_POST['button_new_passage'])) return;
         
         if(isset($_COOKIE['la_language'])){
             $this->LanguageAppendix = $_COOKIE['la_language'];
@@ -1374,6 +1377,8 @@ class LAManagement{
                 $original_path = $this->InterlinkPath().'/'.$_GET['target'];
                 $file_path = $this->InterlinkPath().'/'.$_POST['rename_passage_name'].'.md';
                 rename($original_path,$file_path);
+                $this->MarkPassageUpdate($original_path, 0);
+                $this->MarkPassageUpdate($file_path, 1);
                 header('Location:?page='.$this->InterlinkPath().'&operation=list');
                 exit;
             }
@@ -1383,9 +1388,13 @@ class LAManagement{
             if($_GET['set_draft']==0){
                 $target_path = preg_replace("/DRAFT/",'',$original_path);
                 rename($original_path,$target_path);
+                $this->MarkPassageUpdate($original_path, 0);
+                $this->MarkPassageUpdate($target_path, 1);
             }else{
                 $target_path = preg_replace("/.md/",'DRAFT.md',$original_path);
                 rename($original_path,$target_path);
+                $this->MarkPassageUpdate($original_path, 0);
+                $this->MarkPassageUpdate($target_path, 1);
             }
             header('Location:?page='.$target_path);
             exit;
@@ -1637,11 +1646,20 @@ class LAManagement{
             if(isset($_POST['settings_website_title'])){
                 $this->EditGeneralLineByName($Conf,'Website','Title',$_POST['settings_website_title']);
             }
+            if(isset($_POST['settings_website_title_en'])){
+                $this->EditGeneralLineByName($Conf,'Website','TitleEN',$_POST['settings_website_title_en']);
+            }
             if(isset($_POST['settings_website_display_title'])){
                 $this->EditGeneralLineByName($Conf,'Website','DisplayTitle',$_POST['settings_website_display_title']);
             }
+            if(isset($_POST['settings_website_display_title_en'])){
+                $this->EditGeneralLineByName($Conf,'Website','DisplayTitleEN',$_POST['settings_website_display_title_en']);
+            }
             if(isset($_POST['settings_footer_notes'])){
                 $this->EditGeneralLineByName($Conf,'Website','Footnote',$_POST['settings_footer_notes']);
+            }
+            if(isset($_POST['settings_footer_notes_en'])){
+                $this->EditGeneralLineByName($Conf,'Website','FootnoteEN',$_POST['settings_footer_notes_en']);
             }
             if(isset($_POST['settings_small_quote_name'])){
                 $this->EditGeneralLineByName($Conf,'Website','SmallQuoteName',$_POST['settings_small_quote_name']);
@@ -1766,12 +1784,17 @@ class LAManagement{
         fclose($this->UserConfig);
         $Conf = $this->ParseMarkdownConfig($ConfContent);
         $this->Title          = $this->GetLineValueByNames($Conf,"Website","Title");
+        $this->TitleEN        = $this->GetLineValueByNames($Conf,"Website","TitleEN");
         $this->StringTitle    = $this->GetLineValueByNames($Conf,"Website","DisplayTitle");
+        $this->StringTitleEN  = $this->GetLineValueByNames($Conf,"Website","DisplayTitleEN");
         $this->Footnote       = $this->GetLineValueByNames($Conf,"Website","Footnote");
+        $this->FootnoteEN     = $this->GetLineValueByNames($Conf,"Website","FootnoteEN");
         $this->SmallQuoteName = $this->GetLineValueByNames($Conf,"Website","SmallQuoteName");
         $this->TrackerFile    = $this->GetLineValueByNames($Conf,"Website","TrackerFile");
         if(!$this->Title) $this->Title='LA<b>MDWIKI</b>';
+        if(!$this->TitleEN) $this->TitleEN='LA<b>MDWIKI</b>';
         if(!$this->StringTitle) $this->StringTitle='LAMDWIKI';
+        if(!$this->StringTitleEN) $this->StringTitleEN='LAMDWIKI';
         if(!$this->TrackerFile) $this->TrackerFile='events.md';
         $i=0;$item=null;
         while($this->GetLineByNamesN($Conf,'Redirect','Entry',$i)!==Null){
@@ -1810,7 +1833,7 @@ class LAManagement{
         <!doctype html>
         <head>
         <meta name="viewport" content="user-scalable=no, width=device-width" />
-        <title><?php echo $this->StringTitle ?><?php echo isset($append_title)?" | $append_title":""?></title>
+        <title><?php echo $this->LanguageAppendix=='zh'?$this->StringTitle:$this->StringTitleEN; ?><?php echo isset($append_title)?" | $append_title":""?></title>
         <style>
         
             html{ text-align:center; }
@@ -2237,12 +2260,13 @@ class LAManagement{
         <?php
     }
     function MakeTitleButton(){
+        $use_title=$this->LanguageAppendix=='zh'?$this->Title:$this->TitleEN;
         ob_start();
         ?>
         <?php if(!$this->IsTaskManager){ ?>
             <div id='WebsiteTitle'>
-                <a class='hidden_on_mobile' href="?page=index.md"><?php echo $this->Title;?></a>
-                <a class='hidden_on_desktop_inline' id='HomeButton' ><?php echo $this->Title;?>...</a>
+                <a class='hidden_on_mobile' href="?page=index.md"><?php echo $use_title?></a>
+                <a class='hidden_on_desktop_inline' id='HomeButton' ><?php echo $use_title;?>...</a>
                 <?php if($this->Trackable){ ?><a class='hidden_on_mobile' href="?page=<?php echo $this->TrackerFile; ?>"><?php echo $this->FROM_ZH('跟踪') ?></a> <?php } ?>
             </div>
         <?php }else{ ?>
@@ -2998,16 +3022,26 @@ class LAManagement{
             <a id='ButtonAdminSettings'>管理员</a>
             <div class='inline_height_spacer'></div>
             <div id='TabWebsiteSettings'>
+            
+                <b>网站标题</b><br />  
                 <input class='string_input no_horizon_margin' type='text' id='settings_website_title' name='settings_website_title' form='settings_form' value='<?php echo $this->Title ?>' />
-                网站标题
-                <br />
+                中文<br />
+                <input class='string_input no_horizon_margin' type='text' id='settings_website_title_en' name='settings_website_title_en' form='settings_form' value='<?php echo $this->TitleEN ?>' />
+                English<br />
+                
+                <br /><b>标签显示标题</b><br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_website_display_title' name='settings_website_display_title' form='settings_form' value='<?php echo $this->StringTitle ?>' />
-                标签显示标题
-                <br />
+                中文<br />
+                <input class='string_input no_horizon_margin' type='text' id='settings_website_display_title_en' name='settings_website_display_title_en' form='settings_form' value='<?php echo $this->StringTitleEN ?>' />
+                English<br />
+                
+                <br /><b>页脚附加文字</b><br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_footer_notes' name='settings_footer_notes' form='settings_form' value='<?php echo $this->Footnote ?>' />
-                页脚附加文字
+                中文<br />
+                <input class='string_input no_horizon_margin' type='text' id='settings_footer_notes_en' name='settings_footer_notes_en' form='settings_form' value='<?php echo $this->FootnoteEN ?>' />
+                English<br />
                 <br />
-                <br />
+                
                 <input class='string_input no_horizon_margin' type='text' id='settings_small_quote_name' name='settings_small_quote_name' form='settings_form' value='<?php echo $this->SmallQuoteName ?>' />
                 “我说”名片抬头文字
                 <br />
@@ -4666,7 +4700,7 @@ class LAManagement{
         ?>
         <div class='main_content' style='overflow:unset;'>
             <?php if(isset($have_delayed)&&$have_delayed){ ?>
-                <div style="float:right; position:relative; z-index:100;" >
+                <div style="float:right; position:relative; z-index:10;" >
                     <table style="text-align:center;table-style:fixed;"><tr>
                     <tl style="background-color:<?php echo $this->cwhite?>;">&nbsp;&nbsp;正常&nbsp;&nbsp;</tl>
                     <tl style="background-color:<?php echo $this->chalfhighlight?>;" >&nbsp;&nbsp;较早&nbsp;&nbsp;</tl>
@@ -5687,7 +5721,7 @@ class LAManagement{
                 <a class='btn' href="javascript:scrollTo(0,0);"><?php echo $this->FROM_ZH('返回顶部') ?></a>
                 <br />
                 <div class = 'inline_block_height_spacer'></div>
-                <p style='font-size:12px;margin:0px;'><?php echo $this->Footnote ?></p>
+                <p style='font-size:12px;margin:0px;'><?php echo $this->LanguageAppendix=='zh'?$this->Footnote:$this->FootnoteEN; ?></p>
                 <?php if($this->UseLanguage() == 'zh'){?>
                     <p style='font-size:12px;margin:0px;'>使用 <a href='http://www.wellobserve.com/?page=MDWiki/index.md' style='padding:1px;border:none;'>LAMDWIKI</a> 创建
                 <?php }else if ($this->UseLanguage() == 'en'){?>
