@@ -180,6 +180,8 @@ class LAManagement{
         $this->AddTranslationEntry('调成明亮','Brighten up');
         $this->AddTranslationEntry('进入夜间模式','Go to night mode');
         $this->AddTranslationEntry('列表','List');
+        $this->AddTranslationEntry('管理','Files');
+        $this->AddTranslationEntry('写文','Write');
         
         $this->AddTranslationEntry('今天','Today');
         $this->AddTranslationEntry('更多','More');
@@ -3266,8 +3268,8 @@ class LAManagement{
                     <?php }?>
                     
                 <?php } ?>
-                <a href="?page=<?php echo $this->PagePath?>&operation=list">管理</a> 
-                <a href="?page=<?php echo $this->PagePath?>&operation=new">写文</a>
+                <a href="?page=<?php echo $this->PagePath?>&operation=list"><?php echo $this->FROM_ZH("管理"); ?></a> 
+                <a href="?page=<?php echo $this->PagePath?>&operation=new"><?php echo $this->FROM_ZH("写文"); ?></a>
                 <?php
                 }
             }
