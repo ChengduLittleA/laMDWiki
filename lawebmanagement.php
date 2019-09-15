@@ -1867,9 +1867,9 @@ class LAManagement{
             
             blockquote{ border-top:1px solid <?php echo $this->cblack ?>; border-bottom:1px solid <?php echo $this->cblack ?>; text-align: center; }
             
-            ::-moz-selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; }
-            ::selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; }
-            ::-webkit-selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; }
+            ::-moz-selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; text-shadow: none !important; }
+            ::selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; text-shadow: none !important; }
+            ::-webkit-selection{ background:<?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; text-shadow: none !important; }
             
             #Header{ position: sticky; top:0px; display: block; z-index:10; }
             #WebsiteTitle{ border:1px solid <?php echo $this->cblack ?>; display: inline-block; padding:10px; padding-top:15px; padding-bottom:15px; margin:10px; margin-left:0px; margin-right:0px; margin-bottom:15px;
