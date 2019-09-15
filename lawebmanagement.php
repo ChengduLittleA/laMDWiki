@@ -85,6 +85,7 @@ class LAManagement{
     protected $prefer_dark;
     protected $cblack;
     protected $cwhite;
+    protected $csemiwhite;
     protected $chalfhighlight;
     protected $chighlight;
     
@@ -94,11 +95,13 @@ class LAManagement{
         if($this->prefer_dark){
             $this->cwhite = 'black';
             $this->cblack = 'white';
+            $this->csemiwhite = "rgba(0,0,0,0.9)";
             $this->chighlight = 'cornflowerblue';
             $this->chalfhighlight = '#365181';
         }else{
             $this->cwhite = 'white';
             $this->cblack = 'black';
+            $this->csemiwhite = "rgba(255,255,255,0.9)";
             $this->chighlight = 'gold';
             $this->chalfhighlight = '#fff4b9';
         }
@@ -870,11 +873,6 @@ class LAManagement{
         if($Content) $this->ExtractPassageConfig($Content);
     }
     
-    function MakeAudioTag($name,$file){
-
-        
-    }
-
     function RemoveMarkdownConfig($Content){
         $TMP='';
         if(preg_match_all("/([\S\s]*)```([\S\s]*)(```)/U", $Content, $Matches, PREG_SET_ORDER|PREG_OFFSET_CAPTURE)){
@@ -1863,9 +1861,9 @@ class LAManagement{
             .btn img{ pointer-events: none; }
             .gallery_left img{ float: unset; margin: 5px auto; max-width: 100%;}
             
-            table{ width:100%; border-collapse: collapse;}
+            table{ width:100%; border-collapse: collapse; color: unset; }
             
-            pre {border-left: 3px double <?php echo $this->cblack ?>; padding: 10px; position: relative; z-index: 1; text-align: left; }
+            pre {border-left: 3px double <?php echo $this->cblack ?>; padding: 10px; position: relative; z-index: 1; text-align: left; white-space: pre-wrap; }
             
             blockquote{ border-top:1px solid <?php echo $this->cblack ?>; border-bottom:1px solid <?php echo $this->cblack ?>; text-align: center; }
             
@@ -2059,6 +2057,23 @@ class LAManagement{
             
             .no_overflow             { overflow: unset;}
             
+            .theme_firebrick { background-color: firebrick; color: gold; text-shadow: 2px 2px 2px black; }
+            .theme_firebrick a { color: gold !important; border-color: gold !important;}
+            .theme_cornflowerblue { background-color: cornflowerblue; color: white; text-shadow: 2px 2px 2px black; }
+            .theme_cornflowerblue a { color: white !important; border-color: white !important;}
+            .theme_slategray { background-color: slategray; color: white; }
+            .theme_slategray a { color: white !important; border-color: white !important;}
+            .theme_darkgoldenrod { background-color: darkgoldenrod; color: moccasin; }
+            .theme_darkgoldenrod a { color: moccasin !important; border-color: moccasin !important;}
+            .theme_green { background-color: green; color: palegreen; }
+            .theme_green a { color: palegreen !important; border-color: palegreen !important;}
+            .theme_indigo { background-color: indigo; color: lightcyan; }
+            .theme_indigo a { color: lightcyan !important; border-color: lightcyan !important;}
+            
+            .theme_align_left   { text-align: left; }
+            .theme_align_center { text-align: center; }
+            .theme_align_right  { text-align: right; }
+            
             @media screen and (max-width: 1000px) {
                 
                 .the_body{ left:10px; width:calc(100% - 20px); min-width: unset; }
@@ -2194,7 +2209,7 @@ class LAManagement{
     function MakeSpecialStripe(){
         $show = (isset($_GET['operation']) && ($_GET['operation'] == 'new' || $_GET['operation'] == 'edit'))  || $this->IsPathUpdated($this->PagePath);
         ?>
-        <div class='hidden_on_print' style='background-color:<?php echo $this->cwhite?>; height:10px; margin-top: -20px;margin-left: -15px;margin-right: -15px; margin-bottom:10px;'>
+        <?php echo "<!-- special_stripe -->";?><div class='hidden_on_print' style='background-color:<?php echo $this->cwhite?>; height:10px; margin-top: -20px;margin-left: -15px;margin-right: -15px; margin-bottom:10px;'>
             <div style='width:600px; max-width:100%; height:100%; font-size:0px; overflow:hidden;'>
             <?php
             if($show){
@@ -2226,7 +2241,7 @@ class LAManagement{
             }
             ?>
             </div>
-        </div>
+        <?php echo "<!-- special_stripe -->";?></div>
         <?php
     }
     function WideHeaderBegin(){
@@ -2305,12 +2320,12 @@ class LAManagement{
         if($layout == 'Gallery' && (!isset($_GET['operation'])||($_GET['operation']!='edit'&&$_GET['operation']!='new'))){
         ?>
             <div class='gallery_left'>
-            <div class='main_content gallery_main_height'>
+            <?php echo "<!-- main_begin -->";?><div class='main_content gallery_main_height'>
             <?php if($use_stripe) echo $this->MakeSpecialStripe(); ?>
         <?php
         }else{
         ?>
-            <div class='main_content <?php echo $novel_mode?"":"print_document" ?>' style='<?php echo $this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":""?>'>
+            <?php echo "<!-- main_begin -->";?><div class='main_content <?php echo $novel_mode?"":"print_document" ?>' style='<?php echo $this->BackgroundSemi?"background-color:".$this->csemiwhite.";":""?>'>
             <?php if($use_stripe) echo $this->MakeSpecialStripe(); ?>
             <div class='<?php echo ($novel_mode && !$this->GetEditMode())?"novel_content more_vertical_margin":""?>'>
         <?php
@@ -2319,9 +2334,35 @@ class LAManagement{
     function MakeMainContentEnd(){
         ?>
             </div>
-            </div>
+            <?php echo "<!-- main_end -->"; ?></div>
             </div>
         <?php
+    }
+    
+    function InsertBlockTheme($HTMLContent){
+        $Content = $HTMLContent;
+        
+        $Safe = preg_replace_callback("/(`|```)([^`]*)(?1)/U",
+                    function($matches){
+                        return preg_replace('/\[theme/','[@theme',$matches[0]);
+                    },
+                    $Content);
+        
+        $Content = preg_replace_callback("/<!-- main_begin -->(<div.*class=[\"\'][^\"\']*main_content)([\s\S]*)<!-- main_end -->/U",
+            function($matches){
+                if(preg_match("/<p>[\s]*\[theme:[\s]*([\S]*)[\s]*(left|center|right)?[\s]*\][\s]*<\/p>/", $matches[2], $col)){
+                    $remaining = preg_replace("/<p>[\s]*\[theme:[\s]*([\S]*)[\s]*(left|center|right)?[\s]*\][\s]*<\/p>/","",$matches[2]);
+                    return $matches[1]." theme_".$col[1].(isset($col[2])?" theme_align_".$col[2]:"").preg_replace("/<!-- special_stripe --><div[\s\S]*<!-- special_stripe --><\/div>/","",$remaining);
+                }
+                return $matches[1].$matches[2];
+            },$Safe);
+            
+        $Content = preg_replace_callback("/(`|```)([^`]*)(?1)/U",
+                    function($matches){
+                        return preg_replace('/\[@theme/','[theme',$matches[0]);
+                    },
+                    $Content);
+        return $Content;
     }
     
     function MakeNotifications(){
@@ -2342,11 +2383,11 @@ class LAManagement{
         
         ?>
             <div class='the_body'>
-            <div class='main_content' style='padding-top:0px; padding-bottom:0px;'>
+            <?php echo "<!-- main_begin -->";?><div class='main_content' style='padding-top:0px; padding-bottom:0px;'>
         <?php
         echo $this->HTMLFromMarkdown($this->InsertAdaptiveContents($content));
         ?>
-            </div>
+            <?php echo "<!-- main_end -->";?></div>
             </div>
         <?php
     }
@@ -2358,7 +2399,7 @@ class LAManagement{
     }
     
     function InsertAdaptiveContents($markdown){
-        $op1 = preg_replace_callback("/```([\s\S]*)```/U",
+        $op1 = preg_replace_callback("/(`|```)([^`]*)(?1)/U",
                             function($matches){
                                 return preg_replace('/\[adaptive\]/','[@adaptive]',$matches[0]);
                             },
@@ -2376,8 +2417,10 @@ class LAManagement{
                                                 "</tr> </table>";
                                      },
                                      $op1);
-        return preg_replace('/```([\s\S]*)\[@adaptive\]([\s\S]*)```/U',
-                             '```$1[adaptive]$2```',
+        return preg_replace_callback("/(`|```)([^`]*)(?1)/U",
+                            function($matches){
+                                return preg_replace('/\[@adaptive\]/','[adaptive]',$matches[0]);
+                            },
                             $res);
     }
     
@@ -2396,7 +2439,7 @@ class LAManagement{
         ?>
         </div>
         <div class='the_body' style="<?php echo $expanded?'width:calc(100% - 20px);':''?>">
-            <div class='main_content' style="<?php echo $no_padding?'padding:0px;':''?> <?php echo $this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":""?>">
+            <div class='main_content' style="<?php echo $no_padding?'padding:0px;':''?> <?php echo $this->BackgroundSemi?"background-color:".$this->csemiwhite.";":""?>">
                  <div>
         <?php } 
         if($hang){
@@ -2429,12 +2472,12 @@ class LAManagement{
                     
                     canvasElm<?php echo $id?>.oncontextmenu = () => false;
                     
-                    var solid_mat<?php echo $id?> = new THREE.MeshBasicMaterial({color:0xffffff, polygonOffset: true,
+                    var solid_mat<?php echo $id?> = new THREE.MeshBasicMaterial({color:<?php echo $this->prefer_dark?"0x000000":"0xffffff"?>, polygonOffset: true,
                                                                     polygonOffsetFactor: 1,
                                                                     polygonOffsetUnits: 1});
 			        //var line_mat<?php echo $id?> = 
 			        
-			        scene<?php echo $id?>.background = new THREE.Color( 0xffffff );
+			        scene<?php echo $id?>.background = new THREE.Color( <?php echo $this->prefer_dark?"0x000000":"0xffffff"?> );
 			        
 			        var directionalLight = new THREE.DirectionalLight(0xffffff,2);
                     directionalLight.position.set(1, 0, 1).normalize();
@@ -2451,7 +2494,7 @@ class LAManagement{
                                         //child.doubleSided = true;
                                         var line_mat = child.material.la_line;
                                         if(!line_mat){
-                                            line_mat = new THREE.LineBasicMaterial( { color: 0x000000, linewidth: 1+child.material.roughness, linecap: 'round', linejoin:  'round'} );
+                                            line_mat = new THREE.LineBasicMaterial( { color: <?php echo $this->prefer_dark?"0xffffff":"0x000000"?>, linewidth: 1+child.material.roughness, linecap: 'round', linejoin:  'round'} );
                                             child.material.la_line = line_mat;
                                         }
                                         var edges = new THREE.EdgesGeometry(child.geometry, thresholdAngle=5);
@@ -2594,15 +2637,14 @@ class LAManagement{
         <?php
         if(!$is_background){
             if(!$inline){
-                ?>          </div>
-                        </div>
-                    </div>
+                echo $this->MakeMainContentEnd();
+                ?>
                 <?php if($hooked || !$this->AfterPassage3D) {?>
                     <div class='the_body'>
                     <?php 
                     $this->MainContentAlreadyBegun=True;
                 }
-                if($hooked) echo '<div class="main_content" style="'.($this->BackgroundSemi?"background-color:rgba(255,255,255,0.95);":"").'"><div>';
+                if($hooked) echo '<div class="main_content" style="'.($this->BackgroundSemi?"background-color:".$this->csemiwhite.";":"").'"><div>';
             } 
             if($hang){
                 ?>
@@ -2618,6 +2660,7 @@ class LAManagement{
     function Make3DContent(){
         if(!isset($this->SceneList[0])) return null;
         $i=0;
+        
         ob_start();
         foreach ($this->SceneList as $sc){
             if ((isset($sc['mode']) && ($sc['mode']=='Inline' && isset($sc['hook'])))||
@@ -2756,9 +2799,8 @@ class LAManagement{
         $this->unique_item_count+=1;
         if(!$is_background){
             if(!$inline){
-                ?>          </div>
-                        </div>
-                    </div>
+                echo $this->MakeMainContentEnd();
+                ?>
                 <?php if($hooked || !$this->AfterPassage2D) {?>
                     <div class='the_body'>
                     <?php 
@@ -2820,20 +2862,24 @@ class LAManagement{
         return $Content;
     }
     function HandleInsertsBeforePassage($Content2D,$Content3D){
+        $content="";
         if(!$this->AfterPassage2D){
-            echo $Content2D;
+            $content.=$Content2D;
         }
         if(!$this->AfterPassage3D){
-            echo $Content3D;
+            $content.=$Content3D;
         }
+        return $content;
     }
     function HandleInsertsAfterPassage($Content2D,$Content3D){
+        $content="";
         if($this->AfterPassage2D){
-            echo $Content2D;
+            $content.=$Content2D;
         }
         if($this->AfterPassage3D){
-            echo $Content3D;
+            $content.=$Content3D;
         }
+        return $content;
     }
     
     function GetSmallQuoteName(){
@@ -3371,6 +3417,7 @@ class LAManagement{
         <?php
     }
     function MakePassageEditButtons(){
+        ob_start();
         $path = $this->InterlinkPath();
         $this->GetFileNameDateFormat($this->PagePath,$y,$m,$d,$is_draft);
         ?>
@@ -3393,6 +3440,9 @@ class LAManagement{
             <a href='?page=<?php echo $path.'/notifications.md'.(!file_exists($path.'/notifications.md')?'&operation=new&title=notifications':'&operation=edit').'&return_to='.$this->PagePath.'&delete_on_empty=true';?>'>编辑通知</a>
         </div>
         <?php
+        $contents = ob_get_contents();
+        ob_end_clean();
+        return $contents;
     }
     function MakeEditorHeader(){
         ?>
@@ -4739,7 +4789,7 @@ class LAManagement{
         ?>
         <div class='main_content' style='overflow:unset;'>
             <?php if(isset($have_delayed)&&$have_delayed){ ?>
-                <div style="float:right; position:relative; z-index:10;" >
+                <div style="float:right; position:relative; z-index:5;" >
                     <table style="text-align:center;table-style:fixed;"><tr>
                     <tl style="background-color:<?php echo $this->cwhite?>;">&nbsp;&nbsp;正常&nbsp;&nbsp;</tl>
                     <tl style="background-color:<?php echo $this->chalfhighlight?>;" >&nbsp;&nbsp;较早&nbsp;&nbsp;</tl>

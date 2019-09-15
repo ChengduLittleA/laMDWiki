@@ -257,39 +257,50 @@ if($la_operation == 'new'){
 }else if($LA->IsTaskManager()){
     echo $LA->MakeTaskList();
 }else{
-
-    echo $LA->MakeNotifications();
+    
+    ob_start();
+        $LA->MakeNotifications();
+    $notifications = ob_get_contents();
+    ob_end_clean();
+    echo $LA->InsertBlockTheme($notifications); 
  
     $LA->ExtractPassageConfigFromFile($la_page_path);
     
     $Content3D = $LA->Make3DContent();
     $Content2D = $LA->Make2DContent();
     
-    $LA->HandleInsertsBeforePassage($Content2D,$Content3D);
-
-    echo $LA->MakeMainContentBegin(1);
+    ob_start();
+        echo $LA->HandleInsertsBeforePassage($Content2D,$Content3D);
+        echo $LA->MakeMainContentBegin(1);
+    $content_pre = ob_get_contents();
+    ob_end_clean();
     
     if($LA->IsLoggedIn())
-        echo $LA->MakePassageEditButtons();
+        $content_pre.=$LA->MakePassageEditButtons();
+    
     
     $LA->ConfirmMainPassage();
     
-    echo $LA->ProcessLinksToStatic(
-         $LA->ProcessHREFForPrint(
-         $LA->ProcessUpdatedLink(
-         $LA->InsertSideNotes(
-         $LA->RemoveBlankAfterInserts(
-         $LA->InsertMagicSeparator(
-         $LA->Insert3DContent(
-         $LA->Insert2DContent(
-         $LA->ProcessHTMLLanguageForLinks(
-         $LA->HTMLFromMarkdownFile($LA->ActuallPath()))))))))));
+    $main =  $LA->ProcessLinksToStatic(
+             $LA->ProcessHREFForPrint(
+             $LA->ProcessUpdatedLink(
+             $LA->InsertSideNotes(
+             $LA->RemoveBlankAfterInserts(
+             $LA->InsertMagicSeparator(
+             $LA->Insert3DContent(
+             $LA->Insert2DContent(
+             $LA->ProcessHTMLLanguageForLinks(
+             $LA->HTMLFromMarkdownFile($LA->ActuallPath()))))))))));
     
-    echo $LA->MakeHREFListForPrint();
-         
-    echo $LA->MakeMainContentEnd();
+    ob_start();
+        echo $LA->MakeHREFListForPrint();
+        echo $LA->MakeMainContentEnd();
+    $content_after = ob_get_contents();
+    ob_end_clean();
     
-    $LA->HandleInsertsAfterPassage($Content2D,$Content3D);
+    echo $LA->InsertBlockTheme($content_pre.$main.$content_after);
+    
+    echo $LA->HandleInsertsAfterPassage($Content2D,$Content3D);
     
     echo $LA->MakeAdditionalContent(Null,Null);
 }
