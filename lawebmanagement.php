@@ -197,6 +197,9 @@ class LAManagement{
         $this->AddTranslationEntry('完成','Finish');
         $this->AddTranslationEntry('放弃','Discard');
         $this->AddTranslationEntry('放弃修改','Discard changes');
+        $this->AddTranslationEntry('个字符','chars');
+        $this->AddTranslationEntry('长度','len');
+        $this->AddTranslationEntry('已编辑','Modified');
         
         $this->AddTranslationEntry('登录','Log in');
         $this->AddTranslationEntry('用户名','User name');
@@ -2160,7 +2163,7 @@ class LAManagement{
                 .adaptive_column_container { display: block; }
                 
                 .passage_detail         { width:60%; }
-                .big_string_height      { height: calc(100% - 10px); }
+                .big_string_height      { height: calc(100% - 40px); }
                 
                 .novel_content          { max-width: unset;}
                 .more_vertical_margin   { margin-top: 0px; margin-bottom: 0px; }
@@ -3590,12 +3593,15 @@ class LAManagement{
         <div>
             <div id="editor_fullscreen_container" class="mobile_force_fullscreen modal_on_mobile white_bkg">
                 
-                <textarea class='string_input big_string big_string_height' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
+                <textarea onInput="la_mark_div_highlight('passage_edited_stripe');passage_edited_note.innerHTML='<b><?php echo $this->FROM_ZH('已编辑'); ?></b>&nbsp;';"
+                    class='string_input big_string big_string_height' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
                 <div class="hidden_on_desktop"><a class="white_bkg modal_on_mobile" style="position:fixed; right:10px; top:10px; text-align:center;" onClick="editor_toggle_fullscreen_mobile()">切换全屏</a></div>
+                <div id="passage_edited_stripe" style="position:absolute; bottom:0px; width:100%;">
+                    &nbsp;<span id='data_passage_character_count'></span>
+                    <div style="float:right" id="passage_edited_note"></div>
+                </div>
             </div>
-            <div>
-                <span id='data_passage_character_count'>字数</span>
-            </div>
+            
             <script>
                 function editor_toggle_fullscreen_mobile(){
                     c = document.getElementById("editor_fullscreen_container");
@@ -3637,10 +3643,10 @@ class LAManagement{
                 var btn_today = document.getElementById("EditorTodayButton");
                 var editor_file_name = document.getElementById("EditorFileName");
                 
-                count.innerHTML=text_area.value.replace(/[\ \r\n]/g, "").length+" 个字符 长度 "+text_area.value.length;
+                count.innerHTML='<b>'+text_area.value.replace(/[\ \r\n]/g, "").length+" <?php echo $this->FROM_ZH('个字符').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
                 
                 text_area.addEventListener("input",function(){
-                    count.innerHTML=this.value.replace(/[\ \r\n]/g, "").length+" 个字符 长度 "+text_area.value.length;
+                    count.innerHTML='<b>'+this.value.replace(/[\ \r\n]/g, "").length+" <?php echo $this->FROM_ZH('个字符').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
                 });
 
                 function selectionStart(){

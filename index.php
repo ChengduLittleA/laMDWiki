@@ -220,13 +220,13 @@ $LA->SetInterlinkPath($la_page_path);
 
 if($la_operation == 'new'){
 
-    echo $LA->MakeMainContentBegin(1);
+    echo $LA->MakeMainContentBegin(0);
     echo $LA->MakeEditorBody('Some text here.');
     echo $LA->MakeMainContentEnd();
     
 }else if($la_operation == 'edit'){
 
-    echo $LA->MakeMainContentBegin(1);
+    echo $LA->MakeMainContentBegin(0);
     echo $LA->MakeEditorBody($LA->ContentOfMarkdownFile($la_page_path));
     echo $LA->MakeMainContentEnd();
     
@@ -250,7 +250,7 @@ if($la_operation == 'new'){
     
 }else if($la_operation == 'settings'){
 
-    echo $LA->MakeMainContentBegin(1);
+    echo $LA->MakeMainContentBegin(0);
     echo $LA->MakeSettings();
     echo $LA->MakeMainContentEnd();
 
