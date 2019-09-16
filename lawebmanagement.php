@@ -3118,32 +3118,31 @@ class LAManagement{
             <div class='inline_height_spacer'></div>
             <div id='TabWebsiteSettings'>
             
-                <b><?php echo $this->FROM_ZH("网站标题"); ?></b><br />  
-                <input class='string_input no_horizon_margin' type='text' id='settings_website_title' name='settings_website_title' form='settings_form' value='<?php echo $this->Title ?>' />
-                中文<br />
-                <input class='string_input no_horizon_margin' type='text' id='settings_website_title_en' name='settings_website_title_en' form='settings_form' value='<?php echo $this->TitleEN ?>' />
-                English<br />
+                <b><?php echo $this->FROM_ZH("网站标题"); ?></b><br />
+                <div id="wrap_settings_website_title"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_website_title' name='settings_website_title' form='settings_form' value='<?php echo $this->Title ?>' />
+                中文</div>
+                <div id="wrap_settings_website_title_en"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_website_title_en' name='settings_website_title_en' form='settings_form' value='<?php echo $this->TitleEN ?>' />
+                English</div>
                 
                 <br /><b><?php echo $this->FROM_ZH("标签显示标题"); ?></b><br />
-                <input class='string_input no_horizon_margin' type='text' id='settings_website_display_title' name='settings_website_display_title' form='settings_form' value='<?php echo $this->StringTitle ?>' />
-                中文<br />
-                <input class='string_input no_horizon_margin' type='text' id='settings_website_display_title_en' name='settings_website_display_title_en' form='settings_form' value='<?php echo $this->StringTitleEN ?>' />
-                English<br />
+                <div id="wrap_settings_website_display_title"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_website_display_title' name='settings_website_display_title' form='settings_form' value='<?php echo $this->StringTitle ?>' />
+                中文</div>
+                <div id="wrap_settings_website_display_title_en"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_website_display_title_en' name='settings_website_display_title_en' form='settings_form' value='<?php echo $this->StringTitleEN ?>' />
+                English</div>
                 
                 <br /><b><?php echo $this->FROM_ZH("页脚附加文字"); ?></b><br />
-                <input class='string_input no_horizon_margin' type='text' id='settings_footer_notes' name='settings_footer_notes' form='settings_form' value='<?php echo $this->Footnote ?>' />
-                中文<br />
-                <input class='string_input no_horizon_margin' type='text' id='settings_footer_notes_en' name='settings_footer_notes_en' form='settings_form' value='<?php echo $this->FootnoteEN ?>' />
-                English<br />
+                <div id="wrap_settings_footer_notes"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_footer_notes' name='settings_footer_notes' form='settings_form' value='<?php echo $this->Footnote ?>' />
+                中文</div>
+                <div id="wrap_settings_footer_notes_en"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_footer_notes_en' name='settings_footer_notes_en' form='settings_form' value='<?php echo $this->FootnoteEN ?>' />
+                English</div>
                 <br />
                 
-                <input class='string_input no_horizon_margin' type='text' id='settings_small_quote_name' name='settings_small_quote_name' form='settings_form' value='<?php echo $this->SmallQuoteName ?>' />
-                <?php echo $this->FROM_ZH("“我说”名片抬头文字"); ?>
+                <div id="wrap_settings_small_quote_name"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_small_quote_name' name='settings_small_quote_name' form='settings_form' value='<?php echo $this->SmallQuoteName ?>' />
+                <?php echo $this->FROM_ZH("“我说”名片抬头文字"); ?></div>
+                
                 <br />
-                <br />
-                <input class='string_input no_horizon_margin' type='text' id='settings_tracker_file' name='settings_tracker_file' form='settings_form' value='<?php echo $this->TrackerFile ?>' />
-                <?php echo $this->FROM_ZH("站点事件跟踪器"); ?>
-                <br />
+                <div id="wrap_settings_tracker_file"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_tracker_file' name='settings_tracker_file' form='settings_form' value='<?php echo $this->TrackerFile ?>' />
+                <?php echo $this->FROM_ZH("站点事件跟踪器"); ?></div>
                 <a id="ButtonTaskNormal"><?php echo $this->TaskHighlightInvert?"":"<b><u>" ?><?php echo $this->FROM_ZH("正常"); ?><?php echo $this->TaskHighlightInvert?"":"</u></b>" ?></a>
                 <a id="ButtonTaskInvert"><?php echo $this->TaskHighlightInvert?"<b><u>":"" ?><?php echo $this->FROM_ZH("反转"); ?><?php echo $this->TaskHighlightInvert?"</u></b>":"" ?></a>
                 <input style='display:none;' class='string_input no_horizon_margin' type='text' id='settings_task_highlight_invert' name='settings_task_highlight_invert' form='settings_form' value='<?php echo $this->TaskHighlightInvert?"True":"" ?>' />
@@ -3162,15 +3161,13 @@ class LAManagement{
             </div>
             
             <div id='TabAdminSettings' style='display:none'>
-                <input class='string_input no_horizon_margin' type='text' id='settings_admin_display' name='settings_admin_display' form='settings_form' value='<?php echo $this->UserDisplayName ?>' />
-                <?php echo $this->FROM_ZH("修改账户昵称"); ?>
-                <br /><br />
-                <input class='string_input no_horizon_margin' type='text' id='settings_admin_id' name='settings_admin_id' form='settings_form' />
-                <?php echo $this->FROM_ZH("重设管理账户名"); ?>
+                <div id="wrap_settings_admin_display"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_admin_display' name='settings_admin_display' form='settings_form' value='<?php echo $this->UserDisplayName ?>' />
+                <?php echo $this->FROM_ZH("修改账户昵称"); ?></div>
                 <br />
-                <input class='string_input no_horizon_margin' type='text' id='settings_admin_password' name='settings_admin_password' form='settings_form' />
-                <?php echo $this->FROM_ZH("重设管理密码"); ?>
-                <br />
+                <div id="wrap_settings_admin_id"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_admin_id' name='settings_admin_id' form='settings_form' />
+                <?php echo $this->FROM_ZH("重设管理账户名"); ?></div>
+                <div id="wrap_settings_admin_password"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_admin_password' name='settings_admin_password' form='settings_form' />
+                <?php echo $this->FROM_ZH("重设管理密码"); ?></div>
             </div>
             
             <hr />
@@ -4545,13 +4542,14 @@ class LAManagement{
             <?php if($show_quick_post && $this->IsLoggedIn()){?>
                 <form method = "post" style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&quote_quick='.$folder;?>" id='form_passage'></form>
                 <textarea type='text' class='quick_post_string under_border' form='form_passage' id='data_small_quote_content' name='data_small_quote_content'
-                          onfocus="if (value =='小声哔哔…'){value =''}"onblur="if (value ==''){value='小声哔哔…';la_auto_grow(this);}" oninput="la_auto_grow(this)">小声哔哔…</textarea>
+                          onfocus="if (value =='小声哔哔…'){value =''} la_enter_block_editing(this);"onblur="if (value ==''){value='小声哔哔…';la_auto_grow(this);} la_exit_block_editing(this);"
+                          oninput="la_auto_grow(this)">小声哔哔…</textarea>
                 <div class='block_height_spacer'></div>
 
                 <div style='float:right;'>
                     <input class='btn' type="submit" value="大声宣扬" name="button_new_quote" form='form_passage' />
                 </div>
-                <script> la_auto_grow(document.getElementById("data_small_quote_content"));</script>
+                <script>la_auto_grow(document.getElementById("data_small_quote_content"));</script>
             <?php } ?>
         </div>
         <?php
@@ -5245,7 +5243,7 @@ class LAManagement{
                     <div class='tile_content tile_item <?php echo$cc==1?"":"gallery_multi_height" ?>' style='max-height:unset;'>
                         <?php if($cc==1){ ?>
                             <img src='<?php echo $path.'/'.$f?>' style='max-width:100%;'></img>
-                        <?php }else{ ?>
+                        <?php }else{ ?> 
                             <div class='gallery_multi_content'>
                             <img src='<?php echo $path.'/'.$f?>' class='gallery_image'></img>
                             </div>
@@ -5268,7 +5266,7 @@ class LAManagement{
                             <form method = "post" style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&quick='.$path;?>" id='form_passage'></form>
                             <input style='display:none;' type="text" id="EditorFileName" name="editor_file_name" value='<?php echo $this->GetUniqueName(date("Ymd"));?>'/ form='form_passage'>
                             <textarea type='text' class='quick_post_string under_border' form='form_passage' id='data_passage_content' name='data_passage_content'
-                                      onfocus="if (value =='我有一个想法…'){value =''}"onblur="if (value ==''){value='我有一个想法…';la_auto_grow(this);}" oninput="la_auto_grow(this)">我有一个想法…</textarea>
+                                      onfocus="if (value =='我有一个想法…'){value =''} la_enter_block_editing(this);"onblur="if (value ==''){value='我有一个想法…';la_auto_grow(this);} la_exit_block_editing(this);" oninput="la_auto_grow(this)">我有一个想法…</textarea>
                             <div class='block_height_spacer'></div>
                             <div style='text-align:right;'>
                                 <?php echo date("Y")?>/<?php echo date("m") ?>/<b><?php echo date("d")?></b>
@@ -5928,6 +5926,32 @@ class LAManagement{
             <?php } ?>
             
             var img = [];
+            
+            function la_mark_div_highlight(div_id){
+                div = document.getElementById(div_id);
+                div.style.backgroundColor="<?php echo $this->chighlight; ?>";
+            }
+            function la_select_closest_parent(elem, selector){
+                for(;elem && elem != document; elem = elem.parentNode){
+                    if(elem.matches(selector)) return elem;
+                }
+            }
+            function la_enter_block_editing(elem){
+                block = la_select_closest_parent(elem,".main_content");
+                if(!block) block = la_select_closest_parent(elem,".additional_content");
+                if(!block) return;
+                block.style.zIndex=50;
+                block.style.position="relative";
+                la_show_modal_blocker();
+            }
+            function la_exit_block_editing(elem){
+                block = la_select_closest_parent(elem,".main_content");
+                if(!block) block = la_select_closest_parent(elem,".additional_content");
+                if(!block) return;
+                block.style.zIndex="";
+                block.style.position="";
+                la_hide_modal_blocker();
+            }
             
         </script>
             <div id='image_viewer' class='top_panel full_screen_window' style='display:none'>
