@@ -4945,6 +4945,7 @@ class LAManagement{
                 cn = w.className;
                 d.style.display = disp=="none"?"block":"none";
                 w.className = cn==""?"plain_block":"";
+                w.style.borderLeft = cn==""?"5px solid <?php echo $this->cblack; ?>":"";
             });
             <?php if($this->IsLoggedIn()){ ?>
                 del = document.getElementById("task_delete_button_<?php echo $j; ?>");
