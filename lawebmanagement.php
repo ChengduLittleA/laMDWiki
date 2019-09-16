@@ -2172,6 +2172,11 @@ class LAManagement{
                 .highlight_stripe_mobile { position: fixed; bottom:0px; width:100%; }
             }
             
+            @media screen and (max-width: 350px) {
+                .the_body{ left:0px; width:100%; }
+                .main_content, .top_panel, .narrow_content, .additional_content, #Navigation, .navigation, #HeaderQuickButtons, #WebsiteTitle, .footer{ border: none; }
+            }
+            
             @media print {
                 body{ width:100%; min-width: unset; line-height: 1.6}
                 
