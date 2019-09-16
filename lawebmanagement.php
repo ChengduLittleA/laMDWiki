@@ -2169,6 +2169,7 @@ class LAManagement{
                 .more_vertical_margin   { margin-top: 0px; margin-bottom: 0px; }
                 
                 .no_overflow_mobile     { overflow: unset;}
+                .highlight_stripe_mobile { position: fixed; bottom:0px; width:100%; }
             }
             
             @media print {
@@ -3596,7 +3597,7 @@ class LAManagement{
                 <textarea onInput="la_mark_div_highlight('passage_edited_stripe');passage_edited_note.innerHTML='<b><?php echo $this->FROM_ZH('已编辑'); ?></b>&nbsp;';"
                     class='string_input big_string big_string_height' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
                 <div class="hidden_on_desktop"><a class="white_bkg modal_on_mobile" style="position:fixed; right:10px; top:10px; text-align:center;" onClick="editor_toggle_fullscreen_mobile()">切换全屏</a></div>
-                <div id="passage_edited_stripe" style="position:absolute; bottom:0px; width:100%;">
+                <div id="passage_edited_stripe" class="highlight_stripe_mobile">
                     &nbsp;<span id='data_passage_character_count'></span>
                     <div style="float:right" id="passage_edited_note"></div>
                 </div>
@@ -3607,10 +3608,12 @@ class LAManagement{
                     c = document.getElementById("editor_fullscreen_container");
                     e = document.getElementById("data_passage_content");
                     b = document.getElementById("editor_fullscreen_button");
+                    s = document.getElementById("passage_edited_stripe");
                     shown = c.className != "";
                     c.className = shown?"":"mobile_force_fullscreen modal_on_mobile white_bkg";
                     e.style.height = "";
                     e.className = shown?"editor_shrink string_input big_string":"string_input big_string big_string_height";
+                    s.className = shown?"":"highlight_stripe_mobile";
                 }
                 window.onbeforeunload = function() { 
                     return "没写完就想跑？";
