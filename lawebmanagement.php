@@ -72,6 +72,8 @@ class LAManagement{
     protected $FootnoteEN;    
     protected $SmallQuoteName;
     
+    protected $TaskHighlightInvert;
+    
     protected $BackgroundSemi;
     
     protected $MainContentAlreadyBegun;
@@ -179,9 +181,12 @@ class LAManagement{
         $this->AddTranslationEntry('上级','Up');
         $this->AddTranslationEntry('首页','Home');
         $this->AddTranslationEntry('列表','List');
+        $this->AddTranslationEntry('夜间','Night');
+        $this->AddTranslationEntry('明亮','Day');
         $this->AddTranslationEntry('在夜间模式','In night mode');
         $this->AddTranslationEntry('调成明亮','Brighten up');
         $this->AddTranslationEntry('进入夜间模式','Go to night mode');
+        $this->AddTranslationEntry('进入夜间','Night mode');
         $this->AddTranslationEntry('列表','List');
         $this->AddTranslationEntry('管理','Files');
         $this->AddTranslationEntry('写文','Write');
@@ -196,7 +201,6 @@ class LAManagement{
         $this->AddTranslationEntry('登录','Log in');
         $this->AddTranslationEntry('用户名','User name');
         $this->AddTranslationEntry('密码','Password');
-        $this->AddTranslationEntry('不是您本人？','Not yourself?');
         $this->AddTranslationEntry('登出','Log out');
         
         $this->AddTranslationEntry('跟踪','Tracker');
@@ -212,7 +216,7 @@ class LAManagement{
         $this->AddTranslationEntry('修改','Edit');
         $this->AddTranslationEntry('进行','Run');
         $this->AddTranslationEntry('丢弃','Cancel');
-        $this->AddTranslationEntry('删除','Delete');
+        $this->AddTranslationEntry('删除','Del');
         $this->AddTranslationEntry('暂缓','Wait');
         $this->AddTranslationEntry('放回队列','Put back');
         $this->AddTranslationEntry('删除条目','Delete item');
@@ -228,9 +232,12 @@ class LAManagement{
         $this->AddTranslationEntry('创建索引','Create index');
         $this->AddTranslationEntry('选组','Select groups');
         $this->AddTranslationEntry('位于','at');
+        $this->AddTranslationEntry('正常','Normal');
+        $this->AddTranslationEntry('较早','Delayed');
+        $this->AddTranslationEntry('很早','Ancient');
         
         $this->AddTranslationEntry('下一页','Next');
-        $this->AddTranslationEntry('上一页','Previous');
+        $this->AddTranslationEntry('上一页','Prev');
         $this->AddTranslationEntry('不看了','Close');
         
         $this->AddTranslationEntry('返回顶部','Back to top');
@@ -247,6 +254,26 @@ class LAManagement{
         $this->AddTranslationEntry('调整','Adjust');
         $this->AddTranslationEntry('选这个','Select');
         $this->AddTranslationEntry('的新名字','\'s new name');
+        
+        $this->AddTranslationEntry('网站设置','Settings');
+        $this->AddTranslationEntry('查看为','View as');
+        $this->AddTranslationEntry('退出','Exit');
+        $this->AddTranslationEntry('设置中心','Settings');
+        $this->AddTranslationEntry('网站信息','Website');
+        $this->AddTranslationEntry('链接跳转项目','Redirect');
+        $this->AddTranslationEntry('管理员','Admin');
+        $this->AddTranslationEntry('网站标题','Title');
+        $this->AddTranslationEntry('标签显示标题','HTML Title');
+        $this->AddTranslationEntry('页脚附加文字','Footer string');
+        $this->AddTranslationEntry('“我说”名片抬头文字','"Say" region title');
+        $this->AddTranslationEntry('站点事件跟踪器','Site event tracker');
+        $this->AddTranslationEntry('事件高亮显示','Event highlights');
+        $this->AddTranslationEntry('反转','Invert');
+        $this->AddTranslationEntry('自动重定向的链接','Redirected links');
+        $this->AddTranslationEntry('修改账户昵称','Change display name');
+        $this->AddTranslationEntry('重设管理账户名','Change admin id');
+        $this->AddTranslationEntry('重设管理密码','Change admin password');
+        $this->AddTranslationEntry('保存所有更改','Save all changes');
         
         $this->GLOBAL_TASK_I=0;
         
@@ -1669,6 +1696,9 @@ class LAManagement{
             if(isset($_POST['settings_tracker_file'])){
                 $this->EditGeneralLineByName($Conf,'Website','TrackerFile',$_POST['settings_tracker_file']);
             }
+            if(isset($_POST['settings_task_highlight_invert'])){
+                $this->EditGeneralLineByName($Conf,'Website','TaskHighlightInvert',$_POST['settings_task_highlight_invert']);
+            }
             if(isset($_POST['settings_admin_display']) && $_POST['settings_admin_display']!=''){
                 $this->EditArgumentByNamesN($Conf,'Users',$this->UserID,0,'DisplayName',$_POST['settings_admin_display']);
             }
@@ -1793,7 +1823,10 @@ class LAManagement{
         $this->FootnoteEN     = $this->GetLineValueByNames($Conf,"Website","FootnoteEN");
         $this->SmallQuoteName = $this->GetLineValueByNames($Conf,"Website","SmallQuoteName");
         $this->TrackerFile    = $this->GetLineValueByNames($Conf,"Website","TrackerFile");
+        $this->TaskHighlightInvert = $this->GetLineValueByNames($Conf,"Website","TaskHighlightInvert")=="True"?1:0;
+        
         if(!$this->Title) $this->Title='LA<b>MDWIKI</b>';
+        
         if(!$this->TitleEN) $this->TitleEN='LA<b>MDWIKI</b>';
         if(!$this->StringTitle) $this->StringTitle='LAMDWIKI';
         if(!$this->StringTitleEN) $this->StringTitleEN='LAMDWIKI';
@@ -1906,7 +1939,7 @@ class LAManagement{
             .small_shadow           { box-shadow: 2px 2px <?php echo $this->cblack ?>; }
             .tile_content           { padding:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; max-height:350px; }
             .top_panel              { padding:10px; padding-top:15px; padding-bottom:15px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; }
-            .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:1000; max-height: unset;}
+            .full_screen_window     { top:10px; bottom:10px; left:10px; right:10px; position: fixed; z-index:40; max-height: unset;}
             .gallery_left           { height:calc(100% - 160px); position: fixed; width:350px; }
             .gallery_right          { width:calc(100% - 365px); left: 365px; position: relative;}
             .gallery_main_height    { max-height: 100%; }
@@ -2298,6 +2331,18 @@ class LAManagement{
                 
                 h = document.getElementById("task_master_header_desktop");
                 h.style.display=disp=='none'?'inline':'none';
+                
+                header = document.getElementById("Header");
+                footer = document.getElementById("task_manager_footer");
+                if(disp=="inline"){
+                    header.style.zIndex=100;
+                    footer.style.zIndex=10;
+                    la_show_modal_blocker();
+                }else{
+                    header.style.zIndex="";
+                    footer.style.zIndex="";
+                    la_hide_modal_blocker();
+                }
             }
             </script>
         <?php } ?>
@@ -3064,28 +3109,28 @@ class LAManagement{
         $Title='LAMDWIKI';
         $Footnote='';
         ?>
-            <div class='btn' onclick='location.href="?page=<?php echo $this->PagePath;?>"'>退出</div>
+            <div class='btn' onclick='location.href="?page=<?php echo $this->PagePath;?>"'><?php echo $this->FROM_ZH("退出"); ?></div>
             <form method="post" id='settings_form' style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=settings';?>"></form>
-            <h1>设置中心</h1>
-            <a id='ButtonWebsiteSettings' style='font-weight:bold'>网站信息</a>
-            <a id='Button301Settings'>链接跳转项目</a>
-            <a id='ButtonAdminSettings'>管理员</a>
+            <h1><?php echo $this->FROM_ZH("设置中心"); ?></h1>
+            <a id='ButtonWebsiteSettings' style='font-weight:bold'><?php echo $this->FROM_ZH("网站信息"); ?></a>
+            <a id='Button301Settings'><?php echo $this->FROM_ZH("链接跳转项目"); ?></a>
+            <a id='ButtonAdminSettings'><?php echo $this->FROM_ZH("管理员"); ?></a>
             <div class='inline_height_spacer'></div>
             <div id='TabWebsiteSettings'>
             
-                <b>网站标题</b><br />  
+                <b><?php echo $this->FROM_ZH("网站标题"); ?></b><br />  
                 <input class='string_input no_horizon_margin' type='text' id='settings_website_title' name='settings_website_title' form='settings_form' value='<?php echo $this->Title ?>' />
                 中文<br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_website_title_en' name='settings_website_title_en' form='settings_form' value='<?php echo $this->TitleEN ?>' />
                 English<br />
                 
-                <br /><b>标签显示标题</b><br />
+                <br /><b><?php echo $this->FROM_ZH("标签显示标题"); ?></b><br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_website_display_title' name='settings_website_display_title' form='settings_form' value='<?php echo $this->StringTitle ?>' />
                 中文<br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_website_display_title_en' name='settings_website_display_title_en' form='settings_form' value='<?php echo $this->StringTitleEN ?>' />
                 English<br />
                 
-                <br /><b>页脚附加文字</b><br />
+                <br /><b><?php echo $this->FROM_ZH("页脚附加文字"); ?></b><br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_footer_notes' name='settings_footer_notes' form='settings_form' value='<?php echo $this->Footnote ?>' />
                 中文<br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_footer_notes_en' name='settings_footer_notes_en' form='settings_form' value='<?php echo $this->FootnoteEN ?>' />
@@ -3093,15 +3138,20 @@ class LAManagement{
                 <br />
                 
                 <input class='string_input no_horizon_margin' type='text' id='settings_small_quote_name' name='settings_small_quote_name' form='settings_form' value='<?php echo $this->SmallQuoteName ?>' />
-                “我说”名片抬头文字
+                <?php echo $this->FROM_ZH("“我说”名片抬头文字"); ?>
                 <br />
                 <br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_tracker_file' name='settings_tracker_file' form='settings_form' value='<?php echo $this->TrackerFile ?>' />
-                站点事件跟踪器
+                <?php echo $this->FROM_ZH("站点事件跟踪器"); ?>
+                <br />
+                <a id="ButtonTaskNormal"><?php echo $this->TaskHighlightInvert?"":"<b><u>" ?><?php echo $this->FROM_ZH("正常"); ?><?php echo $this->TaskHighlightInvert?"":"</u></b>" ?></a>
+                <a id="ButtonTaskInvert"><?php echo $this->TaskHighlightInvert?"<b><u>":"" ?><?php echo $this->FROM_ZH("反转"); ?><?php echo $this->TaskHighlightInvert?"</u></b>":"" ?></a>
+                <input style='display:none;' class='string_input no_horizon_margin' type='text' id='settings_task_highlight_invert' name='settings_task_highlight_invert' form='settings_form' value='<?php echo $this->TaskHighlightInvert?"True":"" ?>' />
+                <?php echo $this->FROM_ZH("事件高亮显示"); ?>
             </div>
 
             <div id='Tab301Settings' style='display:none'>
-                自动重定向的链接
+                <?php echo $this->FROM_ZH("自动重定向的链接"); ?>
                 <?php if(isset($this->List301)) foreach($this->List301 as $item){ ?>
                     <div>
                         <div style='float:right;width:50%'>到&nbsp;<?php echo $item['to']; ?></div>
@@ -3113,26 +3163,29 @@ class LAManagement{
             
             <div id='TabAdminSettings' style='display:none'>
                 <input class='string_input no_horizon_margin' type='text' id='settings_admin_display' name='settings_admin_display' form='settings_form' value='<?php echo $this->UserDisplayName ?>' />
-                修改账户昵称
+                <?php echo $this->FROM_ZH("修改账户昵称"); ?>
                 <br /><br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_admin_id' name='settings_admin_id' form='settings_form' />
-                重设管理账户名
+                <?php echo $this->FROM_ZH("重设管理账户名"); ?>
                 <br />
                 <input class='string_input no_horizon_margin' type='text' id='settings_admin_password' name='settings_admin_password' form='settings_form' />
-                重设管理密码
+                <?php echo $this->FROM_ZH("重设管理密码"); ?>
                 <br />
             </div>
             
             <hr />
             <div class='inline_block_height_spacer'></div>
-            <input class='btn form_btn' type='submit' value='保存所有的更改' name="settings_button_confirm" form='settings_form' />
+            <input class='btn form_btn' type='submit' value='<?php echo $this->FROM_ZH("保存所有更改"); ?>' name="settings_button_confirm" form='settings_form' />
             <script>
                 var btn_website = document.getElementById("ButtonWebsiteSettings");
                 var btn_301 = document.getElementById("Button301Settings");
                 var btn_admin = document.getElementById("ButtonAdminSettings");
+                var btn_task_normal = document.getElementById("ButtonTaskNormal");
+                var btn_task_invert = document.getElementById("ButtonTaskInvert");
                 var div_website = document.getElementById("TabWebsiteSettings");
                 var div_301 = document.getElementById("Tab301Settings");
                 var div_admin = document.getElementById("TabAdminSettings");
+                var field_task_invert = document.getElementById("settings_task_highlight_invert");
                 btn_website.addEventListener("click", function() {
                     div_website.style.cssText = 'display:block';
                     div_301.style.cssText = 'display:none';
@@ -3157,6 +3210,17 @@ class LAManagement{
                     btn_301.style.cssText = '';
                     btn_admin.style.cssText = 'font-weight:bold;';
                 });
+                btn_task_normal.addEventListener("click", function() {
+                    
+                    field_task_invert.value="False";
+                    btn_task_normal.innerHTML = "<b><u><?php echo $this->FROM_ZH('正常'); ?></u></b>";
+                    btn_task_invert.innerHTML = "<?php echo $this->FROM_ZH('反转'); ?>";
+                });
+                btn_task_invert.addEventListener("click", function() {
+                    field_task_invert.value="True";
+                    btn_task_normal.innerHTML = "<?php echo $this->FROM_ZH('正常'); ?>";
+                    btn_task_invert.innerHTML = "<b><u><?php echo $this->FROM_ZH('反转'); ?></u></b>";
+                });
             </script>
         <?php
     }
@@ -3169,13 +3233,13 @@ class LAManagement{
             
             <?php if ($this->IsLoggedIn()) { ?>
                 <?php if(!$this->IsTaskManager){ ?>
-                    <a href='?page=<?php echo $this->PagePath;?>&operation=settings'>网站设置</a>
-                    查看为
+                    <a href='?page=<?php echo $this->PagePath;?>&operation=settings'><?php echo $this->FROM_ZH("网站设置")?></a>
+                    <?php echo $this->FROM_ZH("查看为")?>
                     <a href='?page=<?php echo $this->PagePath;?>&set_translation=en'>English</a>
                     <a href='?page=<?php echo $this->PagePath;?>&set_translation=zh'>中文</a>
                     <div class="inline_height_spacer hidden_on_desktop"></div>
-                    <a href='?page=<?php echo $this->PagePath;?>&theme=white'>明亮</a>
-                    <a href='?page=<?php echo $this->PagePath;?>&theme=black'>夜间</a>
+                    <a href='?page=<?php echo $this->PagePath;?>&theme=white'><?php echo $this->FROM_ZH("明亮")?></a>
+                    <a href='?page=<?php echo $this->PagePath;?>&theme=black'><?php echo $this->FROM_ZH("夜间")?></a>
                 <?php } ?>
             <?php } ?>
             
@@ -3240,7 +3304,6 @@ class LAManagement{
                         <div class="inline_height_spacer"></div>
                     <?php }
                     echo '<p class = "inline_components">'.$this->UserDisplayName.'</p>';
-                    echo '<p class = "inline_components">'.$this->FROM_ZH('不是您本人？').'</p>';
                     ?>
                     <input class='btn form_btn' type="button" name="logout" value="<?php echo $this->FROM_ZH('登出') ?>" onclick="location.href='<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath;?>&logout=True'" />
                     <?php if($this->IsTaskManager){ ?>
@@ -3374,6 +3437,17 @@ class LAManagement{
             dialog = document.getElementById("task_manager_login");
             disp = (again?again:dialog).style.display=="none"?"block":"none";
             dialog.style.display = disp;
+            header = document.getElementById("Header");
+            footer = document.getElementById("task_manager_footer");
+            if(disp=="block"){
+                header.style.zIndex=100;
+                footer.style.zIndex=10;
+                la_show_modal_blocker();
+            }else{
+                header.style.zIndex="";
+                footer.style.zIndex="";
+                la_hide_modal_blocker();
+            }
             if(again)again.style.display = disp;
             c = document.getElementById("task_navigation_container");
             c.style.display='none';
@@ -4695,8 +4769,8 @@ class LAManagement{
             <li class="pending">
         <?php } ?>
             <div id = 'task_item_wrapper_<?php echo $i; ?>' <?php echo $use_highlight?
-                ($it['delay_level']==2?"style='background-color: ".$this->chighlight.";'":
-                ($it['delay_level']==1?"style='background-color: ".$this->chalfhighlight.";'":"")):"" ?> >
+                ($it['delay_level']==2?"style='background-color: ".($this->TaskHighlightInvert?$this->chalfhighlight:$this->chighlight).";'":
+                ($it['delay_level']==1?"style='background-color: ".($this->TaskHighlightInvert?$this->chighlight:$this->chalfhighlight).";'":"")):"" ?> >
                 <div id='task_item_<?php echo $i; ?>'>
                     <div class='underline_when_hover'>
                         <?php echo $show_group_name?"<b>".$it['group_name']."</b> ":""; ?>
@@ -4791,9 +4865,9 @@ class LAManagement{
             <?php if(isset($have_delayed)&&$have_delayed){ ?>
                 <div style="float:right; position:relative; z-index:5;" >
                     <table style="text-align:center;table-style:fixed;"><tr>
-                    <tl style="background-color:<?php echo $this->cwhite?>;">&nbsp;&nbsp;正常&nbsp;&nbsp;</tl>
-                    <tl style="background-color:<?php echo $this->chalfhighlight?>;" >&nbsp;&nbsp;较早&nbsp;&nbsp;</tl>
-                    <tl style="background-color:<?php echo $this->chighlight?>;" >&nbsp;&nbsp;很早&nbsp;&nbsp;</tl>
+                    <tl style="background-color:<?php echo $this->cwhite?>;">&nbsp;&nbsp;<?php echo $this->FROM_ZH("正常"); ?>&nbsp;&nbsp;</tl>
+                    <tl style="background-color:<?php echo $this->TaskHighlightInvert?$this->chighlight:$this->chalfhighlight?>;" >&nbsp;&nbsp;<?php echo $this->FROM_ZH("较早"); ?>&nbsp;&nbsp;</tl>
+                    <tl style="background-color:<?php echo $this->TaskHighlightInvert?$this->chalfhighlight:$this->chighlight?>;" >&nbsp;&nbsp;<?php echo $this->FROM_ZH("很早"); ?>&nbsp;&nbsp;</tl>
                     </tr></table>
                 </div>
             <?php } ?>
@@ -5827,7 +5901,14 @@ class LAManagement{
             if(lg_toggle && lg_panel) lg_toggle.addEventListener("click", function() {
                 var shown = lg_panel.style.display == 'block';
                 lg_panel.style.display = shown ? "none" : "block";
-                //lg_toggle.innerHTML = shown? "收起":"登录";
+                header = document.getElementById("Header");
+                if(!shown){
+                    header.style.zIndex=100;
+                    la_show_modal_blocker();
+                }else{
+                    header.style.zIndex="";
+                    la_hide_modal_blocker();
+                }
             });
             <?php if(!$this->IsTaskManager){ ?>
             var hb = document.getElementById("HomeButton");
@@ -5835,6 +5916,14 @@ class LAManagement{
             hb.addEventListener("click", function() {
                 var disp = nav.style.display;
                 nav.style.cssText = disp==''?'display:block':'';
+                header = document.getElementById("Header");
+                if(!disp){
+                    header.style.zIndex=100;
+                    la_show_modal_blocker();
+                }else{
+                    header.style.zIndex="";
+                    la_hide_modal_blocker();
+                }
             });
             <?php } ?>
             
@@ -5863,25 +5952,17 @@ class LAManagement{
                     image.src=this.src;
                     image_alt.innerHTML=this.alt;
                     dialog.style.display="block";
+                    la_show_modal_blocker();
                 }
                 
             }
-            //for (var i=0; i<bkg_img.length;i++){
-            //    if(!bkg_img[i].style.backgroundImage) continue;
-            //    
-            //    bkg_img[i].onclick=function(){
-            //    
-            //        image.src=this.style.backgroundImage.match(/url\(["']?([^"']*)["']?\)/)[1];
-            //        image_alt.innerHTML=image.src;
-            //        dialog.style.display="block";
-            //        alert("SSSS");
-            //    }  
-            //}
             close.onclick=function(){
                 dialog.style.display='none';
+                la_hide_modal_blocker();
             }
             image_white.onclick=function(){
                 dialog.style.display='none';
+                la_hide_modal_blocker();
             }
             
             <?php
