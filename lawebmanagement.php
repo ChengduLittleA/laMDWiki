@@ -197,7 +197,7 @@ class LAManagement{
         $this->AddTranslationEntry('完成','Finish');
         $this->AddTranslationEntry('放弃','Discard');
         $this->AddTranslationEntry('放弃修改','Discard changes');
-        $this->AddTranslationEntry('个字符','chars');
+        $this->AddTranslationEntry('个字','words');
         $this->AddTranslationEntry('长度','len');
         $this->AddTranslationEntry('已编辑','Modified');
         
@@ -3651,10 +3651,10 @@ class LAManagement{
                 var btn_today = document.getElementById("EditorTodayButton");
                 var editor_file_name = document.getElementById("EditorFileName");
                 
-                count.innerHTML='<b>'+text_area.value.replace(/[\ \r\n]/g, "").length+" <?php echo $this->FROM_ZH('个字符').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
+                count.innerHTML='<b>'+text_area.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
                 
                 text_area.addEventListener("input",function(){
-                    count.innerHTML='<b>'+this.value.replace(/[\ \r\n]/g, "").length+" <?php echo $this->FROM_ZH('个字符').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
+                    count.innerHTML='<b>'+this.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
                 });
 
                 function selectionStart(){
