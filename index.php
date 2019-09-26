@@ -143,6 +143,16 @@ if(isset($_GET['small_quote_only'])){
     exit;
 }
 
+$navigation = NULL;
+$nav_root = $LA->ChooseLanguage('navigation.md');
+$nav_this = $LA->ChooseLanguage($LA->InterlinkPath().'/navigation.md');
+
+if (file_exists($nav_this)){
+    $navigation = $nav_this;
+}else if(file_exists($nav_root)){
+    $navigation = $nav_root;
+}
+
 
 if(!$la_operation){
     $LA->TryExtractTaskManager(NULL,0);
@@ -158,15 +168,17 @@ echo $LA->ProcessLinksToStatic(
      $LA->MakeTitleButton());
 
 if(!$LA->IsTaskManager()){
-    echo $LA->MakeNavigationBegin();
-    $LA->SetInterlinkPath('index.md');
+    if($navigation){
+        echo $LA->MakeNavigationBegin();
+        $LA->SetInterlinkPath('index.md');
 
-    echo $LA->ProcessLinksToStatic(
-         $LA->ProcessUpdatedLink(
-         $LA->ProcessHTMLLanguageForLinks(
-         $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md')))));
-         
-    echo $LA->MakeNavigationEnd();
+        echo $LA->ProcessLinksToStatic(
+             $LA->ProcessUpdatedLink(
+             $LA->ProcessHTMLLanguageForLinks(
+             $LA->HTMLFromMarkdownFile($navigation))));
+             
+        echo $LA->MakeNavigationEnd();
+    }
 }else{
     echo $LA->MakeTaskMasterHeader();
 }
@@ -181,12 +193,13 @@ if($LA->IsTaskManager()){
     echo $LA->TaskNavigationBegin();
     
     $LA->SetInterlinkPath('index.md');
-
-    echo $LA->ProcessLinksToStatic(
-        $LA->ProcessUpdatedLink(
-         $LA->ProcessHTMLLanguageForLinks(
-         $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md')))));
-         
+    
+    if($navigation){
+        echo $LA->ProcessLinksToStatic(
+             $LA->ProcessUpdatedLink(
+             $LA->ProcessHTMLLanguageForLinks(
+             $LA->HTMLFromMarkdownFile($LA->ChooseLanguage('navigation.md')))));
+    }
     echo $LA->TaskNavigationEnd();
     
     echo $LA->WideHeaderEnd();
@@ -221,7 +234,7 @@ $LA->SetInterlinkPath($la_page_path);
 if($la_operation == 'new'){
 
     echo $LA->MakeMainContentBegin(0);
-    echo $LA->MakeEditorBody('Some text here.');
+    echo $LA->MakeEditorBody(NULL);
     echo $LA->MakeMainContentEnd();
     
 }else if($la_operation == 'edit'){
@@ -238,7 +251,7 @@ if($la_operation == 'new'){
     
     $pos=0;
     if(isset($_GET['position'])) $pos = $_GET['position'];
-    echo $LA->MakeAdditionalContent($_GET['folder'],$pos);
+    echo $LA->MakeAdditionalContent($_GET['folder'],$pos,isset($_GET['filter_season'])?$_GET['filter_season']:NULL);
 
 }else if(($la_operation == 'additional' || $la_operation == 'task') && isset($_GET['action']) && $_GET['action']=='view'){
 
@@ -302,7 +315,7 @@ if($la_operation == 'new'){
     
     echo $LA->HandleInsertsAfterPassage($Content2D,$Content3D);
     
-    echo $LA->MakeAdditionalContent(Null,Null);
+    echo $LA->MakeAdditionalContent(Null,Null,Null);
 }
 
 echo $LA->MakeFooter();

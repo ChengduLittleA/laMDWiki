@@ -206,6 +206,12 @@ class LAManagement{
         $this->AddTranslationEntry('密码','Password');
         $this->AddTranslationEntry('登出','Log out');
         
+        $this->AddTranslationEntry('过滤','Filter');
+        $this->AddTranslationEntry('春','Spring');
+        $this->AddTranslationEntry('夏','Summer');
+        $this->AddTranslationEntry('秋','Altumn');
+        $this->AddTranslationEntry('冬','Winter');
+        
         $this->AddTranslationEntry('跟踪','Tracker');
         $this->AddTranslationEntry('正在跟踪','Tracking');
         $this->AddTranslationEntry('总览','Overview');
@@ -241,7 +247,7 @@ class LAManagement{
         
         $this->AddTranslationEntry('下一页','Next');
         $this->AddTranslationEntry('上一页','Prev');
-        $this->AddTranslationEntry('不看了','Close');
+        $this->AddTranslationEntry('不看了','Leave');
         
         $this->AddTranslationEntry('返回顶部','Back to top');
         
@@ -1310,14 +1316,15 @@ class LAManagement{
             if($item['path'] == $path_clean || $is_folder_index){
                 $time = $this->CurrentTimeReadable();
                 $days_diff = $this->ReadableTimeDifference($item['time'], $time)/3600/24;
-                if($item['path'] == $path_clean){
-                    if($days_diff<1) return 1;
-                    if($days_diff<3) return 2;
-                }
                 if($is_folder_index){
                     if(preg_match('%^'.$folder[1].'%',$item['path'])){
                         if($days_diff<1) $folder_max = min($folder_max,1);
                         else if($days_diff<3) $folder_max = min($folder_max,2);
+                    }
+                }else{
+                    if($item['path'] == $path_clean){
+                        if($days_diff<1) return 1;
+                        if($days_diff<3) return 2;
                     }
                 }
             }
@@ -1951,7 +1958,7 @@ class LAManagement{
             .gallery_multi_content  { position: absolute;top: 5px; left: 5px; bottom: 5px; right: 5px; display: flex; align-items: center; overflow: hidden;}
             .gallery_image          { max-width: unset; min-width: 100%; min-height: 100%; object-fit: cover; }
             .gallery_box_when_bkg   { width:30%; max-width:300px;}
-            .no_padding             { padding: 0px; }
+            .no_padding_force       { padding: 0px; !important; }
             
             .center_container       { display: table; position: absolute; top: 0; left: 0; height: 100%; width: 100%; }
             .center_vertical        { display: table-cell; vertical-align: middle; }
@@ -2196,7 +2203,7 @@ class LAManagement{
                 .gallery_left           { height: unset; width: unset; position: unset; padding:0;  border: none; background-color:<?php echo $this->cwhite ?>; box-shadow: unset; margin:0; overflow: unset; }
                 .gallery_right          { height: unset; width: unset; left: unset; z-index:10; position: unset; padding:0;  border: none; background-color:<?php echo $this->cwhite ?>; box-shadow: unset; margin:0; overflow: unset; }
                 .gallery_main_height    { max-height: unset }
-                .no_padding             { padding: 0px; }
+                .no_padding_force       { padding: 0px; !important }
                 
                 .print_document h1{ border-left: 10px solid <?php echo $this->cblack ?>; padding-left:10px; border-bottom: 1px solid <?php echo $this->cblack ?>; margin-bottom: 5px }
                 
@@ -2367,19 +2374,19 @@ class LAManagement{
         
         if(!$this->MainContentAlreadyBegun){
             ?>
-            <div class='the_body'>
+            <?php echo "<!-- main_begin -->";?><div class='the_body'>
             <?php
         }
         
         if($layout == 'Gallery' && (!isset($_GET['operation'])||($_GET['operation']!='edit'&&$_GET['operation']!='new'))){
         ?>
             <div class='gallery_left'>
-            <?php echo "<!-- main_begin -->";?><div class='main_content gallery_main_height'>
+            <div class='main_content gallery_main_height'>
             <?php if($use_stripe) echo $this->MakeSpecialStripe(); ?>
         <?php
         }else{
         ?>
-            <?php echo "<!-- main_begin -->";?><div class='main_content <?php echo $novel_mode?"":"print_document" ?>' style='<?php echo $this->BackgroundSemi?"background-color:".$this->csemiwhite.";":""?>'>
+            <div class='main_content <?php echo $novel_mode?"":"print_document" ?>' style='<?php echo $this->BackgroundSemi?"background-color:".$this->csemiwhite.";":""?>'>
             <?php if($use_stripe) echo $this->MakeSpecialStripe(); ?>
             <div class='<?php echo ($novel_mode && !$this->GetEditMode())?"novel_content more_vertical_margin":""?>'>
         <?php
@@ -2388,8 +2395,8 @@ class LAManagement{
     function MakeMainContentEnd(){
         ?>
             </div>
-            <?php echo "<!-- main_end -->"; ?></div>
             </div>
+            <?php echo "<!-- main_end -->"; ?></div>
         <?php
     }
     
@@ -2402,13 +2409,25 @@ class LAManagement{
                     },
                     $Content);
         
-        $Content = preg_replace_callback("/<!-- main_begin -->(<div.*class=[\"\'][^\"\']*main_content)([\s\S]*)<!-- main_end -->/U",
+        $Content = preg_replace_callback("/<!-- main_begin -->[\s]*<div ([\s]*class=[\"\'][^\"\']*the_body[\s\S]*<div.*class=[\"\'][^\"\']*main_content)([\s\S]*)<!-- main_end -->/U",
             function($matches){
-                if(preg_match("/<p>[\s]*\[theme:[\s]*([\S]*)[\s]*(left|center|right)?[\s]*\][\s]*<\/p>/", $matches[2], $col)){
-                    $remaining = preg_replace("/<p>[\s]*\[theme:[\s]*([\S]*)[\s]*(left|center|right)?[\s]*\][\s]*<\/p>/","",$matches[2]);
-                    return $matches[1]." theme_".$col[1].(isset($col[2])?" theme_align_".$col[2]:"").preg_replace("/<!-- special_stripe --><div[\s\S]*<!-- special_stripe --><\/div>/","",$remaining);
+                if(preg_match("/<p>[\s]*\[theme:([\s\S]*)\][\s]*<\/p>/U", $matches[2], $args)){
+                    preg_match("/name:[\s]*([\S]*)/", $args[1], $matched_name);
+                    preg_match("/wide/", $args[1], $matched_wide);
+                    preg_match("/no_padding/", $args[1], $matched_padding);
+                    preg_match("/align:[\s]*([\S]*)/", $args[1], $matched_align);
+                    
+                    $before = '<div '.(isset($matched_wide[0])?'style="width:calc(100% - 20px); padding:5px;" ':'')
+                               .$matches[1]
+                               .(isset($matched_padding[0])?" no_padding_force":"")
+                               .(isset($matched_name[1])?" theme_".$matched_name[1]:"")
+                               .(isset($matched_align[1])?" theme_align_".$matched_align[1]:"");
+                    
+                    $remaining = preg_replace("/<p>[\s]*\[theme:([\s\S]*)\][\s]*<\/p>/","",$matches[2]);
+                    $remaining = preg_replace("/<!-- special_stripe --><div[\s\S]*<!-- special_stripe --><\/div>/","",$remaining);
+                    return $before.$remaining;
                 }
-                return $matches[1].$matches[2];
+                return '<div '.$matches[1].$matches[2];
             },$Safe);
             
         $Content = preg_replace_callback("/(`|```)([^`]*)(?1)/U",
@@ -2436,13 +2455,13 @@ class LAManagement{
         }
         
         ?>
-            <div class='the_body'>
-            <?php echo "<!-- main_begin -->";?><div class='main_content' style='padding-top:0px; padding-bottom:0px;'>
+            <?php echo "<!-- main_begin -->";?><div class='the_body'>
+            <div class='main_content' style='padding-top:0px; padding-bottom:0px;'>
         <?php
         echo $this->HTMLFromMarkdown($this->InsertAdaptiveContents($content));
         ?>
-            <?php echo "<!-- main_end -->";?></div>
             </div>
+            <?php echo "<!-- main_end -->";?></div>
         <?php
     }
     
@@ -2694,7 +2713,7 @@ class LAManagement{
                 echo $this->MakeMainContentEnd();
                 ?>
                 <?php if($hooked || !$this->AfterPassage3D) {?>
-                    <div class='the_body'>
+                    <?php echo "<!-- main_begin -->";?><div class='the_body'>
                     <?php 
                     $this->MainContentAlreadyBegun=True;
                 }
@@ -2856,7 +2875,7 @@ class LAManagement{
                 echo $this->MakeMainContentEnd();
                 ?>
                 <?php if($hooked || !$this->AfterPassage2D) {?>
-                    <div class='the_body'>
+                    <?php echo "<!-- main_begin -->";?><div class='the_body'>
                     <?php 
                     $this->MainContentAlreadyBegun=True;
                 } ?>
@@ -3152,10 +3171,13 @@ class LAManagement{
                 <br />
                 <div id="wrap_settings_tracker_file"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_tracker_file' name='settings_tracker_file' form='settings_form' value='<?php echo $this->TrackerFile ?>' />
                 <?php echo $this->FROM_ZH("站点事件跟踪器"); ?></div>
+                
+                <div id="wrap_settings_tracker_invert">
                 <a id="ButtonTaskNormal"><?php echo $this->TaskHighlightInvert?"":"<b><u>" ?><?php echo $this->FROM_ZH("正常"); ?><?php echo $this->TaskHighlightInvert?"":"</u></b>" ?></a>
                 <a id="ButtonTaskInvert"><?php echo $this->TaskHighlightInvert?"<b><u>":"" ?><?php echo $this->FROM_ZH("反转"); ?><?php echo $this->TaskHighlightInvert?"</u></b>":"" ?></a>
                 <input style='display:none;' class='string_input no_horizon_margin' type='text' id='settings_task_highlight_invert' name='settings_task_highlight_invert' form='settings_form' value='<?php echo $this->TaskHighlightInvert?"True":"" ?>' />
                 <?php echo $this->FROM_ZH("事件高亮显示"); ?>
+                </div>
             </div>
 
             <div id='Tab301Settings' style='display:none'>
@@ -3221,11 +3243,13 @@ class LAManagement{
                     field_task_invert.value="False";
                     btn_task_normal.innerHTML = "<b><u><?php echo $this->FROM_ZH('正常'); ?></u></b>";
                     btn_task_invert.innerHTML = "<?php echo $this->FROM_ZH('反转'); ?>";
+                    la_mark_div_highlight('wrap_settings_tracker_invert');
                 });
                 btn_task_invert.addEventListener("click", function() {
                     field_task_invert.value="True";
                     btn_task_normal.innerHTML = "<?php echo $this->FROM_ZH('正常'); ?>";
                     btn_task_invert.innerHTML = "<b><u><?php echo $this->FROM_ZH('反转'); ?></u></b>";
+                    la_mark_div_highlight('wrap_settings_tracker_invert');
                 });
             </script>
         <?php
@@ -3516,8 +3540,6 @@ class LAManagement{
             <?php }else{ ?> 
                 <a href="?page=<?php echo $this->PagePath ?>&mark_update=1">标记更新</a>
             <?php } ?>
-            <div class='block_height_spacer'></div>
-            <a href='?page=<?php echo $path.'/notifications.md'.(!file_exists($path.'/notifications.md')?'&operation=new&title=notifications':'&operation=edit').'&return_to='.$this->PagePath.'&delete_on_empty=true';?>'>编辑通知</a>
         </div>
         <?php
         $contents = ob_get_contents();
@@ -3595,12 +3617,24 @@ class LAManagement{
         <?php
     }
     function MakeEditorBody($text){
+        if($text===NULL){
+            $text=$this->FROM_ZH("在这里编写您的文章。");
+        }
         ?>
+        <script>
+        function editor_hide_hint(){
+            e = document.getElementById("data_passage_content");
+            if(e.innerHTML == "<?php echo $this->FROM_ZH("在这里编写您的文章。"); ?>"){
+                e.innerHTML = "";
+            }
+        }
+        </script>
         <div>
             <div id="editor_fullscreen_container" class="mobile_force_fullscreen modal_on_mobile white_bkg">
                 
                 <textarea onInput="la_mark_div_highlight('passage_edited_stripe');passage_edited_note.innerHTML='<b><?php echo $this->FROM_ZH('已编辑'); ?></b>&nbsp;';"
-                    class='string_input big_string big_string_height' form='form_passage' id='data_passage_content' name='data_passage_content'><?php echo $text;?></textarea>
+                    class='string_input big_string big_string_height' form='form_passage' id='data_passage_content' name='data_passage_content'
+                    onFocus="editor_hide_hint();" ><?php echo $text;?></textarea>
                 <div class="hidden_on_desktop"><a class="white_bkg modal_on_mobile" style="position:fixed; right:10px; top:10px; text-align:center;" onClick="editor_toggle_fullscreen_mobile()">切换全屏</a></div>
                 <div id="passage_edited_stripe" class="highlight_stripe_mobile">
                     &nbsp;<span id='data_passage_character_count'></span>
@@ -3651,10 +3685,17 @@ class LAManagement{
                 var btn_today = document.getElementById("EditorTodayButton");
                 var editor_file_name = document.getElementById("EditorFileName");
                 
-                count.innerHTML='<b>'+text_area.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
-                
+                if(text_area.innerHTML == "<?php echo $this->FROM_ZH("在这里编写您的文章。"); ?>"){
+                    count.innerHTML="空文件";
+                }else{
+                    count.innerHTML='<b>'+text_area.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
+                }   
                 text_area.addEventListener("input",function(){
-                    count.innerHTML='<b>'+this.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
+                    if(this.innerHTML == "<?php echo $this->FROM_ZH("在这里编写您的文章。"); ?>"){
+                        count.innerHTML="空文件";
+                    }else{
+                        count.innerHTML='<b>'+this.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
+                    }
                 });
 
                 function selectionStart(){
@@ -3910,6 +3951,11 @@ class LAManagement{
                     </div>
                     <div id='permission_dialog' style='display:none'>
                         <div class='inline_height_spacer'></div>
+                        <?php $navigation_file = $path.'/navigation'.($this->LanguageAppendix=='en'?'_en':'').'.md'; ?>
+                        <?php $notifications_file = $path.'/notifications'.($this->LanguageAppendix=='en'?'_en':'').'.md'; ?>
+                        <a href='?page=<?php echo $navigation_file.(!file_exists($navigation_file)?'&operation=new&title=navigation'.($this->LanguageAppendix=='en'?'_en':''):'&operation=edit').'&return_to='.$this->PagePath.'&delete_on_empty=true';?>'>编辑导航栏</a>
+                        <a href='?page=<?php echo $notifications_file.(!file_exists($notifications_file)?'&operation=new&title=notifications'.($this->LanguageAppendix=='en'?'_en':''):'&operation=edit').'&return_to='.$this->PagePath.'&delete_on_empty=true';?>'>和通知</a>
+                        <div class='inline_height_spacer'></div>
                         <?php if($permission){ ?>
                             文件夹对外公开 &nbsp;<a class='btn' href='?page=<?php echo $path?>&operation=set_permission_off'>设为不公开</a>
                         <?php }else{ ?>
@@ -3969,6 +4015,14 @@ class LAManagement{
                             upload_dialog.style.cssText = 'display:none';
                             new_folder_dialog.style.cssText = 'display:none';
                             permission_dialog.style.cssText = disp=='none'?'display:block':'display:none';
+                            header = document.getElementById("Header");
+                            if(disp=='none'){
+                                header.style.zIndex=50;
+                                la_show_modal_blocker();
+                            }else{
+                                header.style.zIndex="";
+                                la_hide_modal_blocker();
+                            }
                         });
                         static_gen_btn.addEventListener("click", function() {
                             var disp = static_gen_dialog.style.display;
@@ -4362,8 +4416,35 @@ class LAManagement{
         </div>
         <?php
     }
-    function GetAdditionalContent($page,&$prev,&$next,&$max){
-        $list = $this->FileNameList;
+    function FilterFileListForSeason(&$FileNameList, $filter_season){
+        if($filter_season == NULL) return;
+        
+        $new_list = $FileNameList;
+        $FileNameList = NULL;
+        
+        foreach($new_list as $item){
+            if(preg_match('/^\d{4}(\d{4})/',$item,$matches)){
+                if($filter_season == 1){
+                    if($matches[1]>=320 && $matches[1]<=621){
+                        $FileNameList[] = $item;
+                    }
+                }else if($filter_season == 2){
+                    if($matches[1]>=621 && $matches[1]<=923){
+                        $FileNameList[] = $item;
+                    }
+                }else if($filter_season == 3){
+                    if($matches[1]>=923 && $matches[1]<=1222){
+                        $FileNameList[] = $item;
+                    }
+                }else if($filter_season == 4){
+                    if($matches[1]>=1222 || $matches[1]<=320){
+                        $FileNameList[] = $item;
+                    }
+                }
+            }
+        }
+    }
+    function GetAdditionalContent($page,$filter_season,&$prev,&$next,&$max){
         $ret=Null;
         if($page<0) $page=0;
         $prev=$page-1;
@@ -4371,17 +4452,26 @@ class LAManagement{
         $i=0;
         $skip=$page*10;
         $to = $skip+10;
+        
+        $this->FilterFileListForSeason($this->FileNameList, $filter_season);
+        if(!isset($this->FileNameList)){
+            $prev=0;
+            $next=0;
+            $max =0;
+            return;
+        }
+        
         while($i<$skip){
             $i++;
         }
-        while(isset($list[$i])){
-            $ret[]=$list[$i];
+        while(isset($this->FileNameList[$i])){
+            $ret[]=$this->FileNameList[$i];
             $i++;
             if($i>=$to) break;
         }
-        if(isset($list[$i])) $next=$page+1;
+        if(isset($this->FileNameList[$i])) $next=$page+1;
         else $next=Null;
-        $max = ceil(count($list)/10);
+        $max = ceil(count($this->FileNameList)/10);
         return $ret;
     }
     
@@ -5014,7 +5104,7 @@ class LAManagement{
         <?php
     }
     
-    function MakeAdditionalContent($folder,$position){
+    function MakeAdditionalContent($folder,$position,$filter_season){
         if(!isset($folder)){
             $ad = $this->GetAdditionalDisplayData();
             $this->Additional = $ad;
@@ -5067,19 +5157,42 @@ class LAManagement{
                 $prev_page=0;
                 $next_page=0;
                 $max_page=0;
-                $this->FileNameList = $this->GetAdditionalContent($position,$prev_page,$next_page,$max_page);
+                $this->FileNameList = $this->GetAdditionalContent($position,$filter_season,$prev_page,$next_page,$max_page);
                 
                 ?>
                 <div class='top_panel block'>
                     <a href='?page=<?php echo $this->PagePath?>'><?php echo $this->FROM_ZH('不看了') ?></a>
+                    <?php if(!isset($filter_season)){ ?>
+                        <a onClick="toggle_filter_panel();" ><?php echo $this->FROM_ZH('过滤') ?></a>
+                        <script>
+                            function toggle_filter_panel(){
+                                fp = document.getElementById('FilterPanel');
+                                fp.style.display = fp.style.display=="none"?"block":"none";
+                            }
+                        </script>
+                    <?php }else{ ?>
+                        <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder?>&position=<?php echo $position?>' >
+                            <del><b><?php echo ($filter_season==1?$this->FROM_ZH('春'):($filter_season==2?$this->FROM_ZH('夏'):($filter_season==3?$this->FROM_ZH('秋'):($filter_season==4?$this->FROM_ZH('冬'):"x"))))?></b></del>
+                        </a>
+                    <?php } ?>
                     <div style='text-align:right;float:right;right:0px;'>
-                        <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b><?php echo $this->FROM_ZH('上一页') ?></b></a><?php } ?>
+                        <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?><?php echo isset($filter_season)?"&filter_season=".$filter_season:""?>'><b><?php echo $this->FROM_ZH('上一页') ?></b></a><?php } ?>
                         &nbsp;
                         <?php echo ($position+1).'/'.$max_page ?>
                         &nbsp;
-                        <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?>'><b><?php echo $this->FROM_ZH('下一页') ?></b></a><?php } ?>
+                        <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?><?php echo isset($filter_season)?"&filter_season=".$filter_season:""?>'><b><?php echo $this->FROM_ZH('下一页') ?></b></a><?php } ?>
                     </div>
+                    <?php if(!isset($filter_season)){ ?>
+                        <div id='FilterPanel' style='display:none;'>
+                            <div class="inline_height_spacer"></div>
+                            <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder?>&position=<?php echo $position?>&filter_season=1' ><?php echo $this->FROM_ZH('春') ?></a>
+                            <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder?>&position=<?php echo $position?>&filter_season=2' ><?php echo $this->FROM_ZH('夏') ?></a>
+                            <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder?>&position=<?php echo $position?>&filter_season=3' ><?php echo $this->FROM_ZH('秋') ?></a>
+                            <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder?>&position=<?php echo $position?>&filter_season=4' ><?php echo $this->FROM_ZH('冬') ?></a>
+                        </div>
+                    <?php } ?>
                 </div>
+                
                 <?php
             }
             
@@ -5199,6 +5312,9 @@ class LAManagement{
                 <div class='block_height_spacer'>&nbsp;</div>
                 <div class='narrow_content'>
                     <b><?php echo $a['title'] ?></b>
+                    <?php if($this->IsLoggedIn()){ ?>
+                        <div style="float:right;"><a href="?page=<?php echo $this->PagePath?>&operation=new"><?php echo $this->FROM_ZH('写文')?></a></div>
+                    <?php } ?>
                 </div>
                 <?php
             }
@@ -5354,11 +5470,11 @@ class LAManagement{
                 <div style='text-align:center;position:sticky;bottom:0px;'>
                     <div class='top_panel inline_block'>
                         <div style='text-align:right;float:right;right:0px;'>
-                            <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?>'><b><?php echo $this->FROM_ZH('上一页') ?></b></a><?php } ?>
+                            <?php if($prev_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$prev_page?><?php echo isset($filter_season)?"&filter_season=".$filter_season:""?>'><b><?php echo $this->FROM_ZH('上一页') ?></b></a><?php } ?>
                             &nbsp;
                             <?php echo ($position+1).'/'.$max_page ?>
                             &nbsp;
-                            <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?>'><b><?php echo $this->FROM_ZH('下一页') ?></b></a><?php } ?>
+                            <?php if($next_page!==Null){?><a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $folder.'&position='.$next_page?><?php echo isset($filter_season)?"&filter_season=".$filter_season:""?>'><b><?php echo $this->FROM_ZH('下一页') ?></b></a><?php } ?>
                         </div>
                     </div>
                 </div>
