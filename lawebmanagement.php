@@ -190,6 +190,7 @@ class LAManagement{
         $this->AddTranslationEntry('列表','List');
         $this->AddTranslationEntry('管理','Files');
         $this->AddTranslationEntry('写文','Write');
+        $this->AddTranslationEntry('查看全部','View all');
         
         $this->AddTranslationEntry('今天','Today');
         $this->AddTranslationEntry('更多','More');
@@ -784,6 +785,7 @@ class LAManagement{
     //======================================================================================================
     
     function ScanForTagsInContent($Content){
+        if(!$this->IsMainPassage) return;
         $this->AudioList = [];
         preg_match_all("/!@@\[(.*)\]\((.*)\)/U", $Content, $Matches, PREG_SET_ORDER);
         if($Matches){
@@ -926,7 +928,7 @@ class LAManagement{
         // also make audio tags
         $this->ScanForTagsInContent($TMP);
         $TMP = preg_replace("/!@@\[(.*)\]\((.*)\)/U", 
-            '<audio id="AUDIO_$1"><source src="'.$this->InterlinkPath().'/$2" type="audio/ogg"></audio>
+            '<audio id="AUDIO_$1" class="audio_item"><source src="'.$this->InterlinkPath().'/$2" type="audio/ogg"></audio>
 <div class="btn" style="pointer-events:none;">音频：$1</div>'
             ,$TMP);
 
@@ -981,7 +983,7 @@ class LAManagement{
     
     function HTMLFromMarkdownFile($FileName){
         $Content = $this->ContentOfMarkdownFile($FileName);
-        if($Content) return $this->HTMLFromMarkdown($this->InsertAdaptiveContents($Content));
+        if($Content) return $this->HTMLFromMarkdown($Content);
         return "<i>空文件</i>";
     }
     function FirstRow($content){
@@ -1904,9 +1906,10 @@ class LAManagement{
             .btn img{ pointer-events: none; }
             .gallery_left img{ float: unset; margin: 5px auto; max-width: 100%;}
             
-            table{ width:100%; border-collapse: collapse; color: unset; }
+            table { width:100%; border-collapse: collapse; color: unset; position: relative; }
+            table th { position: sticky; top:80px; background-color: <?php echo $this->cwhite ?>; }
             
-            pre {border-left: 3px double <?php echo $this->cblack ?>; padding: 10px; position: relative; z-index: 1; text-align: left; white-space: pre-wrap; }
+            pre {border-left: 3px double <?php echo $this->cblack ?>; padding: 10px; position: relative; z text-align: left; white-space: pre-wrap; }
             
             blockquote{ border-top:1px solid <?php echo $this->cblack ?>; border-bottom:1px solid <?php echo $this->cblack ?>; text-align: center; }
             
@@ -1931,7 +1934,7 @@ class LAManagement{
             
             .wide_body              { margin-left: 10px; margin-right:10px; }
             
-            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: auto; scrollbar-color: <?php echo $this->cblack ?> <?php echo $this->cwhite ?>; scrollbar-width: thin;}
+            .main_content           { padding:20px; padding-left:15px; padding-right:15px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; scrollbar-color: <?php echo $this->cblack ?> <?php echo $this->cwhite ?>; scrollbar-width: thin;}
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:8px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; }
             .task_content           { padding:3px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 2px <?php echo $this->cblack ?>; margin-bottom:5px; overflow: hidden; }
@@ -2056,8 +2059,8 @@ class LAManagement{
             .additional_options{ padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:-15px; overflow: hidden; display: inline-block; position: relative; z-index:100; }
             
             
-            .recent_updated      { background-color: <?php echo $this->chighlight ?>; }
-            .recent_updated_half { background-color: <?php echo $this->chalfhighlight ?>; }
+            .recent_updated            { background-color: <?php echo $this->chighlight ?>; }
+            .recent_updated_half       { background-color: <?php echo $this->chalfhighlight ?>; }
             
             a        { border:1px solid <?php echo $this->cblack ?>; padding: 5px; color:<?php echo $this->cblack ?>; text-decoration: none; }
             a:hover  { border:3px double <?php echo $this->cblack ?>; padding: 3px; }
@@ -2381,7 +2384,7 @@ class LAManagement{
         if($layout == 'Gallery' && (!isset($_GET['operation'])||($_GET['operation']!='edit'&&$_GET['operation']!='new'))){
         ?>
             <div class='gallery_left'>
-            <div class='main_content gallery_main_height'>
+            <div class='main_content gallery_main_height' style="overflow: auto;">
             <?php if($use_stripe) echo $this->MakeSpecialStripe(); ?>
         <?php
         }else{
@@ -2463,6 +2466,10 @@ class LAManagement{
             </div>
             <?php echo "<!-- main_end -->";?></div>
         <?php
+    }
+    function AddTableInteractions($html){
+        $new_html = preg_replace("/<table>/","<table class='la_actual_table'>",$html);
+        return $new_html;
     }
     
     function RemoveBlankAfterInserts($html){
@@ -2752,11 +2759,15 @@ class LAManagement{
         return $contents;
     }
     function InsertMagicSeparator($Content){
-        ob_start();
-        $this->MakeMainContentEnd();
-        $this->MakeMainContentBegin(0);
-        $Inserts = ob_get_contents();
-        ob_end_clean();
+        $Inserts = "";
+        $layout = $this->GetAdditionalLayout();
+        if($layout!="Gallery"){
+            ob_start();
+            $this->MakeMainContentEnd();
+            $this->MakeMainContentBegin(0);
+            $Inserts = ob_get_contents();
+            ob_end_clean();
+        }
         return preg_replace('/(<p>\s*={3,}\s*<\/p>)/U',$Inserts,$Content);
     }
     function Insert3DContent($Content){
@@ -3204,6 +3215,7 @@ class LAManagement{
             <hr />
             <div class='inline_block_height_spacer'></div>
             <input class='btn form_btn' type='submit' value='<?php echo $this->FROM_ZH("保存所有更改"); ?>' name="settings_button_confirm" form='settings_form' />
+            <div style="clear:both;"></div>
             <script>
                 var btn_website = document.getElementById("ButtonWebsiteSettings");
                 var btn_301 = document.getElementById("Button301Settings");
@@ -4394,8 +4406,6 @@ class LAManagement{
                     <?php if($additional_disp!=Null) foreach ($additional_disp as $item){?>
                         <div>
                             来自 <?php echo $item['path']?> 的新帖子&nbsp;
-                            <a>顶</a>
-                            &nbsp;
                             <a class='btn' href='?page=<?php echo $this->PagePath?>&operation=additional&action=delete&for=<?php echo $this->PagePath?>&target=<?php echo $item['path']?>'>删</a>
                         </div>
                         
@@ -4597,7 +4607,7 @@ class LAManagement{
         }
         ?>
         <div class='the_body'>
-        <div class='main_content'>
+        <div class='main_content' style='overflow:auto;'>
             <?php if(!isset($id)){ ?>
                 <div style='float:right;'>
                     <a href='?page=<?php echo $this->PagePath; ?>&small_quote_only=<?php echo $folder?>&random=true'><b>随机 &#11118;</b></a>
@@ -4632,7 +4642,7 @@ class LAManagement{
             $quote['content']='这个文件夹还没有说过什么话';
         }
         ?>
-        <div class='main_content'>
+        <div class='main_content' style='overflow:auto;'>
             <div style='float:right;'>
                 <a href='?page=<?php echo $this->PagePath; ?>&small_quote_only=<?php echo $folder?>'><?php echo $more?></a>
             </div>
@@ -4963,7 +4973,7 @@ class LAManagement{
             $folder = $this->InterlinkPath();
         }
         ?>
-        <div class='main_content' style='overflow:unset;'>
+        <div class='main_content' style='overflow:auto;'>
             <?php if(isset($have_delayed)&&$have_delayed){ ?>
                 <div style="float:right; position:relative; z-index:5;" >
                     <table style="text-align:center;table-style:fixed;"><tr>
@@ -5312,9 +5322,12 @@ class LAManagement{
                 <div class='block_height_spacer'>&nbsp;</div>
                 <div class='narrow_content'>
                     <b><?php echo $a['title'] ?></b>
+                    <div style="float:right;">
                     <?php if($this->IsLoggedIn()){ ?>
-                        <div style="float:right;"><a href="?page=<?php echo $this->PagePath?>&operation=new"><?php echo $this->FROM_ZH('写文')?></a></div>
+                        <a href="?page=<?php echo $a['path']?>&operation=new"><?php echo $this->FROM_ZH('写文')?></a>
                     <?php } ?>
+                    <a href='?page=<?php echo $this->PagePath?>&operation=timeline&folder=<?php echo $a['path']?>'><?php echo $this->FROM_ZH("查看全部") ?></a>
+                    </div>
                 </div>
                 <?php
             }
@@ -5777,28 +5790,34 @@ class LAManagement{
         <div class='audio_player_box'>
         
             <div id='audio_player_playlist' style='display:none;'>
-                <div class='inline_block_height_spacer'></div>
+                <table><tbody>
                 <?php foreach($this->AudioList as $audio){ ?>
-                    <a>放这个</a>
-                    <?php echo pathinfo($audio['src'],PATHINFO_BASENAME); ?>
-                    <div class='inline_height_spacer'></div>
+                    <tr>
+                    <td><div class='audio_selector btn' id='audio_selector_<?php echo $audio['id']; ?>' style="white-space:nowrap; display:block;">放这个</div></td>
+                    <td id='audio_selector_backdrop_<?php echo $audio['id']; ?>' style="width:100%;">
+                        <?php echo pathinfo($audio['src'],PATHINFO_BASENAME); ?>
+                    </td>
+                    </tr>
                 <?php } ?>
+                </tbody></table>
+                <div class="block_height_spacer"></div>
             </div>
             
-            <div style='display:inline;'>
+            <table><tbody><tr>
             
-                <div style='margin-right:5px;display:inline-block'>
+                <td style="white-space:nowrap;">
                     <b><a id='audio_player_btn_play' class='btn'>播放</a></b>
-                    <a id='audio_player_btn_list' class='btn'>&nbsp;#&nbsp;</a>
-                </div>
+                    <a id='audio_player_btn_list' class='btn' <?php echo count($this->AudioList)>1?"":"style='display:none'"; ?> >&nbsp;#&nbsp;</a>
+                    &nbsp;
+                </td>
                 
-                <div id='audio_player_bar' class='plain_block' style='display: inline-block; width: calc(100% - 115px); position:relative;'>
+                <td id='audio_player_bar' class='plain_block' style='width:100%; position:relative;'>
                     
-                    <div id='audio_player_progress' style='width:0%; background-color:<?php echo $this->cblack ?>; position:absolute; display:inline_block; z-index:-1; margin: -5px; height: 100%;'>
+                    <div id='audio_player_progress' style='width:0%; background-color:<?php echo $this->cblack ?>; position:absolute; display:inline_block; z-index:-1; margin: -4px; height: 100%;'>
                         &nbsp;
                     </div>
                     
-                    <div id='audio_player_buffer' class='halftone1' style='width:0%; position:absolute; display:inline_block; z-index:-2; margin: -5px; height: 100%;'>
+                    <div id='audio_player_buffer' class='halftone1' style='width:0%; position:absolute; display:inline_block; z-index:-2; margin: -4px; height: 100%;'>
                         &nbsp;
                     </div>
                     
@@ -5810,14 +5829,15 @@ class LAManagement{
                         请稍候
                     </div>
                     
-                </div>
+                </td>
                 
-            </div>
+            </tr></tbody></table>
 
         </div>
         <script>
             <?php if(True) { ?>
             var music = document.getElementById("<?php echo 'AUDIO_'.$this->AudioList[0]['id'] ?>");
+            var music_list = document.getElementsByClassName("audio_item");
             var play = document.getElementById('audio_player_btn_play');
             var list_btn = document.getElementById('audio_player_btn_list');
             var list = document.getElementById('audio_player_playlist');
@@ -5826,10 +5846,31 @@ class LAManagement{
             var progress = document.getElementById('audio_player_progress');
             var buffer = document.getElementById('audio_player_buffer');
             var bar = document.getElementById('audio_player_bar');
+            var selectors = document.getElementsByClassName('audio_selector');
+            var i;
+            for (i=0;i<selectors.length;i++){
+                selectors[i].addEventListener('click', function(event){
+                    music.pause();
+                    audio_back = document.getElementById('audio_selector_backdrop_'+music.id.match(/AUDIO_(.*)/)[1]);
+                    audio_back.style.backgroundColor="";
+                    
+                    audio = 'AUDIO_'+this.id.match(/audio_selector_(.*)/)[1];
+                    music = document.getElementById(audio);
+                    music.pause();
+                    play.innerHTML='播放';
+                    
+                    audio_back = document.getElementById('audio_selector_backdrop_'+this.id.match(/audio_selector_(.*)/)[1]);
+                    audio_back.style.backgroundColor="<?php echo $this->chighlight; ?>";
+                });
+            }
+            
             play.addEventListener("click", function() {
                 if(music.paused){
                     music.play();
                     play.innerHTML='暂停';
+                    list.style.display = 'none';
+                    audio_back = document.getElementById('audio_selector_backdrop_'+music.id.match(/AUDIO_(.*)/)[1]);
+                    audio_back.style.backgroundColor="<?php echo $this->chighlight; ?>";
                 }else{
                     music.pause();
                     play.innerHTML='播放';
@@ -5846,19 +5887,20 @@ class LAManagement{
                 percent = ((event.clientX-l)/(r-l));
                 music.currentTime = music.duration*Math.min(Math.max(percent,0),1);
             });
-            music.ontimeupdate = function(){
-                duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
-                time.innerHTML=(Math.floor(music.currentTime/60))+':'+la_pad((Math.round(music.currentTime)%60),2);
-                progress.style.width=100*(music.currentTime/music.duration)+'%';
-                buffer.style.width = 100*(music.buffered.end(0)/music.duration)+'%';
-            }
-            music.oncanplay = function(){
-                duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
-            }
-            music.oncanplaythrough = function(){
-                duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
-            }
-            
+            for(i=0;i<music_list.length;i++){
+                music_list[i].ontimeupdate = function(){
+                    duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
+                    time.innerHTML=(Math.floor(music.currentTime/60))+':'+la_pad((Math.round(music.currentTime)%60),2);
+                    progress.style.width=100*(music.currentTime/music.duration)+'%';
+                    buffer.style.width = 100*(music.buffered.end(0)/music.duration)+'%';
+                }
+                music.oncanplay = function(){
+                    duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
+                }
+                music.oncanplaythrough = function(){
+                    duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
+                }
+            }     
             <?php } ?>
         </script>
         <?php
@@ -6024,6 +6066,27 @@ class LAManagement{
         </div>
         
         <script>
+            var tables = document.getElementsByClassName('la_actual_table');
+            var i;
+            for (i=0; i<tables.length; i++){
+                var rows = tables[i].getElementsByTagName('tr');
+                var j;
+                for (j=0; j<rows.length; j++){
+                    rows[j].addEventListener("click", function() {
+                        if(!this.classList || !this.classList.length){
+                            this.classList.add('recent_updated_half');
+                        }else if(this.classList.contains('recent_updated_half')){
+                            this.classList.remove('recent_updated_half');
+                            this.classList.add('recent_updated');
+                        }else if(this.classList.contains('recent_updated')){
+                            this.classList.remove('recent_updated');
+                        }else{
+                            this.classList.add('recent_updated_half');
+                        }
+                    });
+                }
+            }
+        
             var lg_toggle  = document.getElementById("LoginToggle");
             var lg_panel = document.getElementById("LoginPanel");
 

@@ -302,8 +302,10 @@ if($la_operation == 'new'){
              $LA->InsertMagicSeparator(
              $LA->Insert3DContent(
              $LA->Insert2DContent(
+             $LA->InsertAdaptiveContents(
+             $LA->AddTableInteractions(
              $LA->ProcessHTMLLanguageForLinks(
-             $LA->HTMLFromMarkdownFile($LA->ActuallPath()))))))))));
+             $LA->HTMLFromMarkdownFile($LA->ActuallPath()))))))))))));
     
     ob_start();
         echo $LA->MakeHREFListForPrint();
