@@ -1,5 +1,294 @@
 <?php
 
+/**
+ * Send email class using SMTP Authentication
+ *
+ * @class Email
+ * @package Snipworks\SMTP
+ */
+class Email
+{
+    const CRLF = "\r\n";
+    const TLS = 'tcp';
+    const SSL = 'ssl';
+    const OK = 250;
+
+    protected $server;
+    protected $hostname;
+    protected $port;
+    protected $socket;
+    protected $username;
+    protected $password;
+    protected $connectionTimeout;
+    protected $responseTimeout;
+    protected $subject;
+    protected $to = array();
+    protected $cc = array();
+    protected $bcc = array();
+    protected $from = array();
+    protected $replyTo = array();
+    protected $attachments = array();
+    protected $protocol = null;
+    protected $textMessage = null;
+    protected $htmlMessage = null;
+    protected $isHTML = false;
+    protected $isTLS = false;
+    protected $logs = array();
+    protected $charset = 'utf-8';
+    protected $headers = array();
+    
+    protected $result;
+    
+    public function getSendResult(){
+        return $this->result;
+    }
+    
+    public function __construct($server, $port = 25, $connectionTimeout = 30, $responseTimeout = 8, $hostname = null)
+    {
+        $this->port = $port;
+        $this->server = $server;
+        $this->connectionTimeout = $connectionTimeout;
+        $this->responseTimeout = $responseTimeout;
+        $this->hostname = empty($hostname) ? gethostname() : $hostname;
+        $this->headers['X-Mailer'] = 'PHP/' . phpversion();
+        $this->headers['MIME-Version'] = '1.0';
+    }
+    public function addTo($address, $name = null)
+    {
+        $this->to[] = array($address, $name);
+
+        return $this;
+    }
+    public function addCc($address, $name = null)
+    {
+        $this->cc[] = array($address, $name);
+
+        return $this;
+    }
+    public function addBcc($address, $name = null)
+    {
+        $this->bcc[] = array($address, $name);
+
+        return $this;
+    }
+    public function addReplyTo($address, $name = null)
+    {
+        $this->replyTo[] = array($address, $name);
+
+        return $this;
+    }
+    public function addAttachment($attachment)
+    {
+        if (file_exists($attachment)) {
+            $this->attachments[] = $attachment;
+        }
+
+        return $this;
+    }
+    public function setLogin($username, $password)
+    {
+        $this->username = $username;
+        $this->password = $password;
+
+        return $this;
+    }
+    public function setCharset($charset)
+    {
+        $this->charset = $charset;
+
+        return $this;
+    }
+    public function setProtocol($protocol = null)
+    {
+        if ($protocol === self::TLS) {
+            $this->isTLS = true;
+        }
+
+        $this->protocol = $protocol;
+
+        return $this;
+    }
+    public function setFrom($address, $name = null)
+    {
+        $this->from = array($address, $name);
+
+        return $this;
+    }
+    public function setSubject($subject)
+    {
+        $this->subject = $subject;
+
+        return $this;
+    }
+    public function setTextMessage($message)
+    {
+        $this->textMessage = $message;
+
+        return $this;
+    }
+    public function setHtmlMessage($message)
+    {
+        $this->htmlMessage = $message;
+
+        return $this;
+    }
+    public function getLogs()
+    {
+        return $this->logs;
+    }
+    public function send($wait_timeout)
+    {
+        $message = NULL;
+        $this->socket = fsockopen(
+            $this->getServer(),
+            $this->port,
+            $errorNumber,
+            $errorMessage,
+            $this->connectionTimeout
+        );
+        
+        if (empty($this->socket)) {
+            return false;
+        }
+        
+        $this->logs['CONNECTION'] = $this->getResponse();
+        $this->logs['HELLO'][1] = $this->sendCommand('EHLO ' . $this->hostname);
+
+        if ($this->isTLS) {
+            $this->logs['STARTTLS'] = $this->sendCommand('STARTTLS');
+            stream_socket_enable_crypto($this->socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+            $this->logs['HELLO'][2] = $this->sendCommand('EHLO ' . $this->hostname);
+        }
+
+        $this->logs['AUTH'] = $this->sendCommand('AUTH LOGIN');
+        $this->logs['USERNAME'] = $this->sendCommand(base64_encode($this->username));
+        $this->logs['PASSWORD'] = $this->sendCommand(base64_encode($this->password));
+        $this->logs['MAIL_FROM'] = $this->sendCommand('MAIL FROM: <' . $this->from[0] . '>');
+
+        $recipients = array_merge($this->to, $this->cc, $this->bcc);
+        foreach ($recipients as $address) {
+            $this->logs['RECIPIENTS'][] = $this->sendCommand('RCPT TO: <' . $address[0] . '>');
+        }
+
+        $this->headers['Date'] = date('r');
+        $this->headers['Subject'] = $this->subject;
+        $this->headers['From'] = $this->formatAddress($this->from);
+        $this->headers['Return-Path'] = $this->formatAddress($this->from);
+        $this->headers['To'] = $this->formatAddressList($this->to);
+
+        if (!empty($this->replyTo)) {
+            $this->headers['Reply-To'] = $this->formatAddressList($this->replyTo);
+        }
+
+        if (!empty($this->cc)) {
+            $this->headers['Cc'] = $this->formatAddressList($this->cc);
+        }
+
+        if (!empty($this->bcc)) {
+            $this->headers['Bcc'] = $this->formatAddressList($this->bcc);
+        }
+
+        $boundary = md5(uniqid(microtime(true), true));
+
+        if (!empty($this->attachments)) {
+            $this->headers['Content-Type'] = 'multipart/mixed; boundary="mixed-' . $boundary . '"';
+            $message = '--mixed-' . $boundary . self::CRLF;
+            $message .= 'Content-Type: multipart/alternative; boundary="alt-' . $boundary . '"' . self::CRLF . self::CRLF;
+        } else {
+            $this->headers['Content-Type'] = 'multipart/alternative; boundary="alt-' . $boundary . '"';
+        }
+
+        if (!empty($this->textMessage)) {
+            $message .= '--alt-' . $boundary . self::CRLF;
+            $message .= 'Content-Type: text/plain; charset=' . $this->charset . self::CRLF;
+            $message .= 'Content-Transfer-Encoding: base64' . self::CRLF . self::CRLF;
+            $message .= chunk_split(base64_encode($this->textMessage)) . self::CRLF;
+        }
+
+        if (!empty($this->htmlMessage)) {
+            $message .= '--alt-' . $boundary . self::CRLF;
+            $message .= 'Content-Type: text/html; charset=' . $this->charset . self::CRLF;
+            $message .= 'Content-Transfer-Encoding: base64' . self::CRLF . self::CRLF;
+            $message .= chunk_split(base64_encode($this->htmlMessage)) . self::CRLF;
+        }
+
+        $message .= '--alt-' . $boundary . '--' . self::CRLF . self::CRLF;
+
+        if (!empty($this->attachments)) {
+            foreach ($this->attachments as $attachment) {
+                $filename = pathinfo($attachment, PATHINFO_BASENAME);
+                $contents = file_get_contents($attachment);
+                $type = mime_content_type($attachment);
+                if (!$type) {
+                    $type = 'application/octet-stream';
+                }
+
+                $message .= '--mixed-' . $boundary . self::CRLF;
+                $message .= 'Content-Type: ' . $type . '; name="' . $filename . '"' . self::CRLF;
+                $message .= 'Content-Disposition: attachment; filename="' . $filename . '"' . self::CRLF;
+                $message .= 'Content-Transfer-Encoding: base64' . self::CRLF . self::CRLF;
+                $message .= chunk_split(base64_encode($contents)) . self::CRLF;
+            }
+
+            $message .= '--mixed-' . $boundary . '--';
+        }
+
+        $headers = '';
+        foreach ($this->headers as $k => $v) {
+            $headers .= $k . ': ' . $v . self::CRLF;
+        }
+
+        $this->logs['MESSAGE'] = $message;
+        $this->logs['HEADERS'] = $headers;
+        $this->logs['DATA'][1] = $this->sendCommand('DATA');
+        $this->logs['DATA'][2] = $this->sendCommand($headers . self::CRLF . $message . self::CRLF . '.');
+        $this->logs['QUIT'] = $this->sendCommand('QUIT');
+        fclose($this->socket);
+        
+        $this->result['recipients'] = $recipients;
+        $this->result['status'] = substr($this->logs['DATA'][2], 0, 3);
+
+        return $this->result['status'] == self::OK;
+    }
+    protected function getServer()
+    {
+        return ($this->protocol) ? $this->protocol . '://' . $this->server : $this->server;
+    }
+    protected function getResponse()
+    {
+        $response = '';
+        stream_set_timeout($this->socket, $this->responseTimeout);
+        while (($line = fgets($this->socket, 515)) !== false) {
+            $response .= trim($line) . "\n";
+            if (substr($line, 3, 1) == ' ') {
+                break;
+            }
+        }
+
+        return trim($response);
+    }
+    protected function sendCommand($command)
+    {
+        fputs($this->socket, $command . self::CRLF);
+
+        return $this->getResponse();
+    }
+    protected function formatAddress($address)
+    {
+        return (empty($address[1])) ? $address[0] : '"' . $address[1] . '" <' . $address[0] . '>';
+    }
+    protected function formatAddressList(array $addresses)
+    {
+        $data = array();
+        foreach ($addresses as $address) {
+            $data[] = $this->formatAddress($address);
+        }
+
+        return implode(', ', $data);
+    }
+}
+
+
 #
 # LAManagement version 1.0 By ChengduLittleA-YimingWu
 # http://www.wellobserve.com
@@ -29,8 +318,8 @@ class LAManagement{
     protected $FolderNameList;
     protected $FileNameList;
     protected $OtherFileNameList;
-    
     protected $RecentUpdatedList;
+    protected $PrivateFolderList;
     
     protected $IsEditing;
     
@@ -42,6 +331,26 @@ class LAManagement{
     protected $TrackerFile;
     protected $Trackable;
     protected $GLOBAL_TASK_I;
+    
+    protected $MailHost;
+    protected $MailUser;
+    protected $MailPort;
+    protected $MailPassword;
+    protected $MailTitle;
+    protected $MailTitleEN;
+    protected $MailFoot;
+    protected $MailFootEN;
+    
+    protected $MailSendResults;
+    
+    protected $SubscriberTitle;
+    protected $SubscriberFolder;
+    protected $SubscriberID;
+    protected $SubscriberIDExisting;
+    protected $SubscriberMailAddress;
+    protected $SubscriberLanguage;
+    
+    protected $MailSubscribers;
     
     protected $PrevFile;
     protected $NextFile;
@@ -192,6 +501,10 @@ class LAManagement{
         $this->AddTranslationEntry('写文','Write');
         $this->AddTranslationEntry('查看全部','View all');
         
+        $this->AddTranslationEntry('那么的','LAMD');
+        $this->AddTranslationEntry('相册','ALBUM');
+        $this->AddTranslationEntry('声音','Sound');
+        
         $this->AddTranslationEntry('今天','Today');
         $this->AddTranslationEntry('更多','More');
         $this->AddTranslationEntry('编辑','Edit');
@@ -285,6 +598,50 @@ class LAManagement{
         $this->AddTranslationEntry('重设管理密码','Change admin password');
         $this->AddTranslationEntry('保存所有更改','Save all changes');
         
+        $this->AddTranslationEntry('新闻稿','Newletter');
+        $this->AddTranslationEntry('过往新闻稿','Old newsletters');
+        $this->AddTranslationEntry('在这里填写您的邮箱','E-mail address here');
+        $this->AddTranslationEntry('成功','Success');
+        $this->AddTranslationEntry('不再订阅','Unsubscribe');
+        $this->AddTranslationEntry('重新发送确认邮件','Re-send confirmation e-mail');
+        $this->AddTranslationEntry('邮件发送状态','Mail sender status');
+        $this->AddTranslationEntry('页面不存在。','Page does not exist.');
+        $this->AddTranslationEntry('创建这个页面','Create this page');
+        $this->AddTranslationEntry('停一下','Whoa there');
+        $this->AddTranslationEntry('访客不能访问这个页面。','Visitors can not access this page.');
+        $this->AddTranslationEntry('出错','Ooops');
+        $this->AddTranslationEntry('文件上传遇到了未知问题，上传的文件可能不完整。','Unknown error during uploading, file could be incomplete.');
+        $this->AddTranslationEntry('完成','Finished');
+        $this->AddTranslationEntry('文件上传到下面的目录：','File has been uploaded to the path below:');
+        $this->AddTranslationEntry('已收到您的订阅','Request received');
+        $this->AddTranslationEntry('请检查您收件箱中的确认信，您需要通过确认信中的链接确认订阅。','Please check your mailbox for confirmation e-mail, you need the link there to activate your subscription.');
+        $this->AddTranslationEntry('我知道了','Got it');
+        $this->AddTranslationEntry('设置订阅','Configure Subscription');
+        $this->AddTranslationEntry('您已经订阅过这个栏目。','You have already subscribed to this channel.');
+        $this->AddTranslationEntry('请到您的收件箱检查确认信，它可能被某些邮件提供商标记为垃圾邮件。','Please check your mailbox for confirmation e-mail, it may be marked as trash by some e-mail providers.');
+        $this->AddTranslationEntry('邮件传输错误','Mail Transfer Error');
+        $this->AddTranslationEntry('已经记录下您的订阅申请，但是未能发送确认邮件。','Your subscription request is recorded, however we are not able to send you a confirmation e-mail.');
+        $this->AddTranslationEntry('订阅已确认','Subscription Confirmed');
+        $this->AddTranslationEntry('您将收到新闻稿。','You will recieve newsletters in the future.');
+        
+        $this->AddTranslationEntry('附加显示','Additional');
+        $this->AddTranslationEntry('应用','Apply');
+        $this->AddTranslationEntry('显示','Show');
+        $this->AddTranslationEntry('显示为','Show as');
+        $this->AddTranslationEntry('天内完成的','Days Limit');
+        $this->AddTranslationEntry('区域标题','Region Title');
+        $this->AddTranslationEntry('方块列数量','Columns');
+        $this->AddTranslationEntry('一行的照片数','In a row');
+        $this->AddTranslationEntry('时间线列表按钮','Timeline Btn');
+        $this->AddTranslationEntry('关闭快速发帖','Disable quick post');
+        $this->AddTranslationEntry('启用快速发帖','Enable quick post');
+        $this->AddTranslationEntry('改显示为摘要','Set excript');
+        $this->AddTranslationEntry('改显示为全文','Set full');
+        $this->AddTranslationEntry('描述文字','Description');
+        
+        $this->AddTranslationEntry('小声哔哔…','Chatter quietly...');
+        $this->AddTranslationEntry('大声宣扬','Speak Loudly');
+  
         $this->GLOBAL_TASK_I=0;
         
         $this->LockRoot();
@@ -296,31 +653,95 @@ class LAManagement{
         fclose($this->lock_file);
     }
     
+    function SetSubscriberCustomizationInfo($title, $folder, $mail_address, $id, $lang){
+        $this->SubscriberTitle = $title;
+        $this->SubscriberFolder = $folder;
+        $this->SubscriberID = $id;
+        $this->SubscriberMailAddress = $mail_address;
+        $this->SubscriberLanguage = $lang;
+    }
+    
     function LimitAccess($mode){
-        if($mode==0){
-            echo $this->MakeCenterContainerBegin();
-            echo "<div class='the_body'>";
-            echo "<div class='main_content' style='text-align:center;'>";
+        echo $this->MakeCenterContainerBegin();
+        echo "<div class='the_body'>";
+        echo "<div class='main_content' style='text-align:center;'>";
+        
+        if($mode==-1){
+            echo "<h1>".$this->FROM_ZH("成功")."</h1><p>";
+            if(isset($this->MailSendResults[0])){
+                echo "<div style='text-align:left; max-height:50vh;'>";
+                echo $this->FROM_ZH("邮件发送状态")."<br />";
+                foreach($this->MailSendResults as $result){
+                    echo '['.$result['status'].']&nbsp;&nbsp;';
+                    foreach($result['recipients'] as $people){
+                        echo $people[0].'&nbsp;';
+                    }
+                    echo "<br />";
+                }
+                echo "</div>";
+            }
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 ".$this->FROM_ZH("返回")."</a>";
+            else echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
+        }else if($mode==0){
             echo "<h1>404</h1>";
-            echo "<p>页面不存在。<br />Page does not exist.<br />".$_GET["page"]."</p><p>";
-            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 返回/Back</a>";
-            echo "&nbsp;<a href='?page=index.md'>⌂ 首页/Home</a></p>";
-            if($this->IsLoggedIn()) echo "<p><a href='?page=".$_GET["page"]."&operation=new&title=".pathinfo($_GET["page"],PATHINFO_FILENAME)."'>创建这个页面</a></p>";
-            echo "</div>";
-            echo "</div>";
-            echo $this->MakeCenterContainerEnd();  
+            echo "<p>".$this->FROM_ZH("页面不存在。")."<br />Page does not exist.<br />".$_GET["page"]."</p><p>";
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 ".$this->FROM_ZH("返回")."</a>";
+            echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
+            if($this->IsLoggedIn()) echo "<p><a href='?page=".$_GET["page"]."&operation=new&title=".pathinfo($_GET["page"],PATHINFO_FILENAME)."'>".$this->FROM_ZH("创建这个页面")."</a></p>";
         }else if($mode==1){
-            echo $this->MakeCenterContainerBegin();
-            echo "<div class='the_body'>";
-            echo "<div class='main_content' style='text-align:center;'>";
-            echo "<h1>停一下</h1>";
-            echo "访客不允许访问这个页面。<br />Visitors can not access this page.<p>";
-            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 返回/Back</a>";
-            echo "&nbsp;<a href='?page=index.md'>⌂ 首页/Home</a></p>";
-            echo "</div>";
-            echo "</div>";
-            echo $this->MakeCenterContainerEnd();
+            echo "<h1>".$this->FROM_ZH("停一下")."</h1>";
+            echo $this->FROM_ZH("访客不能访问这个页面。");
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 ".$this->FROM_ZH("返回")."</a>";
+            echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
+        }else if($mode==2){
+            echo "<h1>".$this->FROM_ZH("出错")."</h1>";
+            echo $this->FROM_ZH("文件上传遇到了未知问题，上传的文件可能不完整。");
+            echo "<!--FILE_UPLOAD_ERROR-->";
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 ".$this->FROM_ZH("返回")."</a>";
+            else echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
+        }else if($mode==3){
+            echo "<h1>".$this->FROM_ZH("完成")."</h1>";
+            echo $this->FROM_ZH("文件上传到下面的目录：");
+            echo $this->InterlinkPath().'/'.$_FILES['upload_file_name']['name']."<p>";
+            echo "<!--FILE_UPLOADED-->";
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 ".$this->FROM_ZH("返回")."</a>";
+            else echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
+        }else if($mode==4){
+            echo "<h1>".$this->FROM_ZH("已收到您的订阅")."</h1>";
+            echo $this->FROM_ZH("请检查您收件箱中的确认信，您需要通过确认信中的链接确认订阅。");
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 ".$this->FROM_ZH("我知道了")."</a>";
+            else echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
+        }else if($mode==5){
+            echo "<h1>".$this->FROM_ZH("设置订阅")."</h1>";
+            echo $this->FROM_ZH("您已经订阅过这个栏目。");
+            if($this->SubscriberIDExisting!='CONFIRMED'){
+                echo "<p>".$this->FROM_ZH("请到您的收件箱检查确认信，它可能被某些邮件提供商标记为垃圾邮件。")."<br /><a href='?page=index.md".
+                "&resend_email=true&folder=".$this->SubscriberFolder."&id=".$this->SubscriberIDExisting.
+                "&title=".$this->SubscriberTitle."&mail_address=".$this->SubscriberMailAddress."&subscribe_language=".$this->SubscriberLanguage."'>".$this->FROM_ZH("重新发送确认邮件")."</a></p>";
+            }else{
+                echo "<p>选择您喜欢的新闻稿语言。（部分稿件可能只有一种语言）<br />".
+                     "Choose preferred language for this subscription. (Some letters may only have one language)</p>".
+                "<a href='?page=index.md&select_subscriber_langguage=true&folder=".$this->SubscriberFolder."&mail_address=".$this->SubscriberMailAddress."&subscribe_language=zh&set_translation=zh'>中文</a>&nbsp".
+                "<a href='?page=index.md&select_subscriber_langguage=true&folder=".$this->SubscriberFolder."&mail_address=".$this->SubscriberMailAddress."&subscribe_language=en&set_translation=en'>English</a>".
+                "</p>";
+                echo "<p><a href='?page=index.md&unsubscribe=true&folder=".$this->SubscriberFolder."&mail_address=".$this->SubscriberMailAddress."'>".$this->FROM_ZH("不再订阅")."</a></p>";
+            }
+            echo "<p>";
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 ".$this->FROM_ZH("返回")."</a>";
+            else echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
+        }else if($mode==6){
+            echo "<h1>".$this->FROM_ZH("邮件传输错误")."</h1>";
+            echo "<p>".$this->FROM_ZH("已经记录下您的订阅申请，但是未能发送确认邮件。")."</p>";
+            if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰".$this->FROM_ZH("返回")."</a>";
+            else echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
+        }else if($mode==7){
+            echo "<h1>".$this->FROM_ZH("订阅已确认")."</h1>";
+            echo $this->FROM_ZH("您将收到新闻稿。");
+            echo "<p><a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
         }
+        echo "</div>";
+        echo "</div>";
+        echo $this->MakeCenterContainerEnd();  
         exit;
     }
     
@@ -533,8 +954,10 @@ class LAManagement{
     }
     
     function EditBlock(&$Config,$BlockName){
-        if ($this->GetBlock($Config,$BlockName)==Null){
-            $this->AddBlock($Config,$BlockName);
+        if (($block = $this->GetBlock($Config,$BlockName))==Null){
+            return $this->AddBlock($Config,$BlockName);
+        }else{
+            return $block;
         }
     }
     
@@ -929,7 +1352,7 @@ class LAManagement{
         $this->ScanForTagsInContent($TMP);
         $TMP = preg_replace("/!@@\[(.*)\]\((.*)\)/U", 
             '<audio id="AUDIO_$1" class="audio_item"><source src="'.$this->InterlinkPath().'/$2" type="audio/ogg"></audio>
-<div class="btn" style="pointer-events:none;">音频：$1</div>'
+<div class="plain_block inline_block" style="pointer-events:none;">'.$this->FROM_ZH('声音').' $1</div>'
             ,$TMP);
 
         $TMP = preg_replace("/!@@@\[(.*)\]\((.*)\)/U", "!@@[$1]($2)",$TMP);
@@ -975,6 +1398,12 @@ class LAManagement{
             ?>
         </div>
         <?php
+    }
+    
+    function ProcessHREFToRemote($HTML){
+        $replaced = preg_replace('/^\?page=/','http://'.$_SERVER['HTTP_HOST'].'/',$HTML);
+        $replaced = preg_replace('/^index.php\?page=/','http://'.$_SERVER['HTTP_HOST'].'/',$replaced);
+        return $replaced;
     }
     
     function HTMLFromMarkdown($Content){
@@ -1128,13 +1557,29 @@ class LAManagement{
         $path_parts = pathinfo($file_path);
         
         $file_orig = $path_parts['dirname'].'/'.preg_replace('/_\D\D\.md$/','.md',$path_parts['basename']);
+        $file_orig = preg_replace('/DRAFT\./','.',$file_orig);
         
         $file_en = preg_replace('/\.md$/','_en.md',$file_orig);
         $file_zh = preg_replace('/\.md$/','_zh.md',$file_orig);
         
+        $file_orig_draft = preg_replace('/\.md$/','DRAFT.md',$file_orig);
+        $file_en_draft = preg_replace('/\.md$/','_enDRAFT.md',$file_orig);
+        $file_zh_draft = preg_replace('/\.md$/','_zhDRAFT.md',$file_orig);
+        
+        $avail_orig_draft = 0;
+        $avail_en_draft = 0;
+        $avail_zh_draft = 0;
+        
         $avail_orig = (file_exists($file_orig) && is_readable($file_orig));
+        if(!$avail_orig) $avail_orig_draft = (file_exists($file_orig_draft) && is_readable($file_orig_draft));
         $avail_en = (file_exists($file_en) && is_readable($file_en));
+        if(!$avail_en) $avail_en_draft = (file_exists($file_en_draft) && is_readable($file_en_draft));
         $avail_zh = (file_exists($file_zh) && is_readable($file_zh));
+        if(!$avail_zh) $avail_zh_draft = (file_exists($file_zh_draft) && is_readable($file_zh_draft));
+        
+        if(!$avail_orig && $avail_orig_draft){ $avail_orig = 1; $file_orig = $file_orig_draft; }
+        if(!$avail_en && $avail_en_draft)    { $avail_en = 1;   $file_en   = $file_en_draft;   }
+        if(!$avail_zh && $avail_zh_draft)    { $avail_zh = 1;   $file_zh   = $file_zh_draft;   }
         
         if($appendix=='zh'){
             if ($avail_zh){
@@ -1252,6 +1697,16 @@ class LAManagement{
             $_COOKIE['la_language'] = $_GET['set_translation'];
         }
     }
+    function DoHandleUpload(){
+        if(!isset($_FILES['upload_file_name'])) return;
+        if($_FILES['upload_file_name']['error']>0){
+            return -1;
+        }else{
+            move_uploaded_file($_FILES['upload_file_name']['tmp_name'], $this->InterlinkPath().'/'.$_FILES['upload_file_name']['name']);
+            return 1;
+        }
+        return 0;
+    }
     function MarkPassageUpdate($path,$updated){
         $path_clean = preg_replace('/^\.\/(.*)/','$1',$path);
     
@@ -1302,10 +1757,23 @@ class LAManagement{
         $path_clean = preg_replace('/^\.\/(.*)/','$1',$this->ChooseLanguage($path));
         $is_folder_index = preg_match('/(.*)\/index(_zh|_en)?.md$/', $path_clean, $folder);
         if(isset($this->RecentUpdatedList)) foreach($this->RecentUpdatedList as $item){
-            if($item['path'] == $path_clean)
+            if($item['path'] == $path_clean){
+                if(!$this->IsLoggedIn()){
+                    if(preg_match('%DRAFT.md%', $path_clean)){
+                        continue;
+                    }
+                }
                 return True;
+            }
             if($is_folder_index){
-                if(preg_match('%^'.$folder[1].'%',$item['path'])) return true;
+                if(preg_match('%^'.$folder[1].'%',$item['path'])){
+                    if(!$this->IsLoggedIn()){
+                        if(preg_match('%DRAFT.md%',$item['path'])){
+                            continue;
+                        }
+                    }
+                    return true;
+                }
             }
         }
         return False;
@@ -1316,6 +1784,11 @@ class LAManagement{
         $folder_max = 100;
         if(isset($this->RecentUpdatedList)) foreach($this->RecentUpdatedList as $item){
             if($item['path'] == $path_clean || $is_folder_index){
+                if(!$this->IsLoggedIn()){
+                    if(preg_match('%DRAFT.md%',$item['path'])){
+                        continue;
+                    }
+                }
                 $time = $this->CurrentTimeReadable();
                 $days_diff = $this->ReadableTimeDifference($item['time'], $time)/3600/24;
                 if($is_folder_index){
@@ -1372,6 +1845,8 @@ class LAManagement{
     function DoNewSmallQuote(){
         if(isset($_POST['button_new_quote'])){
             $passage = $_POST['data_small_quote_content'];
+            if($passage = $this->FROM_ZH("小声哔哔…"))
+                return;
             $file_path = $this->PagePath;
             if(!isset($_GET['quote_quick'])) return;
             $folder = $_GET['quote_quick'];
@@ -1379,6 +1854,93 @@ class LAManagement{
             header('Location:?page='.$this->PagePath);
             exit;
         }
+    }
+    function SendConfirmationMail($title, $folder, $mail_address, $id, $lang){
+        if($id!=NULL){
+            $confirm_link = "http://".$_SERVER['HTTP_HOST']."/?page=index.md&confirm_target=".$folder."&confirm_address=".$mail_address."&confirm_id=".$id;
+            $content_zh = $this->HTMLFromMarkdown(
+                          "# 订阅确认信".PHP_EOL.PHP_EOL.
+                          "我们收到了您在".$this->StringTitle."网（".$_SERVER['HTTP_HOST']."）上订阅“".$title."”栏目新闻稿的申请。".PHP_EOL.PHP_EOL.
+                          "[点击这里以确认订阅申请](".$confirm_link.")或在浏览器中访问下面的连接。".PHP_EOL.PHP_EOL.$confirm_link.PHP_EOL.PHP_EOL.
+                          "若这不是您的操作，请忽略这封邮件。");
+            if($this->SendMail([$mail_address], $this->FROM_ZH("确认订阅").$title.$this->FROM_ZH("吗？"), $content_zh, NULL, NULL, NULL, NULL)){
+                return 1;
+            }else{
+                return -2;
+            }
+        }else{
+            return -1;
+        }
+    }
+    function DoSendNewsletter(){
+        if(isset($_GET['send_newsletter']) && $_GET['send_newsletter']=='run'){
+            if($this->IsNewsletterFolder($_GET['folder'])){
+                $this->ReadSubscribers($_GET['folder']);
+                $content_en = $this->ProcessHREFToRemote(
+                           $this->HTMLFromMarkdown(
+                           $this->HTMLFromMarkdownFile(
+                           $this->ChooseLanguageAppendix(
+                           $this->PagePath,"en"))));
+                $content_zh = $this->ProcessHREFToRemote(
+                           $this->HTMLFromMarkdown(
+                           $this->HTMLFromMarkdownFile(
+                           $this->ChooseLanguageAppendix(
+                           $this->PagePath,"zh"))));
+                if(isset($this->MailSubscribers[0])) foreach($this->MailSubscribers as $people){
+                    $appendix_en = "<hr>".$this->MailFootEN.($this->MailFootEN!=''?"<br />":"").
+                                   $this->TitleEN." Newsletter | <a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md'>Home</a><br />".date("Y-m-d").
+                                   "<br /><a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md&configure_address=".$people['address']."&folder=".$this->SubscriberFolder."&mail_address=".$this->SubscriberMailAddress."&set_tranlstion=en'>Configure newsletter</a>";
+                    $appendix_zh = "<hr>".$this->MailFoot.($this->MailFoot!=''?"<br />":"").
+                                   $this->Title." 新闻稿 | <a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md'>首页</a><br />".date("Y-m-d").
+                                   "<br /><a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md&configure_address=".$people['address']."&folder=".$this->SubscriberFolder."&mail_address=".$this->SubscriberMailAddress."&set_tranlstion=zh'>设置新闻稿</a>";
+                    $this->SendMail([$people['address']], $people['language']=='zh'?$this->MailTitle:$this->MailTitleEN, $people['language']=='zh'?($content_zh.$appendix_zh):($content_en.$appendix_en), NULL, NULL, NULL, NULL);
+                }
+                return 1;
+            }
+        }
+        return 0;
+    }
+    function DoEditSubscriber(){
+        if(isset($_GET['configure_address'])){
+            $this->SetSubscriberCustomizationInfo($_GET['title'], $_GET['folder'], $_GET['mail_address'], 0, NULL);
+            return 1;
+        }
+        if(isset($_GET['resend_email']) && $_GET['resend_email']='true'){
+            if($this->SendConfirmationMail($_GET['title'], $_GET['folder'], $_GET['mail_address'], $_GET['id'], $_GET['subscribe_language'])>0){
+                return 1;
+            }
+        }
+        if(isset($_GET['unsubscribe']) && $_GET['unsubscribe']='true'){
+            $this->ConfirmSubscriber($_GET['folder'],$_GET['mail_address'], NULL, 1);
+            return 1;
+        }
+        if(isset($_GET['select_subscriber_langguage']) && $_GET['select_subscriber_langguage']='true'){
+            $this->EditSubscriberLanguage($_GET['folder'],$_GET['mail_address'], $_GET['subscribe_language']);
+            return 1;
+        }
+        return 0;
+    }
+    function DoNewSubscriber(){
+        if(isset($_GET['confirm_id']) && isset($_GET['confirm_address']) && isset($_GET['confirm_target'])){
+            if($this->ConfirmSubscriber($_GET['confirm_target'], $_GET['confirm_address'], $_GET['confirm_id'], 0)){
+                return -3;
+            }
+        }
+        if(isset($_POST['button_new_subscriber'])){
+            $source = $_POST['data_subscriber_content'];
+            $mail_address = strtolower(trim($source));
+            $file_path = $this->PagePath;
+            if(!isset($_GET['subscribe_quick'])) return 0;
+            $folder = $_GET['subscribe_quick'];
+            $title = $_GET['title'];
+            $lang = $_GET['subscribe_language'];
+            $id = $this->AddSubscriberEntry($folder, $mail_address, $lang);
+            
+            $this->SetSubscriberCustomizationInfo($title, $folder, $mail_address, $id, $lang);
+            
+            return $this->SendConfirmationMail($title, $folder, $mail_address, $id, $lang);
+        }
+        return 0;
     }
     function DoNewFolder(){
         if(isset($_POST['button_new_folder'])){
@@ -1437,7 +1999,7 @@ class LAManagement{
                 $this->MarkPassageUpdate($original_path, 0);
                 $this->MarkPassageUpdate($target_path, 1);
             }
-            header('Location:?page='.$target_path);
+            header('Location:?page='.$target_path."&translation=disabled");
             exit;
         }
     }
@@ -1485,50 +2047,31 @@ class LAManagement{
             else return False;
         }else return False;
     }
-    function PermissionForSingleFolder($path){
-        $file = $path.'/la_config.md';
-        if(is_readable($file) && filesize($file)!=0){
-            $ConfRead = fopen($file,'r');
-            $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($file)));
-            fclose($ConfRead);
-            if($this->CheckLineByNames($Config,'FolderConf','visible','0')) return False;
-            else return True;
-        }else return True;
-    }
-    
-    function PermissionForFolderRecursive($path){
-        $save=$this->InterlinkPath();
-        $permission=True;
-        if(!$this->PermissionForSingleFolder($path)) $permission=False;
-        $a = $path;
-        while($permission){
-            $t = $this->GetInterlinkPath('..');
-            if($t==$a) break;
-            $a = $t;
-            $permission = $this->PermissionForSingleFolder($path);
-            $this->SetInterlinkPath($a);
-        }
-        $this->SetInterlinkPath($save);
-        return $permission;
-    }
     
     function SetFolderPermission($path,$visible){
-        $file = $path.'/la_config.md';
+        if(!isset($path) || $path == '.' || $path == '') return;
+        
+        $path = preg_replace("%\.\/(.*)%","$1",$path);
+        
+        $file = 'la_config.md';
         if(is_readable($file)){
             $ConfRead = fopen($file,'r');
             $Config = $this->ParseMarkdownConfig(fread($ConfRead,filesize($file)));
             fclose($ConfRead);
-            $Block = $this->GetBlock($Config,'FolderConf');
-            if(!isset($Block)) $this->AddBlock($Config,'FolderConf');
-            $this->EditGeneralLineByName($Config,'FolderConf','visible',$visible?'1':'0');
+            $Block = $this->EditBlock($Config,'HiddenFolders');
+            if(!$visible){
+                $this->EditGeneralLineByName($Config,'HiddenFolders', $path, "");
+            }else{
+                $this->RemoveGeneralLineByName($Config, $Block, $path);
+            }
             $ConfWrite = fopen($file,'w');
             $this->WriteMarkdownConfig($Config, $ConfWrite);
             fclose($ConfWrite);
-        }else{
+        }else if(!$visible){
             $ConfWrite = fopen($file,'w');
             $Config = [];
-            $this->AddBlock($Config,'FolderConf');
-            $this->EditGeneralLineByName($Config,'FolderConf','visible',$visible?'1':'0');
+            $Block = $this->EditBlock($Config,'HiddenFolders');
+            $this->EditGeneralLineByName($Config,'HiddenFolders', $path, "");
             $this->WriteMarkdownConfig($Config, $ConfWrite);
             fclose($ConfWrite);
         }
@@ -1708,6 +2251,30 @@ class LAManagement{
             if(isset($_POST['settings_tracker_file'])){
                 $this->EditGeneralLineByName($Conf,'Website','TrackerFile',$_POST['settings_tracker_file']);
             }
+            if(isset($_POST['settings_mail_host'])){
+                $this->EditGeneralLineByName($Conf,'Website','MailHost',$_POST['settings_mail_host']);
+            }
+            if(isset($_POST['settings_mail_port'])){
+                $this->EditGeneralLineByName($Conf,'Website','MailPort',$_POST['settings_mail_port']);
+            }
+            if(isset($_POST['settings_mail_user'])){
+                $this->EditGeneralLineByName($Conf,'Website','MailUser',$_POST['settings_mail_user']);
+            }
+            if(isset($_POST['settings_mail_password'])){
+                $this->EditGeneralLineByName($Conf,'Website','MailPassword',$_POST['settings_mail_password']);
+            }
+            if(isset($_POST['settings_mail_title'])){
+                $this->EditGeneralLineByName($Conf,'Website','MailTitle',$_POST['settings_mail_title']);
+            }
+            if(isset($_POST['settings_mail_title_en'])){
+                $this->EditGeneralLineByName($Conf,'Website','MailTitleEN',$_POST['settings_mail_title_en']);
+            }
+            if(isset($_POST['settings_mail_foot'])){
+                $this->EditGeneralLineByName($Conf,'Website','MailFoot',$_POST['settings_mail_foot']);
+            }
+            if(isset($_POST['settings_mail_foot_en'])){
+                $this->EditGeneralLineByName($Conf,'Website','MailFootEN',$_POST['settings_mail_foot_en']);
+            }
             if(isset($_POST['settings_task_highlight_invert'])){
                 $this->EditGeneralLineByName($Conf,'Website','TaskHighlightInvert',$_POST['settings_task_highlight_invert']);
             }
@@ -1718,7 +2285,7 @@ class LAManagement{
                 $this->EditArgumentByNamesN($Conf,'Users',$this->UserID,0,'Password',$_POST['settings_admin_password']);
                 $admin_changed=true;
             }
-            if(isset($_POST['settings_admin_id']) && $_POST['settings_admin_id']!=''){
+            if(isset($_POST['settings_admin_id']) && $_POST['settings_adDoLoginmin_id']!=''){
                 $this->EditGeneralLineByNameSelf($Conf,'Users',$this->UserID,$_POST['settings_admin_id']);
                 $admin_changed=true;
             }
@@ -1837,12 +2404,24 @@ class LAManagement{
         $this->TrackerFile    = $this->GetLineValueByNames($Conf,"Website","TrackerFile");
         $this->TaskHighlightInvert = $this->GetLineValueByNames($Conf,"Website","TaskHighlightInvert")=="True"?1:0;
         
+        $this->MailHost       = $this->GetLineValueByNames($Conf,"Website","MailHost");
+        $this->MailPort       = $this->GetLineValueByNames($Conf,"Website","MailPort");
+        $this->MailUser       = $this->GetLineValueByNames($Conf,"Website","MailUser");
+        $this->MailPassword   = $this->GetLineValueByNames($Conf,"Website","MailPassword");
+        $this->MailTitle      = $this->GetLineValueByNames($Conf,"Website","MailTitle");
+        $this->MailTitleEN    = $this->GetLineValueByNames($Conf,"Website","MailTitleEN");
+        $this->MailFoot       = $this->GetLineValueByNames($Conf,"Website","MailFoot");
+        $this->MailFootEN     = $this->GetLineValueByNames($Conf,"Website","MailFootEN");
+        
         if(!$this->Title) $this->Title='LA<b>MDWIKI</b>';
         
         if(!$this->TitleEN) $this->TitleEN='LA<b>MDWIKI</b>';
         if(!$this->StringTitle) $this->StringTitle='LAMDWIKI';
         if(!$this->StringTitleEN) $this->StringTitleEN='LAMDWIKI';
         if(!$this->TrackerFile) $this->TrackerFile='events.md';
+        if(!$this->MailTitle) $this->MailTitle=$this->StringTitle.'新闻稿';
+        if(!$this->MailTitleEN) $this->MailTitleEN=$this->StringTitleEN.' NewsLetter';
+        
         $i=0;$item=null;
         while($this->GetLineByNamesN($Conf,'Redirect','Entry',$i)!==Null){
             $item['from']    = $this->GetArgumentByNamesN($Conf,'Redirect','Entry',$i,'From');
@@ -1862,6 +2441,12 @@ class LAManagement{
                 $i++;
             }
         }
+        $i=0;$item=null;
+        if(($block = $this->GetBlock($Conf,"HiddenFolders"))){
+            if(isset($Conf[$block]['Items'][0])) foreach($Conf[$block]['Items'] as $Line){
+                $this->PrivateFolderList[] = $Line['Name'];
+            }
+        }
         if($any_removed){
             $ConfWrite = fopen("la_config.md",'w');
             $this->WriteMarkdownConfig($Conf, $ConfWrite);
@@ -1873,7 +2458,7 @@ class LAManagement{
         $append_title = NULL;
         if($this->PagePath!='./index.md' && $this->PagePath!='index.md'){
             $this->FileTitle = $this->TitleOfFile($this->ContentOfMarkdownFile($this->PagePath));
-            $append_title = $this->FileTitle;
+            $append_title = mb_substr($this->FileTitle,0,32);
             $append_title = preg_replace('/[#*~\s]/',"",$append_title);
         }
         ?>
@@ -1908,6 +2493,7 @@ class LAManagement{
             
             table { width:100%; border-collapse: collapse; color: unset; position: relative; }
             table th { position: sticky; top:80px; background-color: <?php echo $this->cwhite ?>; }
+            .la_actual_table { text-align: left; }
             
             pre {border-left: 3px double <?php echo $this->cblack ?>; padding: 10px; position: relative; z text-align: left; white-space: pre-wrap; }
             
@@ -1956,11 +2542,12 @@ class LAManagement{
             .gallery_left           { height:calc(100% - 160px); position: fixed; width:350px; }
             .gallery_right          { width:calc(100% - 365px); left: 365px; position: relative;}
             .gallery_main_height    { max-height: 100%; }
-            .gallery_multi_height   { position: relative;}
-            .gallery_multi_height::before   { content: " "; display: block; padding-top: 100%; }
-            .gallery_multi_content  { position: absolute;top: 5px; left: 5px; bottom: 5px; right: 5px; display: flex; align-items: center; overflow: hidden;}
-            .gallery_image          { max-width: unset; min-width: 100%; min-height: 100%; object-fit: cover; }
             .gallery_box_when_bkg   { width:30%; max-width:300px;}
+            .gallery_image          { max-width: 100%; max-height:100%; margin: auto; position: absolute; left: 0; right: 0; bottom: 0; top: 0; }
+            .gallery_image_wrapper         { position: relative; display: table-cell; }
+            .gallery_image_wrapper::before { content: " "; display: block; padding-top: 100%; }
+            .gallery_image_inner    { position: absolute; top:0px; bottom:0px; left:0px; right:0px; overflow: hidden; }
+            
             .no_padding_force       { padding: 0px; !important; }
             
             .center_container       { display: table; position: absolute; top: 0; left: 0; height: 100%; width: 100%; }
@@ -1979,10 +2566,10 @@ class LAManagement{
             .bottom_sticky_menu_right     { z-index:20; position: absolute; padding:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; right:10px; bottom:10px; overflow: hidden; margin:0px;  width:50%; }
             
             canvas                  { width:100%; height:100%; }
-            .canvas_box_warpper_wide           { position: relative;}
-            .canvas_box_warpper_wide::before   { content: " "; display: block; padding-top: 56.25%; }
-            .canvas_box_warpper_super          { position: relative;}
-            .canvas_box_warpper_super::before  { content: " "; display: block; padding-top: 41.8%; }
+            .canvas_box_wrapper_wide           { position: relative;}
+            .canvas_box_wrapper_wide::before   { content: " "; display: block; padding-top: 56.25%; }
+            .canvas_box_wrapper_super          { position: relative;}
+            .canvas_box_wrapper_super::before  { content: " "; display: block; padding-top: 41.8%; }
             .canvas_box                        { position: absolute;top: 0px; left: 0px; bottom: 0px; right: 0px; display: flex; align-items: center; overflow: hidden;}
             .canvas_box_expanded               { position: relative; height:100%; max-height:calc(100% - 250px); min-height:200px;}
             
@@ -2003,6 +2590,7 @@ class LAManagement{
             .btn          { border:1px solid <?php echo $this->cblack ?>; padding: 5px; color:<?php echo $this->cblack ?>; display: inline; background-color:<?php echo $this->cwhite ?>; font-size:16px; cursor: pointer; text-align: center; }
             .btn:hover    { border:3px double <?php echo $this->cblack ?>; padding: 3px; }
             .btn:active   { border:5px solid <?php echo $this->cblack ?>; border-bottom: 1px solid <?php echo $this->cblack ?>; border-right: 1px solid <?php echo $this->cblack ?>; padding: 3px; }
+            .btn:disabled { border:1px solid <?php echo $this->cblack ?>; padding: 5px; cursor: not-allowed; }
             .btn_nopadding          { padding: 2px; }
             .btn_nopadding:hover    { padding: 0px; }
             .btn_nopadding:active   { padding: 0px; }
@@ -2054,9 +2642,10 @@ class LAManagement{
             
             .tile_container    { display: table; table-layout: fixed; width: calc(100% + 30px); border-spacing:15px 7px; margin-left: -15px; margin-top: -7px; margin-bottom: 8px; }
             .tile_item         { display: table-cell; }
+            .image_tile        { display: table; table-layout: fixed; width: 100%; }
             
             .footer            { padding:10px; padding-top:15px; padding-bottom:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; display: inline-block; }
-            .additional_options{ padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:-15px; overflow: hidden; display: inline-block; position: relative; z-index:100; }
+            .additional_options{ padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:-15px; overflow: hidden; display: inline-block; position: relative; }
             
             
             .recent_updated            { background-color: <?php echo $this->chighlight ?>; }
@@ -2065,7 +2654,8 @@ class LAManagement{
             a        { border:1px solid <?php echo $this->cblack ?>; padding: 5px; color:<?php echo $this->cblack ?>; text-decoration: none; }
             a:hover  { border:3px double <?php echo $this->cblack ?>; padding: 3px; }
             a:active { border:5px solid <?php echo $this->cblack ?>; border-bottom: 1px solid <?php echo $this->cblack ?>; border-right: 1px solid <?php echo $this->cblack ?>; padding: 3px; }
-            .main_content a       { padding: 0px; padding-left:3px; padding-right:3px; display: inline-block;}            
+            a:disabled { border:1px solid <?php echo $this->cblack ?>; padding: 5px; cursor: not-allowed; }
+            .main_content a       { padding: 0px; padding-left:3px; padding-right:3px; display: inline-block; background-color:<?php echo $this->cwhite ?>; }            
             .main_content a:hover { border:1px solid <?php echo $this->cblack ?>; text-decoration: underline; }
             .main_content a:active{ border:1px solid <?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; background-color:<?php echo $this->cblack ?>; }
             .main_content .no_border:hover { border: none; }
@@ -2104,17 +2694,17 @@ class LAManagement{
             .no_overflow             { overflow: unset;}
             
             .theme_firebrick { background-color: firebrick; color: gold; text-shadow: 2px 2px 2px black; }
-            .theme_firebrick a { color: gold !important; border-color: gold !important;}
+            .theme_firebrick a { background-color: firebrick; color: gold !important; border-color: gold !important;}
             .theme_cornflowerblue { background-color: cornflowerblue; color: white; text-shadow: 2px 2px 2px black; }
-            .theme_cornflowerblue a { color: white !important; border-color: white !important;}
+            .theme_cornflowerblue a { background-color: cornflowerblue; color: white !important; border-color: white !important;}
             .theme_slategray { background-color: slategray; color: white; }
-            .theme_slategray a { color: white !important; border-color: white !important;}
+            .theme_slategray a {  background-color: slategray; color: white !important; border-color: white !important;}
             .theme_darkgoldenrod { background-color: darkgoldenrod; color: moccasin; }
-            .theme_darkgoldenrod a { color: moccasin !important; border-color: moccasin !important;}
+            .theme_darkgoldenrod a { background-color: darkgoldenrod; color: moccasin !important; border-color: moccasin !important;}
             .theme_green { background-color: green; color: palegreen; }
-            .theme_green a { color: palegreen !important; border-color: palegreen !important;}
+            .theme_green a { background-color: green; color: palegreen !important; border-color: palegreen !important;}
             .theme_indigo { background-color: indigo; color: lightcyan; }
-            .theme_indigo a { color: lightcyan !important; border-color: lightcyan !important;}
+            .theme_indigo a { background-color: indigo; color: lightcyan !important; border-color: lightcyan !important;}
             
             .theme_align_left   { text-align: left; }
             .theme_align_center { text-align: center; }
@@ -2150,6 +2740,7 @@ class LAManagement{
                 
                 .tile_container{ display: block; table-layout: unset; width: 100%; margin: 0px; }
                 .tile_item{ display: block; }
+                .image_tile        { display: block; }
                 
                 .sidenotes_content   { position: relative; right: unset; max-width: unset; width: unset; overflow: hidden; padding: 3px; margin-top: -25px; margin-bottom: -10px; }
                 .sidenotes_position  { position: relative; width: unset; min-width: unset; right: unset; bottom: unset; display: none; margin-top: 10px; }
@@ -2160,7 +2751,10 @@ class LAManagement{
                 .gallery_main_height    { height: unset; }
                 .gallery_multi_height::before    { display: none; }
                 .gallery_multi_content  { position: unset;}
-                .gallery_image          { max-width: 100%; min-width: unset; min-height: unset; object-fit: unset;}
+                .gallery_image_wrapper::before { content: unset; display: block; padding-top: 0px; }
+                .gallery_image_wrapper  { display: block; }
+                .gallery_image_inner    { position: relative; top: unset; bottom: unset; left: unset; right: unset; overflow: hidden; }
+                .gallery_image          { max-width: 100%; position: unset; max-height: unset; min-width: unset; min-height: unset; object-fit: unset; }
                 .gallery_box_when_bkg   { width:60%; max-width: unset;}
                 
                 .box_hang_right         { float: unset; width: unset;}
@@ -2381,17 +2975,17 @@ class LAManagement{
             <?php
         }
         
-        if($layout == 'Gallery' && (!isset($_GET['operation'])||($_GET['operation']!='edit'&&$_GET['operation']!='new'))){
+        if($layout == 'Gallery' && (!isset($_GET['operation'])||($_GET['operation']!='edit'&&$_GET['operation']!='new'&&$_GET['operation']!='settings'))){
         ?>
             <div class='gallery_left'>
-            <div class='main_content gallery_main_height' style="overflow: auto;">
+            <div class='main_content gallery_main_height' style="overflow:auto; position:relative;">
             <?php if($use_stripe) echo $this->MakeSpecialStripe(); ?>
         <?php
         }else{
         ?>
             <div class='main_content <?php echo $novel_mode?"":"print_document" ?>' style='<?php echo $this->BackgroundSemi?"background-color:".$this->csemiwhite.";":""?>'>
             <?php if($use_stripe) echo $this->MakeSpecialStripe(); ?>
-            <div class='<?php echo ($novel_mode && !$this->GetEditMode())?"novel_content more_vertical_margin":""?>'>
+            <div class='<?php echo ($novel_mode && !$this->GetEditMode())?"novel_content more_vertical_margin":""?>' style='position:relative'>
         <?php
         }
     }
@@ -2530,7 +3124,7 @@ class LAManagement{
         }// not background
         ?>
                 
-                <div class="<?php echo $is_background?'box_complete_background':($expanded?'canvas_box_expanded':'canvas_box_warpper_wide')?>">
+                <div class="<?php echo $is_background?'box_complete_background':($expanded?'canvas_box_expanded':'canvas_box_wrapper_wide')?>">
                     <div class='canvas_box'>
                         <canvas id="<?php echo $id ?>">HTML5 Canvas</canvas>
                     </div>
@@ -3153,6 +3747,7 @@ class LAManagement{
             <h1><?php echo $this->FROM_ZH("设置中心"); ?></h1>
             <a id='ButtonWebsiteSettings' style='font-weight:bold'><?php echo $this->FROM_ZH("网站信息"); ?></a>
             <a id='Button301Settings'><?php echo $this->FROM_ZH("链接跳转项目"); ?></a>
+            <a id='ButtonMailSettings'><?php echo $this->FROM_ZH("站点邮件"); ?></a>
             <a id='ButtonAdminSettings'><?php echo $this->FROM_ZH("管理员"); ?></a>
             <div class='inline_height_spacer'></div>
             <div id='TabWebsiteSettings'>
@@ -3195,11 +3790,37 @@ class LAManagement{
                 <?php echo $this->FROM_ZH("自动重定向的链接"); ?>
                 <?php if(isset($this->List301)) foreach($this->List301 as $item){ ?>
                     <div>
-                        <div style='float:right;width:50%'>到&nbsp;<?php echo $item['to']; ?></div>
+                        <div style='float:right;width:50%'>>>>&nbsp;<?php echo $item['to']; ?></div>
                         <?php echo $item['from']; ?>
                     </div>
                 <?php } ?>
                 <a href='?page=la_config.md&operation=edit'>编辑la_config.md</a>&nbsp;以详细配置。
+            </div>
+            
+            <div id='TabMailSettings' style='display:none'>
+                <b><?php echo $this->FROM_ZH("站点邮件设置"); ?></b>
+                
+                <div id="wrap_settings_mail_host"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_mail_host' name='settings_mail_host' form='settings_form' value='<?php echo $this->MailHost ?>' />
+                <?php echo $this->FROM_ZH("SMTP发信主机"); ?></div>
+                <div id="wrap_settings_mail_port"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_mail_port' name='settings_mail_port' form='settings_form' value='<?php echo $this->MailPort ?>' />
+                <?php echo $this->FROM_ZH("端口"); ?></div>
+                <div id="wrap_settings_mail_user"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_mail_user' name='settings_mail_user' form='settings_form' value='<?php echo $this->MailUser ?>' />
+                <?php echo $this->FROM_ZH("发信邮箱"); ?></div>
+                <div id="wrap_settings_mail_password"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_mail_password' name='settings_mail_password' form='settings_form' value='<?php echo $this->MailPassword ?>' />
+                <?php echo $this->FROM_ZH("发信密码"); ?></div>
+                
+                <br /><b><?php echo $this->FROM_ZH("邮件标题"); ?></b>
+                <div id="wrap_settings_mail_title"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_mail_title' name='settings_mail_title' form='settings_form' value='<?php echo $this->MailTitle ?>' />
+                <?php echo $this->FROM_ZH("中文"); ?></div>
+                <div id="wrap_settings_mail_title_en"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_mail_title_en' name='settings_mail_title_en' form='settings_form' value='<?php echo $this->MailTitleEN ?>' />
+                <?php echo $this->FROM_ZH("English"); ?></div>
+                
+                <br /><b><?php echo $this->FROM_ZH("脚注"); ?></b>
+                <div id="wrap_settings_mail_foot"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_mail_foot' name='settings_mail_foot' form='settings_form' value='<?php echo $this->MailFoot ?>' />
+                <?php echo $this->FROM_ZH("中文"); ?></div>
+                <div id="wrap_settings_mail_foot_en"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_mail_foot_en' name='settings_mail_foot_en' form='settings_form' value='<?php echo $this->MailFootEN ?>' />
+                <?php echo $this->FROM_ZH("English"); ?></div>
+                
             </div>
             
             <div id='TabAdminSettings' style='display:none'>
@@ -3210,6 +3831,7 @@ class LAManagement{
                 <?php echo $this->FROM_ZH("重设管理账户名"); ?></div>
                 <div id="wrap_settings_admin_password"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_admin_password' name='settings_admin_password' form='settings_form' />
                 <?php echo $this->FROM_ZH("重设管理密码"); ?></div>
+                
             </div>
             
             <hr />
@@ -3219,36 +3841,54 @@ class LAManagement{
             <script>
                 var btn_website = document.getElementById("ButtonWebsiteSettings");
                 var btn_301 = document.getElementById("Button301Settings");
+                var btn_mail = document.getElementById("ButtonMailSettings");
                 var btn_admin = document.getElementById("ButtonAdminSettings");
                 var btn_task_normal = document.getElementById("ButtonTaskNormal");
                 var btn_task_invert = document.getElementById("ButtonTaskInvert");
                 var div_website = document.getElementById("TabWebsiteSettings");
                 var div_301 = document.getElementById("Tab301Settings");
+                var div_mail = document.getElementById("TabMailSettings");
                 var div_admin = document.getElementById("TabAdminSettings");
                 var field_task_invert = document.getElementById("settings_task_highlight_invert");
                 btn_website.addEventListener("click", function() {
                     div_website.style.cssText = 'display:block';
                     div_301.style.cssText = 'display:none';
+                    div_mail.style.cssText = 'display:none';
                     div_admin.style.cssText = 'display:none';
                     btn_website.style.cssText = 'font-weight:bold;';
                     btn_301.style.cssText = '';
+                    btn_mail.style.cssText = '';
                     btn_admin.style.cssText = '';
                 }); 
                 btn_301.addEventListener("click", function() {
                     div_website.style.cssText = 'display:none';
                     div_301.style.cssText = 'display:block';
+                    div_mail.style.cssText = 'display:none';
                     div_admin.style.cssText = 'display:none';
                     btn_website.style.cssText = '';
                     btn_301.style.cssText = 'font-weight:bold;';
+                    btn_mail.style.cssText = '';
                     btn_admin.style.cssText = '';
                 });
                 btn_admin.addEventListener("click", function() {
                     div_website.style.cssText = 'display:none';
                     div_301.style.cssText = 'display:none';
+                    div_mail.style.cssText = 'display:none';
                     div_admin.style.cssText = 'display:block';
                     btn_website.style.cssText = '';
                     btn_301.style.cssText = '';
+                    btn_mail.style.cssText = '';
                     btn_admin.style.cssText = 'font-weight:bold;';
+                });
+                btn_mail.addEventListener("click", function() {
+                    div_website.style.cssText = 'display:none';
+                    div_301.style.cssText = 'display:none';
+                    div_mail.style.cssText = 'display:block';
+                    div_admin.style.cssText = 'display:none';
+                    btn_website.style.cssText = '';
+                    btn_301.style.cssText = '';
+                    btn_mail.style.cssText = 'font-weight:bold;';
+                    btn_admin.style.cssText = '';
                 });
                 btn_task_normal.addEventListener("click", function() {
                     
@@ -3532,25 +4172,109 @@ class LAManagement{
         </div>
         <?php
     }
+    function IsNewsletterFolder($folder){
+        if(is_readable($folder.'/subscribers.md')) return 1;
+        return 0;
+    }
+    function ReadSubscribers($folder){
+        $name = $folder.'/subscribers.md';
+        $f = file_get_contents($name);
+        
+        preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}):[\s]*\[(.*)\][\s]*\[(.*)\][\s]*([^\s]*)\R\R/Uu", $f, $matches, PREG_SET_ORDER);
+        
+        $this->MailSubscribers = NULL;
+        
+        foreach ($matches as $match){
+            if($match[7]!='CONFIRMED')
+                continue;
+            $item = NULL;
+            $item['address']=$match[9];
+            $item['language']=$match[8];
+            $this->MailSubscribers[] = $item;
+        }
+        if($this->MailSubscribers==NULL) return 0;
+        return count($this->MailSubscribers);
+    }
+    function EditSubscriberLanguage($folder,$mail_address,$language){
+        $name = $folder.'/subscribers.md';
+        $f = file_get_contents($name);
+        $confirmed = 0;
+        
+        preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}):[\s]*\[(.*)\][\s]*\[(.*)\][\s]*([^\s]*)\R\R/Uu", $f, $matches, PREG_SET_ORDER); 
+        
+        $fi = fopen($name,'w');
+        foreach($matches as $match){
+            if($match[9]==$mail_address){
+                fwrite($fi,$this->CurrentTimeReadable().': ['.$match[7].'] ['.$language.'] '.$mail_address.PHP_EOL.PHP_EOL);
+                $confirmed = 1;
+                continue;
+            }
+            fwrite($fi, $match[0]);
+        }
+        return $confirmed;
+    }
+    function ConfirmSubscriber($folder,$mail_address,$id,$remove_entry){
+        $name = $folder.'/subscribers.md';
+        $f = file_get_contents($name);
+        $confirmed = 0;
+        
+        preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}):[\s]*\[(.*)\][\s]*\[(.*)\][\s]*([^\s]*)\R\R/Uu", $f, $matches, PREG_SET_ORDER); 
+        
+        $fi = fopen($name,'w');
+        foreach($matches as $match){
+            if($match[9]==$mail_address && (!isset($id) || ($id==$match[7]))){
+                if($remove_entry){
+                    continue;
+                }else{
+                    fwrite($fi,$this->CurrentTimeReadable().': [CONFIRMED] ['.$match[8].'] '.$mail_address.PHP_EOL.PHP_EOL);
+                }
+                $confirmed = 1;
+                continue;
+            }
+            fwrite($fi, $match[0]);
+        }
+        return $confirmed;
+    }
     function MakePassageEditButtons(){
         ob_start();
         $path = $this->InterlinkPath();
         $this->GetFileNameDateFormat($this->PagePath,$y,$m,$d,$is_draft);
         ?>
-        <div class='hidden_on_print' style='float:right;z-index:1;text-align:right;'>
-            <a href="?page=<?php echo $this->PagePath ?>&operation=additional">附加</a>
-            <a href="?page=<?php echo $this->PagePath;?>&operation=edit"><b>编辑</b></a>
-            <div class='block_height_spacer'></div>
-            <?php if ($is_draft){ ?>
-                <a href="?page=<?php echo $this->PagePath ?>&set_draft=0">设为公开</a>
-            <?php }else{ ?> 
-                <a href="?page=<?php echo $this->PagePath ?>&set_draft=1">设为草稿</a>
-            <?php } ?>
-            <div class='block_height_spacer'></div>
-            <?php if ($this->IsPathUpdated($this->PagePath)){ ?>
-                <a href="?page=<?php echo $this->PagePath ?>&mark_update=0">标记旧文</a>
-            <?php }else{ ?> 
-                <a href="?page=<?php echo $this->PagePath ?>&mark_update=1">标记更新</a>
+        <div class='hidden_on_print' style='text-align:right; z-index:1; position: absolute; right:0px; margin-top: -15px;'>
+            <div id='passage_edit_normal'>
+                <?php if ($is_draft){ ?>
+                    <a href="?page=<?php echo $this->PagePath ?>&set_draft=0&translation=disabled">设为公开</a>
+                <?php }else{ ?> 
+                    <a href="?page=<?php echo $this->PagePath ?>&set_draft=1&translation=disabled">设为草稿</a>
+                <?php } ?>
+                <?php if ($this->IsPathUpdated($this->PagePath)){ ?>
+                    <a href="?page=<?php echo $this->PagePath ?>&mark_update=0&translation=disabled">标记旧文</a>
+                <?php }else{ ?> 
+                    <a href="?page=<?php echo $this->PagePath ?>&mark_update=1&translation=disabled">标记更新</a>
+                <?php } ?>
+                <a href="?page=<?php echo $this->PagePath ?>&operation=additional">附加</a>
+                &nbsp;
+                <a href="?page=<?php echo $this->PagePath;?>&operation=edit"><b>编辑</b></a>
+            </div>
+            <?php if ($this->IsNewsletterFolder($this->InterlinkPath())){
+                $SubCount = $this->ReadSubscribers($this->InterlinkPath());
+                if($SubCount){ ?>
+                    <div id='passage_edit_sender' style='display:none;'>
+                        全部发送需要一些时间
+                        <a href="?page=<?php echo $this->PagePath;?>&send_newsletter=run&folder=<?php echo $this->InterlinkPath(); ?>"><b>立即发送</b></a>
+                    </div>
+                    <div class="block_height_spacer"></div>
+                    <a onclick="toggle_newsletter_sender();">为 <?php echo $SubCount; ?> 个订阅者发送这篇新闻</a>
+                    <script>
+                        function toggle_newsletter_sender(){
+                            normal = document.getElementById("passage_edit_normal");
+                            sender = document.getElementById("passage_edit_sender");
+                            disp = sender.style.display;
+                            sender.style.display = disp=="block"?"none":"block";
+                            normal.style.display = disp=="block"?"block":"none";
+                        }
+                    </script>
+                <?php } ?>
             <?php } ?>
         </div>
         <?php
@@ -3700,13 +4424,13 @@ class LAManagement{
                 if(text_area.innerHTML == "<?php echo $this->FROM_ZH("在这里编写您的文章。"); ?>"){
                     count.innerHTML="空文件";
                 }else{
-                    count.innerHTML='<b>'+text_area.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
+                    count.innerHTML='<b>'+text_area.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/#+-=_@#$%^\*&()|<>\[\]\{\}\`（）—…]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
                 }   
                 text_area.addEventListener("input",function(){
                     if(this.innerHTML == "<?php echo $this->FROM_ZH("在这里编写您的文章。"); ?>"){
                         count.innerHTML="空文件";
                     }else{
-                        count.innerHTML='<b>'+this.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
+                        count.innerHTML='<b>'+this.value.replace(/\w+/g, "a").replace(/[\ \r\n,.;:"'~?!，。：；‘’“”～？！、\/#+-=_@#$%^\*&()|<>\[\]\{\}\`（）—…]/g, "").length+" <?php echo $this->FROM_ZH('个字').'</b>, '.$this->FROM_ZH('长度')?> "+text_area.value.length;
                     }
                 });
 
@@ -3920,6 +4644,13 @@ class LAManagement{
         </div>
         <?php
     }
+    function FolderIsPublic($full_path){
+        if(!isset($this->PrivateFolderList[0])) return true;
+        foreach($this->PrivateFolderList as $private){
+            if(preg_match('%'.$private.'%', $full_path)) return false;
+        }
+        return true;
+    }
     function MakeFolderHeader(){
         $additional_mode = (isset($_GET['action']) && $_GET['action']=='view');
         $move_mode = isset($_GET['moving'])||$additional_mode;
@@ -3928,7 +4659,7 @@ class LAManagement{
         $path = $this->InterlinkPath();
         $upper='.';
         if($path!='.')$upper = $this->GetInterlinkPath('..');
-        $permission = $this->PermissionForSingleFolder($path);
+        $permission = $this->FolderIsPublic($path);
         $display_as = $this->FolderDisplayAs($path);
         $novel_mode = $this->FolderNovelMode($path);
         $show_list  = $this->FolderShowListButton($path);
@@ -3955,9 +4686,10 @@ class LAManagement{
                     <div id='upload_dialog' style='display:none'>
                         <div class='inline_height_spacer'></div>
                         <form method = "post" enctype="multipart/form-data" style='display:inline;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=list';?>" id="form_upload">
-                            <div><?php echo $this->FROM_ZH('选择要上传的文件') ?></div>
-                            <div class='inline_block_height_spacer'></div>
-                            <input class="string_input title_string" type="file" id="NewFileName" name="upload_file_name" form="form_upload">
+                            <label for="upload_file_name">
+                                <div id='file_name_display' class='btn'><?php echo $this->FROM_ZH('选择要上传的文件') ?></div>
+                                <input type="file" id="upload_file_name" name="upload_file_name" form="form_upload" style="display:none;" />
+                            </label>
                             <input class="btn form_btn" type="submit" value="确定" name="button_upload" form="form_upload" id='upload_confirm'>
                         </form>
                     </div>
@@ -4010,6 +4742,13 @@ class LAManagement{
                         var permission_dialog = document.getElementById("permission_dialog");
                         var static_gen_btn = document.getElementById("StaticGeneratorButton");
                         var static_gen_dialog = document.getElementById("StaticGeneratorDialog");
+                        var file_name_disp = document.getElementById("file_name_display");
+                        var upload_file_name = document.getElementById("upload_file_name");
+                        
+                        upload_file_name.addEventListener("change", function() {
+                            file_name_disp.innerHTML = this.value.split('\\').pop();
+                        }); 
+                        
                         new_folder.addEventListener("click", function() {
                             var disp = new_folder_dialog.style.display;
                             upload_dialog.style.cssText = 'display:none';
@@ -4383,6 +5122,32 @@ class LAManagement{
         }
     }
     
+    function SendMail($to_list, $subject, $content, $override_host, $override_port, $override_user, $override_password){
+        $host = isset($override_host)?$override_host:$this->MailHost;
+        $port = isset($override_port)?$override_port:$this->MailPort;
+        $user = isset($override_user)?$override_user:$this->MailUser;
+        $pass = isset($override_pass)?$override_pass:$this->MailPassword;
+        
+        if(!isset($host) || $host == "") return 0;
+        
+        $mail = new Email($host, $port);
+        $mail->setLogin($user, $pass);
+        foreach ($to_list as $to){
+            $mail->addTo($to);
+        }
+        $mail->setFrom($user);
+        $mail->setSubject($subject);
+        $mail->setHtmlMessage($content);
+
+        if($mail->send(10)){
+            $this->MailSendResults[] = $mail->getSendResult();
+            return 1;
+        } else {
+            $this->MailSendResults[] = $mail->getSendResult();
+            return 0;
+        }
+    }
+    
     function MakeAdditionalHeader(){
         $path = $this->InterlinkPath();
         $additional_disp = $this->GetAdditionalDisplayData();
@@ -4575,6 +5340,39 @@ class LAManagement{
         
         fclose($fi);
     }
+    function AddSubscriberEntry($folder,$content,$lang){
+        $name = $folder.'/subscribers.md';
+        $f=null;
+        $matches=null;
+        $found = 0;
+        $unique_id = NULL;
+        if(file_exists($name) && is_readable($name)){
+            $f = file_get_contents($name);
+        }else{
+            $fi = fopen($name,'w');
+            fclose($fi);
+            $f='';
+        }
+        
+        $content = preg_replace('/\n/U','  ',$content);
+        
+        preg_match_all("/([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}):[\s]*\[(.*)\][\s]*\[(.*)\][\s]*([^\s]*)\R\R/Uu", $f, $matches, PREG_SET_ORDER); 
+        
+        $fi = fopen($name,'w');
+        foreach($matches as $match){
+            if(!$found && $match[9]==$content){
+                $found = 1;
+                $this->SubscriberIDExisting = $match[7];
+            }
+            fwrite($fi, $match[0]);
+        }
+        if(!$found){
+            $unique_id = uniqid("LA_");
+            fwrite($fi,$this->CurrentTimeReadable().': ['.$unique_id.'] ['.$lang.'] '.$content.PHP_EOL.PHP_EOL);
+        }
+        fclose($fi);
+        return $unique_id;
+    }
     function MakeCenterContainerBegin(){
     ?>
         <div class='center_container'>
@@ -4656,12 +5454,12 @@ class LAManagement{
             <?php if($show_quick_post && $this->IsLoggedIn()){?>
                 <form method = "post" style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&quote_quick='.$folder;?>" id='form_passage'></form>
                 <textarea type='text' class='quick_post_string under_border' form='form_passage' id='data_small_quote_content' name='data_small_quote_content'
-                          onfocus="if (value =='小声哔哔…'){value =''} la_enter_block_editing(this);"onblur="if (value ==''){value='小声哔哔…';la_auto_grow(this);} la_exit_block_editing(this);"
-                          oninput="la_auto_grow(this)">小声哔哔…</textarea>
+                          onfocus="if (value =='<?php echo $this->FROM_ZH("小声哔哔…"); ?>'){value =''} la_enter_block_editing(this);"onblur="if (value ==''){value='<?php echo $this->FROM_ZH("小声哔哔…"); ?>';la_auto_grow(this);} la_exit_block_editing(this);"
+                          oninput="la_auto_grow(this)"><?php echo $this->FROM_ZH("小声哔哔…"); ?></textarea>
                 <div class='block_height_spacer'></div>
 
                 <div style='float:right;'>
-                    <input class='btn' type="submit" value="大声宣扬" name="button_new_quote" form='form_passage' />
+                    <input class='btn' type="submit" value="<?php echo $this->FROM_ZH("大声宣扬"); ?>" name="button_new_quote" form='form_passage' />
                 </div>
                 <script>la_auto_grow(document.getElementById("data_small_quote_content"));</script>
             <?php } ?>
@@ -4973,7 +5771,7 @@ class LAManagement{
             $folder = $this->InterlinkPath();
         }
         ?>
-        <div class='main_content' style='overflow:auto;'>
+        <div class='main_content'>
             <?php if(isset($have_delayed)&&$have_delayed){ ?>
                 <div style="float:right; position:relative; z-index:5;" >
                     <table style="text-align:center;table-style:fixed;"><tr>
@@ -5113,13 +5911,72 @@ class LAManagement{
         </script>
         <?php
     }
-    
+    function MakeMailSubscribeBox($folder,$title,$more){
+        if(!isset($title)) $title = $this->FROM_ZH("新闻稿");
+        $subs = $folder.'/subscribers.md';
+        ?>
+            <div class='main_content' style='overflow:auto;'>
+                <div>
+                    <b><?php echo $title; ?></b>
+                    <div style='float:right;'>
+                        <a href='?page=<?php echo $folder; ?>'><?php echo $this->FROM_ZH("过往新闻稿"); ?></a>
+                    </div>
+                </div>
+                <?php if(isset($more) && $more!=''){ ?>
+                    <p><?php echo $more; ?></p>
+                <?php } ?>
+                <div>
+                    <script>
+                        function la_do_mail_validation(area){
+                            area.value = area.value.toLowerCase();
+                            val = document.getElementById("mail_validation_string");
+                            btn = document.getElementById("button_new_subscriber");
+                            if(area.value.match(/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/)){
+                                val.innerHTML = "";
+                                btn.removeAttribute("disabled");
+                            }else{
+                                val.innerHTML = "<?php echo $this->FROM_ZH("不正确的邮件格式"); ?>";
+                                btn.setAttribute("disabled",true);
+                            }
+                        }
+                        function la_mail_validation_blur(){
+                            val = document.getElementById("mail_validation_string");
+                            val.innerHTML = "";
+                        }
+                    </script>
+                    <form method = "post" style='display:none;' action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&subscribe_quick='.$folder.'&title='.$title.'&subscribe_language='.(isset($this->LanguageAppendix)?$this->LanguageAppendix:"zh");?>" id='form_subscribe'></form>
+                    <textarea type='text' class='quick_post_string under_border' form='form_subscribe' id='data_subscriber_content' name='data_subscriber_content'
+                              onfocus="la_mail_validation_blur(); if (value =='<?php echo $this->FROM_ZH("在这里填写您的邮箱"); ?>'){value =''} la_enter_block_editing(this);"onblur="if (value ==''){value='<?php echo $this->FROM_ZH("在这里填写您的邮箱"); ?>';la_auto_grow(this);}la_mail_validation_blur();la_exit_block_editing(this);"
+                              oninput="la_auto_grow(this); la_do_mail_validation(this);"><?php echo $this->FROM_ZH("在这里填写您的邮箱"); ?></textarea>
+                    <div class='block_height_spacer'></div>
+                    <input class='btn' type="submit" disabled="true" value="<?php echo $this->FROM_ZH("订阅"); ?>" name="button_new_subscriber" id='button_new_subscriber' form='form_subscribe' />
+                    <span id='mail_validation_string'></span>
+                    <script>la_auto_grow(document.getElementById("data_subscriber_content"));</script>
+                </div>
+            </div>
+        <?php
+    }
+    function FilterOutPreservedFiles($name_list){
+        $result=[];
+        foreach($name_list as $item){
+            if (preg_match("/subscribers\.md/",$item) ||
+                preg_match("/index.*\.md/",$item) ||
+                preg_match("/la_config\.md/",$item)){
+                    continue;
+                }
+            $result[] = $item;
+        }
+        return $result;
+    }
     function MakeAdditionalContent($folder,$position,$filter_season){
         if(!isset($folder)){
             $ad = $this->GetAdditionalDisplayData();
             $this->Additional = $ad;
             if(!isset($ad[0])) return;
         }else{
+            if(!($this->IsLoggedIn() || $this->FolderIsPublic($folder))){
+                return;
+            }
             $aa['path'] = $folder;
             $aa['style'] = 3;
             $aa['complete'] = 1;
@@ -5137,13 +5994,20 @@ class LAManagement{
             <div class='gallery_right'>
         <?php
         }
-
+        
+        $additional_i = 0;
+        $used_path = [];
         foreach($ad as $a){
+            $additional_i++;
             $this->FileNameList=[];
             $path = $a['path'];
+            if(!($this->IsLoggedIn() || ($this->FolderIsPublic($path)))){
+                if(!(isset($a['style']) && ($a['style']==6)))
+                    continue;
+            }
             $current_dir = opendir($path);
             while(($file = readdir($current_dir)) !== false) {
-                if (isset($a['style']) && $a['style']==4) break;
+                if (isset($a['style']) && ($a['style']==4||$a['style']==6)) break;
                 $sub_dir = $path . '/' . $file;
                 if($file == '.' || $file == '..' || $file=='index.md') {
                     continue;
@@ -5159,9 +6023,13 @@ class LAManagement{
                 }
             }
             if($this->FileNameList)     sort($this->FileNameList);
-            $this->FileNameList = array_reverse($this->FileNameList);
+            $this->FileNameList = $this->FilterOutPreservedFiles(array_reverse($this->FileNameList));
             
             $novel_mode = $this->FolderNovelMode($a['path']);
+            
+            ?>
+            <div style="position:relative">
+            <?php
             
             if(isset($folder)){
                 $prev_page=0;
@@ -5210,117 +6078,151 @@ class LAManagement{
             ?>
                 <div style='text-align:right;'>
                     <div class = 'additional_options'>
-                        附加显示 <?php echo $path?>&nbsp;
-                        <div class='btn' id='additional_options_btn_<?php echo $path?>'>选项</div>
-                        <div style='display:none' id='additional_options_dialog_<?php echo $path?>'>
-                            <div class='inline_height_spacer'></div>
-                            显示为：
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=0"?>'><?php echo $a['style']==0?"<b>项</b>":"项"?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=2"?>'><?php echo $a['style']==2?"<b>图</b>":"图"?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=1"?>'><?php echo $a['style']==1?"<b>块</b>":"块"?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=3"?>'><?php echo $a['style']==3?"<b>写</b>":"写"?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=4"?>'><?php echo $a['style']==4?"<b>说</b>":"说"?></a>
-                            <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=5"?>'><?php echo $a['style']==5?"<b>做</b>":"做"?></a>
-                            <div class='inline_height_spacer'></div>
-                            <?php if($a['style']==0 || $a['style']==1 || $a['style']==2 || $a['style']==3){ ?>
-                                最近篇目数量：
+                        <?php echo $this->FROM_ZH("附加显示"); ?> <?php echo $path?>&nbsp;
+                        <?php if(!in_array($path,$used_path)){ 
+                            $used_path[] = $path;
+                            ?>
+                            <div class='btn' id='additional_options_btn_<?php echo $additional_i?>'><?php echo $this->FROM_ZH("选项"); ?></div>
+                            <div style='display:none' id='additional_options_dialog_<?php echo $additional_i?>'>
+                                <div class='inline_height_spacer'></div>
+                                <?php echo $this->FROM_ZH("显示为"); ?>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=0"?>'><?php echo $a['style']==0?"<b>项</b>":"项"?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=2"?>'><?php echo $a['style']==2?"<b>图</b>":"图"?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=1"?>'><?php echo $a['style']==1?"<b>块</b>":"块"?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=3"?>'><?php echo $a['style']==3?"<b>写</b>":"写"?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=4"?>'><?php echo $a['style']==4?"<b>说</b>":"说"?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=5"?>'><?php echo $a['style']==5?"<b>做</b>":"做"?></a>
+                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_style&for=".$this->PagePath."&target=".$path."&style=6"?>'><?php echo $a['style']==6?"<b>订</b>":"订"?></a>
+                                <div class='inline_height_spacer'></div>
+                                <?php if($a['style']==0 || $a['style']==1 || $a['style']==2 || $a['style']==3){ ?>
+                                    <?php echo $this->FROM_ZH("最近篇目数量"); ?>
+                                    <form method = "post" style='display:inline;' 
+                                    action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_count&for='.$this->PagePath.'&target='.$path?>"
+                                    id="form_additional_count<?php echo $additional_i?>">
+                                        <input class="string_input no_horizon_margin title_string" style='width:4em;' type="text" value="<?php echo $a['count'] ?>" id="display_count_<?php echo $additional_i?>" name="display_count" form="form_additional_count<?php echo $additional_i?>">
+                                        <input class="btn form_btn" type="submit" value="<?php echo $this->FROM_ZH("应用"); ?>" name="button_additional_count_confirm" form="form_additional_count<?php echo $additional_i?>" id='additional_count_confirm_<?php echo $additional_i?>'>
+                                    </form>
+                                    <div class='inline_height_spacer'></div>
+                                <?php }else if($a['style']==5){ 
+                                    $cc = $a['count'];?>
+                                    <?php echo $this->FROM_ZH("显示"); ?>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=1"?>'><?php echo $cc==1?'<b>1</b>':'1'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=2"?>'><?php echo $cc==2?'<b>2</b>':'2'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=3"?>'><?php echo $cc==3?'<b>3</b>':'3'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=7"?>'><?php echo $cc==7?'<b>7</b>':'7'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=14"?>'><?php echo $cc==14?'<b>14</b>':'14'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=30"?>'><?php echo $cc==30?'<b>30</b>':'30'?></a>
+                                    <?php echo $this->FROM_ZH("天内完成的"); ?>
+                                    <div class='inline_height_spacer'></div>
+                                <?php } ?>
+                                <?php echo $this->FROM_ZH("区域标题"); ?>
                                 <form method = "post" style='display:inline;' 
-                                action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_count&for='.$this->PagePath.'&target='.$path?>"
-                                id="form_additional_count<?php echo $path?>">
-                                    <input class="string_input no_horizon_margin title_string" style='width:4em;' type="text" value="<?php echo $a['count'] ?>" id="display_count_<?php echo $path?>" name="display_count" form="form_additional_count<?php echo $path?>">
-                                    <input class="btn form_btn" type="submit" value="设置" name="button_additional_count_confirm" form="form_additional_count<?php echo $path?>" id='additional_count_confirm_<?php echo $path?>'>
+                                action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_title&for='.$this->PagePath.'&target='.$path?>"
+                                id="form_additional_title<?php echo $additional_i?>">
+                                    <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['title'])?$a['title']:'') ?>" id="display_title_<?php echo $additional_i?>" name="display_title" form="form_additional_title<?php echo $additional_i?>">
+                                    <input class="btn form_btn" type="submit" value="<?php echo $this->FROM_ZH("应用"); ?>" name="button_additional_title_confirm" form="form_additional_title<?php echo $additional_i?>" id='additional_title_confirm_<?php echo $additional_i?>'>
                                 </form>
-                                <div class='inline_height_spacer'></div>
-                            <?php }else if($a['style']==5){ 
-                                $cc = $a['count'];?>
-                                显示
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=1"?>'><?php echo $cc==1?'<b>1</b>':'1'?></a>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=2"?>'><?php echo $cc==2?'<b>2</b>':'2'?></a>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=3"?>'><?php echo $cc==3?'<b>3</b>':'3'?></a>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=7"?>'><?php echo $cc==7?'<b>7</b>':'7'?></a>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=14"?>'><?php echo $cc==14?'<b>14</b>':'14'?></a>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_item_count&for=".$this->PagePath."&target=".$path."&count=30"?>'><?php echo $cc==30?'<b>30</b>':'30'?></a>
-                                天内完成的
-                                <div class='inline_height_spacer'></div>
-                            <?php } ?>
-                            区域标题：
-                            <form method = "post" style='display:inline;' 
-                            action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_title&for='.$this->PagePath.'&target='.$path?>"
-                            id="form_additional_title<?php echo $path?>">
-                                <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['title'])?$a['title']:'') ?>" id="display_title_<?php echo $path?>" name="display_title" form="form_additional_title<?php echo $path?>">
-                                <input class="btn form_btn" type="submit" value="设置" name="button_additional_title_confirm" form="form_additional_title<?php echo $path?>" id='additional_title_confirm_<?php echo $path?>'>
-                            </form>
-                            <?php if($a['style']==1 || $a['style']==2){ ?>
-                                <div class='inline_height_spacer'></div>
-                                <?php $cc = $a['column']?$a['column']:4?>
-                                方块列数量：
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=1"?>'><?php echo $cc==1?'<b>1</b>':'1'?></a>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=2"?>'><?php echo $cc==2?'<b>2</b>':'2'?></a>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=3"?>'><?php echo $cc==3?'<b>3</b>':'3'?></a>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=4"?>'><?php echo $cc==4?'<b>4</b>':'4'?></a>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=5"?>'><?php echo $cc==5?'<b>5</b>':'5'?></a>
-                            <?php } ?>
-                            
-                            <?php if($a['style']==3){?>
-                            
-                                <div class='inline_height_spacer'></div>
-                                时间线列表按钮：
-                                <form method = "post" style='display:inline;' 
-                                action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_more_title&for='.$this->PagePath.'&target='.$path?>"
-                                id="form_additional_more_title<?php echo $path?>">
-                                    <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['more'])?$a['more']:'') ?>" id="display_more_title_<?php echo $path?>" name="display_more_title" form="form_additional_more_title<?php echo $path?>">
-                                    <input class="btn form_btn" type="submit" value="设置" name="button_additional_more_title_confirm" form="form_additional_more_title<?php echo $path?>" id='button_additional_more_title_confirm<?php echo $path?>'>
-                                </form>
-                            <?php if(isset($a['quick_post']) && $a['quick_post']==1){ ?>
-                                <div class='inline_height_spacer'></div>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=0"?>'>关闭快速发帖</a>
-                            <?php }else if(!isset($a['quick_post']) || $a['quick_post']==0){?>
-                                <div class='inline_height_spacer'></div>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=1"?>'>启用快速发帖</a>
-                            <?php }?>
-                            <?php if(isset($a['complete']) && $a['complete']!=0){?>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_complete&for=".$this->PagePath."&target=".$path."&complete=0"?>'>改显示为摘要</a>
-                            <?php }else if(!isset($a['complete']) || $a['complete']==0){?>
-                                <a href='?page=<?php echo $this->PagePath."&operation=set_additional_complete&for=".$this->PagePath."&target=".$path."&complete=1"?>'>改显示为全文</a>
-                            <?php }?>
-                            <?php }?>
-                            
-                            <?php if($a['style']==4 || $a['style']==5){?>
-                                <div class='inline_height_spacer'></div>
-                                时间线列表按钮：
-                                <form method = "post" style='display:inline;' 
-                                action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_more_title&for='.$this->PagePath.'&target='.$path?>"
-                                id="form_additional_more_title<?php echo $path?>">
-                                    <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['more'])?$a['more']:'') ?>" id="display_more_title_<?php echo $path?>" name="display_more_title" form="form_additional_more_title<?php echo $path?>">
-                                    <input class="btn form_btn" type="submit" value="设置" name="button_additional_more_title_confirm" form="form_additional_more_title<?php echo $path?>" id='button_additional_more_title_confirm<?php echo $path?>'>
-                                </form>
+                                <?php if($a['style']==1){ ?>
+                                    <div class='inline_height_spacer'></div>
+                                    <?php $cc = $a['column']?$a['column']:4?>
+                                    <?php echo $this->FROM_ZH("方块列数量"); ?>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=1"?>'><?php echo $cc==1?'<b>1</b>':'1'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=2"?>'><?php echo $cc==2?'<b>2</b>':'2'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=3"?>'><?php echo $cc==3?'<b>3</b>':'3'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=4"?>'><?php echo $cc==4?'<b>4</b>':'4'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=5"?>'><?php echo $cc==5?'<b>5</b>':'5'?></a>
+                                <?php } ?>
+                                
+                                <?php if($a['style']==2){ ?>
+                                    <div class='inline_height_spacer'></div>
+                                    <?php $cc = $a['column']?$a['column']:10?>
+                                    <?php echo $this->FROM_ZH("一行的照片数"); ?>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=3"?>'><?php echo $cc==3?'<b>3</b>':'3'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=5"?>'><?php echo $cc==5?'<b>5</b>':'5'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=8"?>'><?php echo $cc==8?'<b>8</b>':'8'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=10"?>'><?php echo $cc==10?'<b>10</b>':'10'?></a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_column_count&for=".$this->PagePath."&target=".$path."&column_count=15"?>'><?php echo $cc==15?'<b>15</b>':'15'?></a>
+                                <?php } ?>
+                                
+                                <?php if($a['style']==3){?>
+                                
+                                    <div class='inline_height_spacer'></div>
+                                    <?php echo $this->FROM_ZH("时间线列表按钮"); ?>
+                                    <form method = "post" style='display:inline;' 
+                                    action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_more_title&for='.$this->PagePath.'&target='.$path?>"
+                                    id="form_additional_more_title<?php echo $additional_i?>">
+                                        <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['more'])?$a['more']:'') ?>" id="display_more_title_<?php echo $additional_i?>" name="display_more_title" form="form_additional_more_title<?php echo $additional_i?>">
+                                        <input class="btn form_btn" type="submit" value="<?php echo $this->FROM_ZH("应用"); ?>" name="button_additional_more_title_confirm" form="form_additional_more_title<?php echo $additional_i?>" id='button_additional_more_title_confirm<?php echo $additional_i?>'>
+                                    </form>
                                 <?php if(isset($a['quick_post']) && $a['quick_post']==1){ ?>
                                     <div class='inline_height_spacer'></div>
-                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=0"?>'>关闭快速发帖</a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=0"?>'><?php echo $this->FROM_ZH("关闭快速发帖"); ?></a>
                                 <?php }else if(!isset($a['quick_post']) || $a['quick_post']==0){?>
                                     <div class='inline_height_spacer'></div>
-                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=1"?>'>启用快速发帖</a>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=1"?>'><?php echo $this->FROM_ZH("启用快速发帖"); ?></a>
                                 <?php }?>
-                            <?php }?>
-                        </div>
-                    </div>
-                    
+                                <?php if(isset($a['complete']) && $a['complete']!=0){?>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_complete&for=".$this->PagePath."&target=".$path."&complete=0"?>'><?php echo $this->FROM_ZH("改显示为摘要"); ?></a>
+                                <?php }else if(!isset($a['complete']) || $a['complete']==0){?>
+                                    <a href='?page=<?php echo $this->PagePath."&operation=set_additional_complete&for=".$this->PagePath."&target=".$path."&complete=1"?>'><?php echo $this->FROM_ZH("改显示为全文"); ?></a>
+                                <?php }?>
+                                <?php }?>
+                                
+                                <?php if($a['style']==4 || $a['style']==5){?>
+                                    <div class='inline_height_spacer'></div>
+                                    <?php echo $this->FROM_ZH("时间线列表按钮"); ?>
+                                    <form method = "post" style='display:inline;' 
+                                    action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_more_title&for='.$this->PagePath.'&target='.$path?>"
+                                    id="form_additional_more_title<?php echo $additional_i?>">
+                                        <input class="string_input no_horizon_margin title_string" type="text" value="<?php echo (isset($a['more'])?$a['more']:'') ?>" id="display_more_title_<?php echo $additional_i?>" name="display_more_title" form="form_additional_more_title<?php echo $additional_i?>">
+                                        <input class="btn form_btn" type="submit" value="<?php echo $this->FROM_ZH("应用"); ?>" name="button_additional_more_title_confirm" form="form_additional_more_title<?php echo $additional_i?>" id='button_additional_more_title_confirm<?php echo $additional_i?>'>
+                                    </form>
+                                    <?php if(isset($a['quick_post']) && $a['quick_post']==1){ ?>
+                                        <div class='inline_height_spacer'></div>
+                                        <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=0"?>'><?php echo $this->FROM_ZH("关闭快速发帖"); ?></a>
+                                    <?php }else if(!isset($a['quick_post']) || $a['quick_post']==0){?>
+                                        <div class='inline_height_spacer'></div>
+                                        <a href='?page=<?php echo $this->PagePath."&operation=set_additional_quick_post&for=".$this->PagePath."&target=".$path."&quick=1"?>'><?php echo $this->FROM_ZH("启用快速发帖"); ?></a>
+                                    <?php }?>
+                                <?php }?>
+                                
+                                <?php if($a['style']==6){?>
+                                
+                                    <div class='inline_height_spacer'></div>
+                                    <?php echo $this->FROM_ZH("描述文字"); ?>
+                                    <div class='inline_block_height_spacer'></div>
+                                    <form method = "post" style='display:inline;' 
+                                    action="<?php echo $_SERVER['PHP_SELF'].'?page='.$this->PagePath.'&operation=set_additional_more_title&for='.$this->PagePath.'&target='.$path?>"
+                                    id="form_additional_more_title<?php echo $additional_i?>">
+                                        <textarea class="quick_post_string under_border" onInput="la_auto_grow(this);" style="text-align:right;" id="display_more_title_<?php echo $additional_i?>" name="display_more_title" form="form_additional_more_title<?php echo $path?>"><?php echo (isset($a['more'])?$a['more']:'') ?></textarea>
+                                        <div class='inline_block_height_spacer'></div>
+                                        <input class="btn form_btn" type="submit" value="<?php echo $this->FROM_ZH("应用"); ?>" name="button_additional_more_title_confirm" form="form_additional_more_title<?php echo $additional_i?>" id='button_additional_more_title_confirm<?php echo $additional_i?>'>
+                                    </form>
+                                <?php } ?>
+                                </div>
+                           
+                         <?php } ?>
+                         </div>
                     <script>
-                        var btn = document.getElementById("additional_options_btn_<?php echo $path?>");
+                        var btn = document.getElementById("additional_options_btn_<?php echo $additional_i?>");
                         btn.addEventListener("click", function() {
-                            var options_dialog = document.getElementById("additional_options_dialog_<?php echo $path?>");
+                            var options_dialog = document.getElementById("additional_options_dialog_<?php echo $additional_i?>");
                             var disp = options_dialog.style.display;
                             options_dialog.style.cssText = disp=='none'?'display:block':'display:none';
+                            <?php if($a['style']==6){ ?>
+                                elem = document.getElementById("display_more_title_<?php echo $additional_i; ?>");
+                                la_auto_grow(elem);
+                            <?php } ?>
                         });
                     </script>
                 </div>
             <?php
             }
             
-            if(isset($a['title']) && $a['title']!='' && $a['style']!=4){
+            if(isset($a['title']) && $a['title']!='' && $a['style']!=4 && $a['style']!=2 && $a['style']!=6){
                 ?>
                 <div class='block_height_spacer'>&nbsp;</div>
-                <div class='narrow_content'>
+                <div class='narrow_content' <?php echo isset($a['style'])&&$a['style']!=3?"style='position:sticky; top:80px; z-index:1;'":""; ?>>
                     <b><?php echo $a['title'] ?></b>
                     <div style="float:right;">
                     <?php if($this->IsLoggedIn()){ ?>
@@ -5379,29 +6281,48 @@ class LAManagement{
                 }
                 ?></div><?php
             }else if (isset($a['style']) && $a['style']==2){
-                $cc = $a['column']?$a['column']:4;
-                ?><div class='tile_container'><?php
+                if($a['count']==0) break;
+                $cc = $a['column']?$a['column']:10;
                 $i=0;$j=0;
+                ?>
+                <div class='main_content'>
+                <div>
+                    <table style='table-layout:fixed;'><tbody>
+                    <td><?php echo $a['title'] ?></td>
+                    <td style="text-align:right;"><u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<i><?php echo $this->FROM_ZH("那么的"); ?></i></u><i><b><?php echo $this->FROM_ZH("相册"); ?></b></i></td>
+                    </tbody></table>
+                    <div class='inline_height_spacer'></div>
+                </div>
+                <div class='image_tile'><?php
                 if (isset($this->FileNameList[0])) foreach ($this->FileNameList as $f){
                     ?>
-                    <div class='tile_content tile_item <?php echo$cc==1?"":"gallery_multi_height" ?>' style='max-height:unset;'>
-                        <?php if($cc==1){ ?>
-                            <img src='<?php echo $path.'/'.$f?>' style='max-width:100%;'></img>
-                        <?php }else{ ?> 
-                            <div class='gallery_multi_content'>
-                            <img src='<?php echo $path.'/'.$f?>' class='gallery_image'></img>
-                            </div>
-                        <?php } ?>
+                    <div class="gallery_image_wrapper">
+                    <div class="gallery_image_inner">
+                        <img src='<?php echo $path.'/'.$f?>' class='gallery_image' />
+                    </div>
                     </div>
                     <?php
                     $i++;$j++;
-                    if($j>=$a['count']) break;
                     if($i>=$cc){
-                        ?><div style='display: table-row;'></div><?php
+                        if($j>=$a['count']) break;
+                        else { ?><div style='display:table-row;'></div><?php }
                         $i=0;
                     } 
                 }
-                ?></div><?php
+                if($j<$a['column']-1){
+                    for($j; $j<$a['column']; $j++){
+                        ?>
+                        <div class="gallery_image_wrapper">
+                        <div class="gallery_image_inner">
+                            
+                        </div>
+                        </div>
+                        <?php
+                    }
+                }
+                ?>
+                </div>
+                </div><?php
             }else if (isset($a['style']) && $a['style']==3){
                 if($this->IsLoggedIn() && isset($a['quick_post']) && $a['quick_post']!=0){
                     ?>
@@ -5435,7 +6356,7 @@ class LAManagement{
                     ?>
                     <div>
                     <div class='additional_content no_overflow' <?php echo ($level=$this->PathUpdatedLevel($path.'/'.$f))?"style='background-color:".($level==1?$this->chighlight:$this->chalfhighlight).";'":""?> >
-                        <div style='clear:both;text-align:right;position:sticky;top:80px;'>
+                        <div style='clear:both;text-align:right;position:sticky;top:80px;z-index:1;'>
                             <div class='plain_block small_shadow' style='text-align:center;display:inline-block;background-color:<?php echo $this->cwhite ?>;'>
                                 <div style='float:right'>
                                     &nbsp;<?php echo $is_draft?'<b>草稿</b>':($m?('于'.$y.'/'.$m.'/<b>'.$d.'</b>'):'<b>过去</b>的某一天') ?>
@@ -5477,6 +6398,8 @@ class LAManagement{
             }else if (isset($a['style']) && $a['style']==5){
                 $this->FileNameList = array_reverse($this->FileNameList);//old first
                 $this->MakeTaskGroupAdditional($path, $a['count'],NULL,NULL,NULL,NULL);
+            }else if (isset($a['style']) && $a['style']==6){
+                $this->MakeMailSubscribeBox($a['path'],$a['title'],$a['more']);
             }
             if(isset($folder)){
                 ?>
@@ -5493,6 +6416,9 @@ class LAManagement{
                 </div>
                 <?php
             }
+            ?>
+            </div>
+            <?php
         }
         
         if ($this->AdditionalLayout=='Gallery'){
@@ -5728,7 +6654,7 @@ class LAManagement{
             <?php
         }
             if (isset($this->FolderNameList[0])) foreach ($this->FolderNameList as $f){
-                $fp = $this->PermissionForFolderRecursive($f);
+                $fp = $this->FolderIsPublic($path.'/'.$f);
                 if(!$fp){
                     if(!$this->IsLoggedIn()) continue;
                 }
@@ -5795,7 +6721,7 @@ class LAManagement{
                     <tr>
                     <td><div class='audio_selector btn' id='audio_selector_<?php echo $audio['id']; ?>' style="white-space:nowrap; display:block;">放这个</div></td>
                     <td id='audio_selector_backdrop_<?php echo $audio['id']; ?>' style="width:100%;">
-                        <?php echo pathinfo($audio['src'],PATHINFO_BASENAME); ?>
+                        <?php echo $audio['id']; ?>
                     </td>
                     </tr>
                 <?php } ?>
@@ -5888,18 +6814,33 @@ class LAManagement{
                 music.currentTime = music.duration*Math.min(Math.max(percent,0),1);
             });
             for(i=0;i<music_list.length;i++){
+                
+                
                 music_list[i].ontimeupdate = function(){
                     duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
                     time.innerHTML=(Math.floor(music.currentTime/60))+':'+la_pad((Math.round(music.currentTime)%60),2);
                     progress.style.width=100*(music.currentTime/music.duration)+'%';
                     buffer.style.width = 100*(music.buffered.end(0)/music.duration)+'%';
                 }
-                music.oncanplay = function(){
-                    duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
+
+                if(i<music_list.length-1){
+                    var next_music = music_list[i+1];
+                    music_list[i].onended = function(){
+                        music.pause();
+                        music.currentTime=0;
+                        
+                        audio_back = document.getElementById('audio_selector_backdrop_'+music.id.match(/AUDIO_(.*)/)[1]);
+                        audio_back.style.backgroundColor="";
+                        
+                        music = next_music;
+                        
+                        audio_back = document.getElementById('audio_selector_backdrop_'+music.id.match(/AUDIO_(.*)/)[1]);
+                        audio_back.style.backgroundColor="<?php echo $this->chighlight; ?>";
+                        
+                        music.play();
+                    }
                 }
-                music.oncanplaythrough = function(){
-                    duration.innerHTML = (Math.floor(music.duration/60))+':'+la_pad((Math.round(music.duration)%60),2);
-                }
+                
             }     
             <?php } ?>
         </script>
@@ -6046,8 +6987,6 @@ class LAManagement{
     <?php
     }
     function MakeFooter(){
-        $this->GetPrevNextPassage($this->PagePath);
-        
         ?>
         <div class='the_body'>
         <div style='text-align:right;'>

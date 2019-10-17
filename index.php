@@ -93,25 +93,33 @@ $LA->SetInterlinkPath($la_page_path);
 //if($LA->CheckArgumentByNames($Config,'Users','admin','my data','123123')) echo 'OH YEAH BAE! <br />';
 //if(!$LA->CheckArgumentByNames($Config,'Users','admin','ab2c','ab2c')) echo 'FUCK YOU BITCH! <br />';
 
+$subscriber_added = $LA->DoNewSubscriber();
+$subscriber_edited = $LA->DoEditSubscriber();
 echo $LA->DoLogin();
 
+$upload = 0;
+$mail_result = 0;
+
 if($LA->IsLoggedIn()){
-    echo $LA->DoNewPassage();
-    echo $LA->DoMarkPassageUpdate();
-    echo $LA->DoNewSmallQuote();
-    echo $LA->DoEditTask();
-    echo $LA->DoNewFolder();
-    echo $LA->DoDeleteFolder();
-    echo $LA->DoRenameFolder();
-    echo $LA->DoDeleteFile();
-    echo $LA->DoRenameFile();
-    echo $LA->DoChangePermission();
-    echo $LA->DoChangeFolderDisplay();
-    echo $LA->DoChangeFolderLayout();
-    echo $LA->DoMoveFile();
-    echo $LA->DoAdditionalConfig();
-    echo $LA->DoTaskManagerConfig();
-    echo $LA->DoApplySettings();
+    if(!($upload = $LA->DoHandleUpload())){
+        $mail_result=$LA->DoSendNewsletter();
+        echo $LA->DoNewPassage();
+        echo $LA->DoMarkPassageUpdate();
+        echo $LA->DoNewSmallQuote();
+        echo $LA->DoEditTask();
+        echo $LA->DoNewFolder();
+        echo $LA->DoDeleteFolder();
+        echo $LA->DoRenameFolder();
+        echo $LA->DoDeleteFile();
+        echo $LA->DoRenameFile();
+        echo $LA->DoChangePermission();
+        echo $LA->DoChangeFolderDisplay();
+        echo $LA->DoChangeFolderLayout();
+        echo $LA->DoMoveFile();
+        echo $LA->DoAdditionalConfig();
+        echo $LA->DoTaskManagerConfig();
+        echo $LA->DoApplySettings();
+    }
 }
 
 echo $LA->DoSetColorScheme();
@@ -119,14 +127,37 @@ echo $LA->ChooseColorScheme();
 
 echo $LA->MakeHTMLHead();
 
+if($subscriber_added>0){
+    $LA->LimitAccess(4);
+}else if($subscriber_added==-1){
+    $LA->LimitAccess(5);
+}else if($subscriber_added==-2){
+    $LA->LimitAccess(6);
+}else if($subscriber_added==-3){
+    $LA->LimitAccess(7);
+}
+
+if($subscriber_edited || $mail_result){
+    $LA->LimitAccess(-1);
+}
+
 if(!$page_success){
     $LA->LimitAccess(0);
+}
+
+if($upload>0){
+    $LA->LimitAccess(3);
+}else if($upload<0){
+    $LA->LimitAccess(2);
 }
 
 if(!$LA->IsLoggedIn()){
     if (isset($la_operation)
         && $la_operation!='tile'
         && $la_operation!='timeline'){
+        $LA->LimitAccess(1);
+    }
+    if(!$LA->FolderIsPublic($LA->InterlinkPath())){
         $LA->LimitAccess(1);
     }
 }
@@ -152,7 +183,6 @@ if (file_exists($nav_this)){
 }else if(file_exists($nav_root)){
     $navigation = $nav_root;
 }
-
 
 if(!$la_operation){
     $LA->TryExtractTaskManager(NULL,0);
