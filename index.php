@@ -7,6 +7,36 @@ chdir(dirname(__FILE__));
 
 include 'lawebmanagement.php';
 
+$la_page_path = null;
+if (isset($_GET["page"])) $la_page_path = $_GET["page"];
+else{
+    if ($la_page_path==null){
+        if (isset($_COOKIE['mdwikipath'])){
+            $la_page_path=$_COOKIE['mdwikipath'];
+            unset($_COOKIE['mdwikipath']);
+        }
+        else $la_page_path = 'index.md';
+    }
+}
+if($la_page_path == '') $la_page_path = 'index.md';
+
+
+
+$la_operation = null;
+if (isset($_GET["operation"])) $la_operation = $_GET["operation"];
+
+
+date_default_timezone_set('Asia/Shanghai');
+
+$LA = new LAManagement();
+
+if(isset($_GET['rss_helper'])){
+    echo $LA->RespondToRssRequest();
+    exit;
+}
+
+$LA->LockRoot();
+
 ?>
 <script language="javascript"> 
 function setCookie(cname, cvalue, exdays) {
@@ -43,29 +73,6 @@ function getCookie(cname) {
     }
 </script>
 <?php
-
-$la_page_path = null;
-if (isset($_GET["page"])) $la_page_path = $_GET["page"];
-else{
-    if ($la_page_path==null){
-        if (isset($_COOKIE['mdwikipath'])){
-            $la_page_path=$_COOKIE['mdwikipath'];
-            unset($_COOKIE['mdwikipath']);
-        }
-        else $la_page_path = 'index.md';
-    }
-}
-if($la_page_path == '') $la_page_path = 'index.md';
-
-
-
-$la_operation = null;
-if (isset($_GET["operation"])) $la_operation = $_GET["operation"];
-
-
-date_default_timezone_set('Asia/Shanghai');
-
-$LA = new LAManagement();
 
 echo $LA->DoSetTranslation();
 
@@ -129,7 +136,7 @@ echo $LA->MakeHTMLHead();
 
 if($subscriber_added>0){
     $LA->LimitAccess(4);
-}else if($subscriber_added==-1){
+}else if($subscriber_added==-1 || $subscriber_edited==2){
     $LA->LimitAccess(5);
 }else if($subscriber_added==-2){
     $LA->LimitAccess(6);
@@ -299,6 +306,10 @@ if($la_operation == 'new'){
 
 }else if($LA->IsTaskManager()){
     echo $LA->MakeTaskList();
+}else if ($LA->IsStatsDisplay()){
+    echo $LA->MakeMainContentBegin(0);
+    echo $LA->MakeWebsiteStatsContent();
+    echo $LA->MakeMainContentEnd();
 }else{
     
     ob_start();
@@ -324,7 +335,8 @@ if($la_operation == 'new'){
     
     $LA->ConfirmMainPassage();
     
-    $main =  $LA->ProcessLinksToStatic(
+    $main =  $LA->InsertRSSList(
+             $LA->ProcessLinksToStatic(
              $LA->ProcessHREFForPrint(
              $LA->ProcessUpdatedLink(
              $LA->InsertSideNotes(
@@ -335,7 +347,7 @@ if($la_operation == 'new'){
              $LA->InsertAdaptiveContents(
              $LA->AddTableInteractions(
              $LA->ProcessHTMLLanguageForLinks(
-             $LA->HTMLFromMarkdownFile($LA->ActuallPath()))))))))))));
+             $LA->HTMLFromMarkdownFile($LA->ActuallPath())))))))))))));
     
     ob_start();
         echo $LA->MakeHREFListForPrint();

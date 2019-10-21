@@ -381,6 +381,9 @@ class LAManagement{
     protected $FootnoteEN;    
     protected $SmallQuoteName;
     
+    protected $StatsFile;
+    protected $IsStatsDisplay;
+    
     protected $TaskHighlightInvert;
     
     protected $BackgroundSemi;
@@ -564,6 +567,7 @@ class LAManagement{
         $this->AddTranslationEntry('不看了','Leave');
         
         $this->AddTranslationEntry('返回顶部','Back to top');
+        $this->AddTranslationEntry('今日更新数','Updates<br />today');
         
         $this->AddTranslationEntry('选项','Options');
         $this->AddTranslationEntry('上传','Upload');
@@ -628,6 +632,7 @@ class LAManagement{
         $this->AddTranslationEntry('应用','Apply');
         $this->AddTranslationEntry('显示','Show');
         $this->AddTranslationEntry('显示为','Show as');
+        $this->AddTranslationEntry('最近篇目数量','Display count');
         $this->AddTranslationEntry('天内完成的','Days Limit');
         $this->AddTranslationEntry('区域标题','Region Title');
         $this->AddTranslationEntry('方块列数量','Columns');
@@ -643,8 +648,6 @@ class LAManagement{
         $this->AddTranslationEntry('大声宣扬','Speak Loudly');
   
         $this->GLOBAL_TASK_I=0;
-        
-        $this->LockRoot();
     }
     
     function __deconstruct(){
@@ -714,7 +717,7 @@ class LAManagement{
         }else if($mode==5){
             echo "<h1>".$this->FROM_ZH("设置订阅")."</h1>";
             echo $this->FROM_ZH("您已经订阅过这个栏目。");
-            if($this->SubscriberIDExisting!='CONFIRMED'){
+            if(isset($this->SubscriberIDExisting) &&$this->SubscriberIDExisting!='CONFIRMED'){
                 echo "<p>".$this->FROM_ZH("请到您的收件箱检查确认信，它可能被某些邮件提供商标记为垃圾邮件。")."<br /><a href='?page=index.md".
                 "&resend_email=true&folder=".$this->SubscriberFolder."&id=".$this->SubscriberIDExisting.
                 "&title=".$this->SubscriberTitle."&mail_address=".$this->SubscriberMailAddress."&subscribe_language=".$this->SubscriberLanguage."'>".$this->FROM_ZH("重新发送确认邮件")."</a></p>";
@@ -728,7 +731,7 @@ class LAManagement{
             }
             echo "<p>";
             if(isset($_SERVER["HTTP_REFERER"])) echo "<a href='".$_SERVER["HTTP_REFERER"]."'>🡰 ".$this->FROM_ZH("返回")."</a>";
-            else echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
+            echo "&nbsp;<a href='?page=index.md'>⌂ ".$this->FROM_ZH("首页")."</a></p>";
         }else if($mode==6){
             echo "<h1>".$this->FROM_ZH("邮件传输错误")."</h1>";
             echo "<p>".$this->FROM_ZH("已经记录下您的订阅申请，但是未能发送确认邮件。")."</p>";
@@ -824,6 +827,12 @@ class LAManagement{
             &&!isset($_GET['moving'])
             &&!isset($_POST['button_new_passage'])) {
             return false;
+        }
+        
+        $this->StatsFile = preg_replace('/^\.\/(.*)/','$1',$this->StatsFile);
+        $path_clean = preg_replace('/^\.\/(.*)/','$1',$this->PagePath);
+        if($this->StatsFile == $path_clean){
+            $this->IsStatsDisplay = 1;
         }
         
         return true;
@@ -1407,7 +1416,7 @@ class LAManagement{
     }
     
     function HTMLFromMarkdown($Content){
-        return $this->PDE->text($this->RemoveMarkdownConfig($Content));
+        return $this->PDE->text($this->InsertReplacementSymbols($this->RemoveMarkdownConfig($Content)));
     }
     
     function HTMLFromMarkdownFile($FileName){
@@ -1807,6 +1816,35 @@ class LAManagement{
         if($folder_max > 50) return 0;
         return $folder_max;
     }
+    function DoUpdateStatsFile(){
+        $stats_file = $this->StatsFile;
+        if(!file_exists($stats_file) || !is_readable($stats_file)) return;
+        
+        $f = file_get_contents($stats_file);
+        
+        $today_date = date("Y-m-d");
+        $updates = "[".$this->CountTodayUpdates()." Updates]";
+        $new_stats = $today_date.": ".$updates.PHP_EOL.PHP_EOL;
+        
+        preg_match_all("/([0-9]{4}-[0-9]{2}-[0-9]{2}):[\s]*(.*)\R\R/Uu", $f, $matches, PREG_SET_ORDER); 
+        
+        $fi = fopen($stats_file,'w');
+        $found = 0;
+        
+        if(isset($matches[0])) foreach($matches as $match){
+            if($today_date == $match[1]){
+                $match[2] = preg_replace("/\[[\s]*[0-9]*[\s]*Updates[\s]*\]/", $updates, $match[2]);
+                $found = 1;
+            }
+            fwrite($fi, $match[1].": ".$match[2].PHP_EOL.PHP_EOL);
+        }
+        
+        if(!$found){
+            fwrite($fi, $new_stats);
+        }
+        
+        fclose($fi);
+    }
     function DoNewPassage(){
         if(isset($_POST['button_new_passage'])){
             $passage = $_POST['data_passage_content'];
@@ -1820,11 +1858,13 @@ class LAManagement{
             
             if((isset($_GET['delete_on_empty'])&&$_GET['delete_on_empty']==true) && $passage==''){
                 if(file_exists($file_path)) unlink($file_path);
+                $this->MarkPassageUpdate($file_path, 0);
             }else{
                 $file = fopen($file_path, "w");
                 fwrite($file,$passage);
                 fclose($file);
                 $this->MarkPassageUpdate($file_path, 1);
+                $this->DoUpdateStatsFile();
             }
 
             header('Location:?page='.(isset($_GET['return_to'])?$_GET['return_to']:((isset($_GET['quick'])?$this->PagePath:$file_path))).'&translation=disabled');
@@ -1845,7 +1885,7 @@ class LAManagement{
     function DoNewSmallQuote(){
         if(isset($_POST['button_new_quote'])){
             $passage = $_POST['data_small_quote_content'];
-            if($passage = $this->FROM_ZH("小声哔哔…"))
+            if($passage == $this->FROM_ZH("小声哔哔…"))
                 return;
             $file_path = $this->PagePath;
             if(!isset($_GET['quote_quick'])) return;
@@ -1889,10 +1929,10 @@ class LAManagement{
                 if(isset($this->MailSubscribers[0])) foreach($this->MailSubscribers as $people){
                     $appendix_en = "<hr>".$this->MailFootEN.($this->MailFootEN!=''?"<br />":"").
                                    $this->TitleEN." Newsletter | <a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md'>Home</a><br />".date("Y-m-d").
-                                   "<br /><a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md&configure_address=".$people['address']."&folder=".$this->SubscriberFolder."&mail_address=".$this->SubscriberMailAddress."&set_tranlstion=en'>Configure newsletter</a>";
+                                   "<br /><a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md&configure_address=".$people['address']."&folder=".$_GET['folder']."&mail_address=".$people['address']."&set_tranlstion=en'>Configure newsletter</a>";
                     $appendix_zh = "<hr>".$this->MailFoot.($this->MailFoot!=''?"<br />":"").
                                    $this->Title." 新闻稿 | <a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md'>首页</a><br />".date("Y-m-d").
-                                   "<br /><a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md&configure_address=".$people['address']."&folder=".$this->SubscriberFolder."&mail_address=".$this->SubscriberMailAddress."&set_tranlstion=zh'>设置新闻稿</a>";
+                                   "<br /><a href='http://".$_SERVER['HTTP_HOST']."/?page=index.md&configure_address=".$people['address']."&folder=".$_GET['folder']."&mail_address=".$people['address']."&set_tranlstion=zh'>设置新闻稿</a>";
                     $this->SendMail([$people['address']], $people['language']=='zh'?$this->MailTitle:$this->MailTitleEN, $people['language']=='zh'?($content_zh.$appendix_zh):($content_en.$appendix_en), NULL, NULL, NULL, NULL);
                 }
                 return 1;
@@ -1902,8 +1942,8 @@ class LAManagement{
     }
     function DoEditSubscriber(){
         if(isset($_GET['configure_address'])){
-            $this->SetSubscriberCustomizationInfo($_GET['title'], $_GET['folder'], $_GET['mail_address'], 0, NULL);
-            return 1;
+            $this->SetSubscriberCustomizationInfo(NULL, $_GET['folder'], $_GET['mail_address'], 0, NULL);
+            return 2;
         }
         if(isset($_GET['resend_email']) && $_GET['resend_email']='true'){
             if($this->SendConfirmationMail($_GET['title'], $_GET['folder'], $_GET['mail_address'], $_GET['id'], $_GET['subscribe_language'])>0){
@@ -2251,6 +2291,9 @@ class LAManagement{
             if(isset($_POST['settings_tracker_file'])){
                 $this->EditGeneralLineByName($Conf,'Website','TrackerFile',$_POST['settings_tracker_file']);
             }
+            if(isset($_POST['settings_stats_file'])){
+                $this->EditGeneralLineByName($Conf,'Website','StatsFile',$_POST['settings_stats_file']);
+            }
             if(isset($_POST['settings_mail_host'])){
                 $this->EditGeneralLineByName($Conf,'Website','MailHost',$_POST['settings_mail_host']);
             }
@@ -2373,6 +2416,12 @@ class LAManagement{
         if($days_diff>$days) return True;
         return False;
     }
+    function IsFromToday($time_from){
+        $from = new DateTime($time_from);
+        $day = $from->format("d");
+        $today = date("d");
+        return ($day == $today);
+    }
     function ProcessUpdatedLink($HtmlContent){
         $level=0;
         return preg_replace_callback("/<a([\s\S]*)>([\s\S]*)<\/a>/Uu",
@@ -2403,6 +2452,7 @@ class LAManagement{
         $this->SmallQuoteName = $this->GetLineValueByNames($Conf,"Website","SmallQuoteName");
         $this->TrackerFile    = $this->GetLineValueByNames($Conf,"Website","TrackerFile");
         $this->TaskHighlightInvert = $this->GetLineValueByNames($Conf,"Website","TaskHighlightInvert")=="True"?1:0;
+        $this->StatsFile      = $this->GetLineValueByNames($Conf,"Website","StatsFile");
         
         $this->MailHost       = $this->GetLineValueByNames($Conf,"Website","MailHost");
         $this->MailPort       = $this->GetLineValueByNames($Conf,"Website","MailPort");
@@ -2419,6 +2469,7 @@ class LAManagement{
         if(!$this->StringTitle) $this->StringTitle='LAMDWIKI';
         if(!$this->StringTitleEN) $this->StringTitleEN='LAMDWIKI';
         if(!$this->TrackerFile) $this->TrackerFile='events.md';
+        if(!$this->StatsFile) $this->StatsFile='stats.md';
         if(!$this->MailTitle) $this->MailTitle=$this->StringTitle.'新闻稿';
         if(!$this->MailTitleEN) $this->MailTitleEN=$this->StringTitleEN.' NewsLetter';
         
@@ -2453,6 +2504,15 @@ class LAManagement{
             fclose($ConfWrite);
         }
     }
+    function CountTodayUpdates(){
+        $count=0;
+        foreach ($this->RecentUpdatedList as $item){
+            $file = pathinfo($item['path'], PATHINFO_BASENAME);
+            if($file == $this->StatsFile || $file == 'la_config.md') continue; 
+            if($this->IsFromToday($item['time'])) $count++;
+        }
+        return $count;
+    }
     
     function MakeHTMLHead(){
         $append_title = NULL;
@@ -2465,6 +2525,7 @@ class LAManagement{
         <!doctype html>
         <head>
         <meta name="viewport" content="user-scalable=no, width=device-width" />
+        <meta http-equiv="Access-Control-Allow-Origin" content="*">
         <title><?php echo $this->LanguageAppendix=='zh'?$this->StringTitle:$this->StringTitleEN; ?><?php echo isset($append_title)?" | $append_title":""?></title>
         <style>
         
@@ -2524,7 +2585,8 @@ class LAManagement{
             .narrow_content         { padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:8px; max-height:350px; }
             .additional_content     { padding:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; }
             .task_content           { padding:3px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 2px <?php echo $this->cblack ?>; margin-bottom:5px; overflow: hidden; }
-            .inline_notes_outer     { padding:5px; border-left: 3px solid <?php echo $this->cblack ?>; border-top: 3px solid <?php echo $this->cblack ?>; padding-right: 8px; padding-bottom: 8px; margin-top: 5px; margin-bottom: 5px; }
+            .inline_notes_outer     { padding:5px; border-left: 3px solid <?php echo $this->cblack ?>; border-top: 3px solid <?php echo $this->cblack ?>; padding-right: 8px; padding-bottom: 8px; margin-top: 5px; margin-bottom: 5px;}
+            .rss_outer              { width: unset; display: inline-block; }
             .inline_notes_content   { padding:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; overflow: hidden; }
             .sidenotes_content      { position: absolute; right:10px; max-width: calc(50% - 470px); width: calc(20% - 20px); }
             .sidenotes_position     { position: absolute; width:calc(100% - 13px); min-width: 250px; right:0px; bottom: 15px; display: block; }
@@ -2644,12 +2706,12 @@ class LAManagement{
             .tile_item         { display: table-cell; }
             .image_tile        { display: table; table-layout: fixed; width: 100%; }
             
-            .footer            { padding:10px; padding-top:15px; padding-bottom:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-bottom:15px; overflow: hidden; display: inline-block; }
+            .footer            { padding:10px; padding-top:5px; padding-bottom:5px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 5px 5px <?php echo $this->cblack ?>; margin-left:10px; overflow: hidden; }
             .additional_options{ padding:5px; padding-top:10px; padding-bottom:10px; border:1px solid <?php echo $this->cblack ?>; background-color:<?php echo $this->cwhite ?>; box-shadow: 3px 3px <?php echo $this->cblack ?>; margin-bottom:-15px; overflow: hidden; display: inline-block; position: relative; }
             
             
-            .recent_updated            { background-color: <?php echo $this->chighlight ?>; }
-            .recent_updated_half       { background-color: <?php echo $this->chalfhighlight ?>; }
+            .recent_updated            { background-color: <?php echo $this->chighlight ?> !important; }
+            .recent_updated_half       { background-color: <?php echo $this->chalfhighlight ?> !important; }
             
             a        { border:1px solid <?php echo $this->cblack ?>; padding: 5px; color:<?php echo $this->cblack ?>; text-decoration: none; }
             a:hover  { border:3px double <?php echo $this->cblack ?>; padding: 3px; }
@@ -2657,7 +2719,7 @@ class LAManagement{
             a:disabled { border:1px solid <?php echo $this->cblack ?>; padding: 5px; cursor: not-allowed; }
             .main_content a       { padding: 0px; padding-left:3px; padding-right:3px; display: inline-block; background-color:<?php echo $this->cwhite ?>; }            
             .main_content a:hover { border:1px solid <?php echo $this->cblack ?>; text-decoration: underline; }
-            .main_content a:active{ border:1px solid <?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; background-color:<?php echo $this->cblack ?>; }
+            .main_content a:active{ border:1px solid <?php echo $this->cblack ?>; color:<?php echo $this->cwhite ?>; background-color:<?php echo $this->cblack ?> !important; }
             .main_content .no_border:hover { border: none; }
             .main_content .no_border:active { border: none; }
             
@@ -2996,7 +3058,23 @@ class LAManagement{
             <?php echo "<!-- main_end -->"; ?></div>
         <?php
     }
-    
+    function InsertReplacementSymbols($MarkdownContent){
+        $replacement = preg_replace_callback("/(`|```)([^`]*)(?1)/U",
+                    function($matches){
+                        $rep = preg_replace('/\-\>/','-@>',$matches[0]);
+                        return preg_replace('/\<\-/','<@-',$rep);
+                    },
+                    $MarkdownContent);
+        $replacement = preg_replace("/\-\>/","🡲",$replacement);
+        $replacement = preg_replace("/\<\-/","🡰",$replacement);
+        $replacement = preg_replace_callback("/(`|```)([^`]*)(?1)/U",
+                    function($matches){
+                        $rep = preg_replace('/\-@\>/','->',$matches[0]);
+                        return preg_replace('/\<@\-/','<-',$rep);
+                    },
+                    $replacement);
+        return $replacement;
+    }
     function InsertBlockTheme($HTMLContent){
         $Content = $HTMLContent;
         
@@ -3008,7 +3086,7 @@ class LAManagement{
         
         $Content = preg_replace_callback("/<!-- main_begin -->[\s]*<div ([\s]*class=[\"\'][^\"\']*the_body[\s\S]*<div.*class=[\"\'][^\"\']*main_content)([\s\S]*)<!-- main_end -->/U",
             function($matches){
-                if(preg_match("/<p>[\s]*\[theme:([\s\S]*)\][\s]*<\/p>/U", $matches[2], $args)){
+                if(preg_match("/<p>[\s]*\[theme ([\s\S]*)\][\s]*<\/p>/U", $matches[2], $args)){
                     preg_match("/name:[\s]*([\S]*)/", $args[1], $matched_name);
                     preg_match("/wide/", $args[1], $matched_wide);
                     preg_match("/no_padding/", $args[1], $matched_padding);
@@ -3020,7 +3098,7 @@ class LAManagement{
                                .(isset($matched_name[1])?" theme_".$matched_name[1]:"")
                                .(isset($matched_align[1])?" theme_align_".$matched_align[1]:"");
                     
-                    $remaining = preg_replace("/<p>[\s]*\[theme:([\s\S]*)\][\s]*<\/p>/","",$matches[2]);
+                    $remaining = preg_replace("/<p>[\s]*\[theme ([\s\S]*)\][\s]*<\/p>/","",$matches[2]);
                     $remaining = preg_replace("/<!-- special_stripe --><div[\s\S]*<!-- special_stripe --><\/div>/","",$remaining);
                     return $before.$remaining;
                 }
@@ -3030,6 +3108,124 @@ class LAManagement{
         $Content = preg_replace_callback("/(`|```)([^`]*)(?1)/U",
                     function($matches){
                         return preg_replace('/\[@theme/','[theme',$matches[0]);
+                    },
+                    $Content);
+        return $Content;
+    }
+    function GetRssFeed($url){
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_HEADER, true);    // we want headers
+        curl_setopt($ch, CURLOPT_NOBODY, true);    // we don't need body
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+        curl_setopt($ch, CURLOPT_TIMEOUT,20);
+        $output = curl_exec($ch);
+        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if($httpcode!=200) return "<!-- Error --!>本网站所在服务器无法连接到目标地址。";
+        $fp = file_get_contents($url, false, stream_context_create(array('http' => array('timeout' => '20'))),0, 30000);
+        if ($fp) {
+                        
+            $xmlReader = new XMLReader();
+            $xmlReader->XML($fp);
+
+            $isParserActive = false;
+            $simpleNodeTypes = array ("title", "description", "media:title", "link");
+            $i=0;
+            
+            while ($xmlReader->read ())
+            {
+                $nodeType = $xmlReader->nodeType;
+                if ($nodeType != XMLReader::ELEMENT && $nodeType != XMLReader::END_ELEMENT)
+                {
+                    continue;
+                }
+                else if ($xmlReader->name == "item")
+                {
+                    if (($nodeType == XMLReader::END_ELEMENT) && $isParserActive)
+                    {
+                        $i++;
+                    }
+                    $isParserActive = ($nodeType != XMLReader::END_ELEMENT);
+                }
+
+                if (!$isParserActive || $nodeType == XMLReader::END_ELEMENT)
+                {
+                    continue;
+                }
+
+                $name = $xmlReader->name;
+
+                if (in_array ($name, $simpleNodeTypes))
+                {
+                    // Skip to the text node
+                    $xmlReader->read ();
+                    $items[$i][$name] = $xmlReader->value;
+                }
+                else if ($name == "media:thumbnail")
+                {
+                    $items[$i]['media:thumbnail'] = array (
+                        "url" => $xmlReader->getAttribute("url"),
+                        "width" => $xmlReader->getAttribute("width"),
+                        "height" => $xmlReader->getAttribute("height")
+                    );
+                }
+                if($i>=1) break;
+            }
+            $count = 0;
+            $html = "";
+            foreach($items as$item) {
+                $html .= '<h2>'.htmlspecialchars($item['title']).'</h2> <a href="'.htmlspecialchars($item['link']).'">立即收听</a><div class="inline_block_height_spacer"></div>';
+            }
+            return $html;
+        } else {
+            return "<!-- Timeout --!>请求超时。";
+        }
+    }
+    function RespondToRssRequest(){
+        if(!isset($_GET['rss_helper'])) return;
+        $url = $_GET['rss_helper'];
+        
+        
+        return $this->GetRssFeed($url);
+    }
+    function InsertRSSList($HTMLContent){
+        $Content = $HTMLContent;
+        global $rss_i;
+        $rss_i=0;
+        $Safe = preg_replace_callback("/(`|```)([^`]*)(?1)/U",
+                    function($matches){
+                        return preg_replace('/\[rss/','[@rss',$matches[0]);
+                    },
+                    $Content);
+                    
+        $Content = preg_replace_callback("/<p>[\s]*\[rss.*href=[\'\"]([\s\S]*)[\'\"].*\].*<\/p>/U",
+            function($matches){
+                global $rss_i;
+                $url = $matches[1];
+                $insert = "<div id='rss_display_".$rss_i."'>".
+                          '<div class="inline_notes_outer halftone4 rss_outer"> <div class="inline_notes_content"><b>最新剧集</b>'.
+                          '<div id="rss_inner_'.$rss_i.'"></div>'.
+                          "<span style='font-size:12px;'>RSS订阅地址 ".$url.'</span>'.
+                          '</div></div>'.
+                          "</div><script>"."
+                          content".$rss_i." = document.createElement('div');
+                          content".$rss_i.".innerHTML='正在等待服务器返回数据……';
+                          document.querySelector('#rss_inner_".$rss_i."').appendChild(content".$rss_i.");
+                          fetch('index.php?rss_helper=".$url."').then((res) => {
+                              res.text().then((xmlTxt) => {
+                                  content".$rss_i.".innerHTML = xmlTxt;
+                              }
+                          )})".
+                          "</script>";
+                $rss_i = $rss_i+1;
+                return $insert;
+            },
+            $Safe);
+            
+        $Content = preg_replace_callback("/(`|```)([^`]*)(?1)/U",
+                    function($matches){
+                        return preg_replace('/\[@rss/','[rss',$matches[0]);
                     },
                     $Content);
         return $Content;
@@ -3596,6 +3792,9 @@ class LAManagement{
     function IsTaskManager(){
         return $this->IsTaskManager;
     }
+    function IsStatsDisplay(){
+        return $this->IsStatsDisplay;
+    }
 
     function SortTaskList(&$unfinished_items, &$finished_items, &$active_items, $return_new_combined, $oldest_first, $use_end_time){
         $time_entry = $use_end_time?"time_end":"time_begin";
@@ -3783,6 +3982,11 @@ class LAManagement{
                 <a id="ButtonTaskInvert"><?php echo $this->TaskHighlightInvert?"<b><u>":"" ?><?php echo $this->FROM_ZH("反转"); ?><?php echo $this->TaskHighlightInvert?"</u></b>":"" ?></a>
                 <input style='display:none;' class='string_input no_horizon_margin' type='text' id='settings_task_highlight_invert' name='settings_task_highlight_invert' form='settings_form' value='<?php echo $this->TaskHighlightInvert?"True":"" ?>' />
                 <?php echo $this->FROM_ZH("事件高亮显示"); ?>
+                
+                <br />
+                <div id="wrap_settings_stats_file"><input onInput="la_mark_div_highlight('wrap_'+this.id);" class='string_input no_horizon_margin' type='text' id='settings_stats_file' name='settings_stats_file' form='settings_form' value='<?php echo $this->StatsFile ?>' />
+                <?php echo $this->FROM_ZH("统计信息文件"); ?></div>
+                
                 </div>
             </div>
 
@@ -3904,6 +4108,51 @@ class LAManagement{
                     la_mark_div_highlight('wrap_settings_tracker_invert');
                 });
             </script>
+        <?php
+    }
+    function MakeWebsiteStatsContent(){
+        $this->DoUpdateStatsFile();
+        
+        $f = file_get_contents($this->StatsFile);
+        $update_history = [];
+        $max_count = 0;
+        preg_match_all("/([0-9]{4}-[0-9]{2}-[0-9]{2}):[\s]*(.*)\R\R/Uu", $f, $matches, PREG_SET_ORDER);
+        if(isset($matches[0])) foreach($matches as $match){
+            $item['date'] = $match[1];
+            if(preg_match("/\[[\s]*([0-9]*)[\s]*Updates[\s]*\]/",$match[2],$upd)){
+                $item['updates'] = $upd[1];
+            }else{
+                $item['updates'] = 0;
+            }
+            if($item['updates'] > $max_count){
+                
+                $max_count = $item['updates'];
+            }
+            $update_history[] = $item;
+        }else{
+            return;
+        }
+        $update_history = array_reverse($update_history);
+        ?>
+            <h1><?php echo $this->FROM_ZH("状态"); ?></h1>
+            <p><?php echo $this->FROM_ZH("有记录以来的每日更新文章数量"); ?></p>
+            <table><tbody>
+            <tr>
+            <td style="white-space:nowrap;"><?php echo $this->FROM_ZH("日期"); ?></td>
+            <td style="white-space:nowrap;"><?php echo $this->FROM_ZH("更新数"); ?></td>
+            <td style="text-align:right; width:100%;" ><?php echo $max_count; ?></td>
+            </tr>
+            <?php foreach($update_history as $day){ ?>
+                <tr>
+                <td><?php echo $day['date'] ?></td>
+                <td style="text-align:right;"><?php echo $day['updates'] ?></td>
+                <td>
+                    <?php $width = floatval(intval($day['updates']))/$max_count*100; ?>
+                    <div style="display:inline-block; background-color:<?php echo $this->cblack; ?>; width:<?php echo $width?>%;">&nbsp;</div>
+                </td>
+                </tr>
+            <?php } ?>
+            </tbody></table>
         <?php
     }
     function MakeLoginDiv(){
@@ -5968,6 +6217,15 @@ class LAManagement{
         }
         return $result;
     }
+    function PutUndatedFilesToTail($name_list){
+        $result=[];
+        $undated=[];
+        foreach($name_list as $item){
+            if (!preg_match("/^[0-9]/",$item)) $undated[] = $item;
+            else $result[] = $item;
+        }
+        return array_merge($result,$undated);
+    }
     function MakeAdditionalContent($folder,$position,$filter_season){
         if(!isset($folder)){
             $ad = $this->GetAdditionalDisplayData();
@@ -6023,7 +6281,7 @@ class LAManagement{
                 }
             }
             if($this->FileNameList)     sort($this->FileNameList);
-            $this->FileNameList = $this->FilterOutPreservedFiles(array_reverse($this->FileNameList));
+            $this->FileNameList = $this->PutUndatedFilesToTail($this->FilterOutPreservedFiles(array_reverse($this->FileNameList)));
             
             $novel_mode = $this->FolderNovelMode($a['path']);
             
@@ -6987,21 +7245,38 @@ class LAManagement{
     <?php
     }
     function MakeFooter(){
+        $have_stats = is_readable($this->StatsFile);
         ?>
         <div class='the_body'>
-        <div style='text-align:right;'>
-            <div class='footer'>
-                <a class='btn' href="javascript:scrollTo(0,0);"><?php echo $this->FROM_ZH('返回顶部') ?></a>
-                <br />
-                <div class = 'inline_block_height_spacer'></div>
-                <p style='font-size:12px;margin:0px;'><?php echo $this->LanguageAppendix=='zh'?$this->Footnote:$this->FootnoteEN; ?></p>
-                <?php if($this->UseLanguage() == 'zh'){?>
-                    <p style='font-size:12px;margin:0px;'>使用 <a href='http://www.wellobserve.com/?page=MDWiki/index.md' style='padding:1px;border:none;'>LAMDWIKI</a> 创建
-                <?php }else if ($this->UseLanguage() == 'en'){?>
-                    <p style='font-size:12px;margin:0px;'>Created using <a href='http://www.wellobserve.com/?page=MDWiki/index.md' style='padding:1px;border:none;'>LAMDWIKI</a></p>
-                <?php } ?>
+            <div style="text-align:right;">
+            <table style="display:inline-block; width:unset; margin-bottom: 15px; text-align:right;"><tbody>
+            <td class='footer' style="text-align:center;" >
+                <div>
+                    <p style='font-size:32px;margin:0px;'>
+                    <?php if($have_stats) { echo "<a style='border:none;' href='?page=".$this->StatsFile."'>"; } ?>
+                    <?php echo $this->CountTodayUpdates(); ?>
+                    <?php if($have_stats) { echo "</a>"; } ?>
+                    </p>
+                    <p style='font-size:12px;margin:0px;'><?php echo $this->FROM_ZH('今日更新数'); ?></p>
+                </div>
+            </td>
+            <td style="width:9px"></td>
+            <td class='footer'>
+                <div class="inline_block_height_spacer"></div>
+                <div>
+                    <a class='btn' href="javascript:scrollTo(0,0);"><?php echo $this->FROM_ZH('返回顶部') ?></a>
+                    <br />
+                    <div class = 'inline_block_height_spacer'></div>
+                    <p style='font-size:12px;margin:0px;'><?php echo $this->LanguageAppendix=='zh'?$this->Footnote:$this->FootnoteEN; ?></p>
+                    <?php if($this->UseLanguage() == 'zh'){?>
+                        <p style='font-size:12px;margin:0px;'>使用 <a href='http://www.wellobserve.com/?page=MDWiki/index.md' style='padding:1px;border:none;'>LAMDWIKI</a> 创建
+                    <?php }else if ($this->UseLanguage() == 'en'){?>
+                        <p style='font-size:12px;margin:0px;'>Created using <a href='http://www.wellobserve.com/?page=MDWiki/index.md' style='padding:1px;border:none;'>LAMDWIKI</a></p>
+                    <?php } ?>
+                </div>
+            </td>
+            </tbody></table>
             </div>
-        </div>
         </div>
         
         <script>
